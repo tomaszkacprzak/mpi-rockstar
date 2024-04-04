@@ -535,7 +535,7 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
             "%" PRId64 " %" PRId64 " %.4e %.2f %.2f %.3f %.3f %" PRId64 " %.5f "
             "%.5f %.5f %.2f %.2f %.2f %.3e %.3e %.3e %.5f %.5f %.4e %.4e %.4e "
             "%.4e %.4e "
-            "%.5f %.2f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f"
+            "%.5f %.2f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f %.5f "
             "%.4f %.3e %.3e %.3f"
 #ifdef OUTPUT_RVMAX
 	    " %.3f"
