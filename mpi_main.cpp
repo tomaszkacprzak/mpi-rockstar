@@ -494,6 +494,7 @@ MPI_Datatype create_mpi_bgroup_type() {
 
 MPI_Datatype create_mpi_halo_type() {
     MPI_Datatype mpi_halo_type;
+#if 0
     int          block_lengths[] = {1, 48, 6, 3};
     MPI_Aint     displacements[] = {
         offsetof(struct halo, id),
@@ -504,6 +505,9 @@ MPI_Datatype create_mpi_halo_type() {
     MPI_Datatype types[] = {MPI_INT64_T, MPI_FLOAT, MPI_INT64_T, MPI_FLOAT};
     MPI_Type_create_struct(4, block_lengths, displacements, types,
                            &mpi_halo_type);
+#else
+    MPI_Type_contiguous( sizeof(struct halo), MPI_CHAR, &mpi_halo_type);
+#endif
     MPI_Type_commit(&mpi_halo_type);
     return mpi_halo_type;
 }
@@ -1425,8 +1429,12 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
 
         timed_output("Output halos...\n");
         int64_t id_offset = 0;
-        MPI_Exscan(&num_halos, &id_offset, 1, MPI_INT64_T, MPI_SUM,
-                   MPI_COMM_WORLD);
+	int64_t num_halos_print = count_halos_to_print( writer_bounds[my_rank]);
+	MPI_Exscan(&num_halos_print, &id_offset, 1, MPI_INT64_T, MPI_SUM,
+		   MPI_COMM_WORLD);
+        /*MPI_Exscan(&num_halos, &id_offset, 1, MPI_INT64_T, MPI_SUM,
+	  MPI_COMM_WORLD);*/
+	//fprintf( stderr, "%lld %lld %lld\n", my_rank, num_halos, id_offset);
         output_halos(id_offset, snap, my_rank, writer_bounds[my_rank]);
 
         if (check_bgc2_snap(snap) || STRICT_SO_MASSES) {
