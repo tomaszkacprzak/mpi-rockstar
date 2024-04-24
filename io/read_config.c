@@ -163,6 +163,9 @@ void load_config(struct configfile *c, char *filename) {
         return;
     }
 
+    int totaln_config = 0;
+    char *file_format = NULL;
+
     while (fgets(buffer, 1024, input)) {
         val_start = buffer;
         strsep(&val_start, "#"); // Ignore comments;
@@ -183,12 +186,28 @@ void load_config(struct configfile *c, char *filename) {
 
         add_to_string_array(&(c->keys), key_start, key_end - key_start + 1,
                             c->num_entries);
+
+	if( !strncasecmp( c->keys[c->num_entries], "TOTAL_PARTICLES", 15)){
+	  totaln_config = 1;
+	}
+
         add_to_string_array(&(c->values), val_start, val_end - val_start + 1,
                             c->num_entries);
         add_to_int_array(&(c->touched), c->num_entries, 0);
+
+	if( !strncasecmp( c->keys[c->num_entries], "FILE_FORMAT", 11)){
+	  file_format = c->values[c->num_entries];
+	}
+
         c->num_entries++;
     }
     fclose(input);
+
+    if( !strncasecmp(file_format, "KYF", 3) && !totaln_config){
+      fprintf(stderr, "[Error] TOTAL_PARTICLES is not set\n");
+      exit(1);
+    }
+
 }
 
 void write_config(struct configfile c, char *filename) {

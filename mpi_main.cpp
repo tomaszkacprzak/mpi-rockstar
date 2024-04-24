@@ -33,6 +33,8 @@ extern "C" {
 FILE  *profile_out = NULL;
 double time_start;
 
+
+
 void timed_output(const char *format, ...) {
     MPI_Barrier(MPI_COMM_WORLD);
     int my_rank;
@@ -447,13 +449,17 @@ void decide_chunks_for_memory_balance(const int chunks[],
     particle_indices = reallocate(particle_indices, 0);
 }
 
-void decide_writer_bounds(float (*writer_bounds)[6]) {
+void decide_writer_bounds(float (*writer_bounds)[6], const int my_rank) {
     int chunks[3] = {0};
     MPI_Dims_create(NUM_WRITERS, 3, chunks);
     // if (strlen(LOAD_BALANCE_SCRIPT)) decide_chunks_by_script();
     // else if (NUM_WRITERS == 1) decide_chunks_for_volume_balance();
     // else decide_chunks_for_memory_balance();
     decide_chunks_for_memory_balance(chunks, writer_bounds);
+
+    if( my_rank == 0){
+      fprintf( stderr, "#chunks=(%d,%d,%d)\n", chunks[0], chunks[1], chunks[2]);
+    }
 }
 
 MPI_Datatype create_mpi_particle_type() {
@@ -1650,6 +1656,26 @@ void do_merger_tree(int64_t snap, int64_t my_rank, float (*writer_bounds)[6]) {
         _do_merger_tree_part2(snap, my_rank);
 }
 
+
+void check_config( const int my_rank){
+
+  if(my_rank == 0){
+
+    fprintf( stderr, "#The_number_of_threads= %d \n", get_max_threads());
+
+#ifdef OUTPUT_RVMAX
+    fprintf( stderr, "#OUTPUT_RVMAX on\n");
+#endif
+
+#ifdef OUTPUT_INTERMEDIATE_AXIS
+    fprintf( stderr, "#OUTPUT_INTERMEDIATE_AXIS on\n");
+#endif
+
+  }
+
+}
+
+
 void mpi_main(int argc, char *argv[]) {
     char    buffer[1024];
     int64_t reload_parts = 0, n;
@@ -1663,6 +1689,8 @@ void mpi_main(int argc, char *argv[]) {
     NUM_READERS = (NUM_BLOCKS > num_procs) ? num_procs : NUM_BLOCKS;
     if (my_rank == 0)
         check_num_writers();
+
+    check_config( my_rank);
 
     float my_reader_bounds[6];
     auto  writer_bounds = allocate<float[6]>(NUM_WRITERS);
@@ -1692,7 +1720,7 @@ void mpi_main(int argc, char *argv[]) {
             }
             sync_config();
             decide_reader_bounds(my_reader_bounds, my_reader_rank);
-            decide_writer_bounds(writer_bounds);
+            decide_writer_bounds(writer_bounds, my_rank);
 
             transfer_particles(my_reader_rank, my_reader_bounds, writer_bounds);
             std::sort(p, p + num_p,
