@@ -122,6 +122,7 @@ integer(SINGLE_SNAP, 0);
 // Additional parameters for MPI Rockstar for input
 integer(FILES_PER_SUBDIR_INPUT, 0); // The number of files in each subdir
 integer(SUBDIR_DIGITS_INPUT, 4);    // and the length of subdir names
+string(INBASE2, "snapdir_");
 
 // Additional parameters for MPI Rockstar for output
 integer(OUTLIST_PARALLEL, 0); // Output 'outlist' files in parallel

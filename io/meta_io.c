@@ -69,8 +69,9 @@ void get_input_filename(char *buffer, int maxlen, int64_t snap, int64_t block) {
     out = strlen(buffer);
     if (FILES_PER_SUBDIR_INPUT > 0) {
         int64_t subdir = block / FILES_PER_SUBDIR_INPUT;
-        snprintf(buffer + out, maxlen - out, "%0*ld/", (int)SUBDIR_DIGITS_INPUT,
-                 subdir);
+        //snprintf(buffer + out, maxlen - out, "%0*ld/", (int)SUBDIR_DIGITS_INPUT, subdir);
+	snprintf(buffer + out, maxlen - out, "%s%03d/%0*ld/", INBASE2, snap, (int)SUBDIR_DIGITS_INPUT, subdir);
+	fprintf( stderr, "%s\n", buffer);
         out = strlen(buffer);
     }
     for (; (i < l) && (out < (maxlen - 1)); i++) {
