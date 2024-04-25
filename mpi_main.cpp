@@ -582,6 +582,7 @@ void transfer_particles(int my_reader_rank, float *my_reader_bounds,
         }
 
         auto dest_procs = allocate<int64_t>(num_p);
+#if 0
         for (int64_t i = 0; i < num_p; i++) {
             for (auto j : recipients) {
                 if (_check_bounds_raw(p[i].pos, writer_bounds[j])) {
@@ -591,6 +592,22 @@ void transfer_particles(int my_reader_rank, float *my_reader_bounds,
                 }
             }
         }
+#else
+#pragma omp parallel for       
+	for (int64_t i = 0; i < num_p; i++) {
+            for (auto j : recipients) {
+                if (_check_bounds_raw(p[i].pos, writer_bounds[j])) {
+                    dest_procs[i] = j;
+                    break;
+                }
+            }
+        }
+
+	for (int64_t i = 0; i < num_p; i++){
+	  send_counts[dest_procs[i]] ++;
+	}
+	timed_output("Transferring0...\n");
+#endif
         std::vector<int64_t>().swap(recipients);
 
         auto send_displs = allocate<int>(NUM_WRITERS);
