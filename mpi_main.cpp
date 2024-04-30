@@ -33,8 +33,6 @@ extern "C" {
 FILE  *profile_out = NULL;
 double time_start;
 
-
-
 void timed_output(const char *format, ...) {
     MPI_Barrier(MPI_COMM_WORLD);
     int my_rank;
@@ -606,7 +604,6 @@ void transfer_particles(int my_reader_rank, float *my_reader_bounds,
 	for (int64_t i = 0; i < num_p; i++){
 	  send_counts[dest_procs[i]] ++;
 	}
-	timed_output("Transferring0...\n");
 #endif
         std::vector<int64_t>().swap(recipients);
 
@@ -623,6 +620,7 @@ void transfer_particles(int my_reader_rank, float *my_reader_bounds,
     }
     p     = reallocate(p, 0);
     num_p = 0;
+    timed_output("Transferring0...\n");
 
     auto mpi_particle_type = create_mpi_particle_type();
     num_p = exchange_data(send_buffer, send_counts, p, 0, mpi_particle_type);
