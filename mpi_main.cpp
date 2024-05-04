@@ -525,6 +525,7 @@ MPI_Datatype create_mpi_halo_type() {
 
 MPI_Datatype create_mpi_ehi_type() {
     MPI_Datatype mpi_ehi_type;
+#if 0
     int          block_lengths[] = {5, 1};
     MPI_Aint     displacements[] = {
         offsetof(struct extra_halo_info, child),
@@ -533,6 +534,9 @@ MPI_Datatype create_mpi_ehi_type() {
     MPI_Datatype types[] = {MPI_INT64_T, MPI_FLOAT};
     MPI_Type_create_struct(2, block_lengths, displacements, types,
                            &mpi_ehi_type);
+#else
+    MPI_Type_contiguous( sizeof(struct extra_halo_info), MPI_CHAR, &mpi_ehi_type);
+#endif
     MPI_Type_commit(&mpi_ehi_type);
     return mpi_ehi_type;
 }
@@ -547,6 +551,7 @@ struct complete_halo {
 MPI_Datatype create_mpi_complete_halo_type(MPI_Datatype mpi_halo_type,
                                            MPI_Datatype mpi_ehi_type) {
     MPI_Datatype mpi_complete_halo_type;
+#if 0
     int          block_lengths[] = {1, 1};
     MPI_Aint     displacements[] = {
         offsetof(struct complete_halo, h),
@@ -555,6 +560,9 @@ MPI_Datatype create_mpi_complete_halo_type(MPI_Datatype mpi_halo_type,
     MPI_Datatype types[] = {mpi_halo_type, mpi_ehi_type};
     MPI_Type_create_struct(2, block_lengths, displacements, types,
                            &mpi_complete_halo_type);
+#else
+    MPI_Type_contiguous( sizeof(struct complete_halo), MPI_CHAR, &mpi_complete_halo_type);
+#endif
     MPI_Type_commit(&mpi_complete_halo_type);
     return mpi_complete_halo_type;
 }
