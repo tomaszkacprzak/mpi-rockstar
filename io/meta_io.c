@@ -71,7 +71,6 @@ void get_input_filename(char *buffer, int maxlen, int64_t snap, int64_t block) {
         int64_t subdir = block / FILES_PER_SUBDIR_INPUT;
         //snprintf(buffer + out, maxlen - out, "%0*ld/", (int)SUBDIR_DIGITS_INPUT, subdir);
 	snprintf(buffer + out, maxlen - out, "%s%03d/%0*ld/", INBASE2, snap, (int)SUBDIR_DIGITS_INPUT, subdir);
-	fprintf( stderr, "%s\n", buffer);
         out = strlen(buffer);
     }
     for (; (i < l) && (out < (maxlen - 1)); i++) {
@@ -506,6 +505,9 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
 #ifdef OUTPUT_INTERMEDIATE_AXIS
 	    " B[x] B[y] B[z] B[x](%s) B[y](%s) B[z](%s)"
 #endif
+#ifdef OUTPUT_INERTIA_TENSOR
+	    " Ixx Iyy Izz Ixy Iyz Izx Ixx(%s) Iyy(%s) Izz(%s) Ixy(%s) Iyz(%s) Izx(%s)"
+#endif
 	    "\n",
             MASS_DEFINITION, MASS_DEFINITION, MASS_DEFINITION, MASS_DEFINITION2,
             MASS_DEFINITION3, MASS_DEFINITION4, MASS_DEFINITION5,
@@ -514,7 +516,9 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
 #ifdef OUTPUT_INTERMEDIATE_AXIS
 	    ,MASS_DEFINITION4, MASS_DEFINITION4, MASS_DEFINITION4
 #endif
-
+#ifdef OUTPUT_INERTIA_TENSOR
+	    ,MASS_DEFINITION4, MASS_DEFINITION4, MASS_DEFINITION4, MASS_DEFINITION4, MASS_DEFINITION4, MASS_DEFINITION4
+#endif
 			  );
         hchars += print_ascii_header_info(output, NULL, 0);
         fclose(output);
@@ -544,6 +548,9 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
 #ifdef OUTPUT_INTERMEDIATE_AXIS
 	    " %.5f %.5f %.5f %.5f %.5f %.5f"
 #endif
+#ifdef OUTPUT_INERTIA_TENSOR
+	    " %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e"
+#endif
 	    "\n",
             th->id, th->desc, m, th->vmax, th->vrms, th->r, th->rs, th->num_p,
             th->pos[0], th->pos[1], th->pos[2], th->pos[3], th->pos[4],
@@ -560,6 +567,13 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
             ,
             th->A_I[0], th->A_I[1], th->A_I[2], 
             th->A2_I[0], th->A2_I[1], th->A2_I[2]
+#endif
+#ifdef OUTPUT_INERTIA_TENSOR
+            ,
+            th->inertia_tensor[0], th->inertia_tensor[1], th->inertia_tensor[2], 
+            th->inertia_tensor[3], th->inertia_tensor[4], th->inertia_tensor[5], 
+            th->inertia_tensor2[0], th->inertia_tensor2[1], th->inertia_tensor2[2], 
+            th->inertia_tensor2[3], th->inertia_tensor2[4], th->inertia_tensor2[5]
 #endif
 	   );
     }

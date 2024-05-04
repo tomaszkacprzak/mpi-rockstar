@@ -269,6 +269,12 @@ void calc_shape(struct halo *h, int64_t total_p, int64_t bound) {
         for (k = 0; k < 3; k++)
             for (l = 0; l < 3; l++)
                 mass_t[k][l] /= (double)weight;
+
+#ifdef OUTPUT_INERTIA_TENSOR
+	double mass_t2[3][3];
+	memcpy( mass_t2, mass_t, sizeof(double)*9);
+#endif
+
         jacobi_decompose(mass_t, eig, orth);
         a = 0;
         b = 1;
@@ -301,8 +307,16 @@ void calc_shape(struct halo *h, int64_t total_p, int64_t bound) {
 #ifdef OUTPUT_INTERMEDIATE_AXIS
 	    h->A_I[k] = 1e3*r*orth[b][k];
 #endif
-            eig[k] *= (h->r * h->r * 1e-6) / (r * r);
+           eig[k] *= (h->r * h->r * 1e-6) / (r * r);
         }
+#ifdef OUTPUT_INERTIA_TENSOR
+	h->inertia_tensor[0] = mass_t2[0][0];
+	h->inertia_tensor[1] = mass_t2[1][1];
+	h->inertia_tensor[2] = mass_t2[2][2];
+	h->inertia_tensor[3] = mass_t2[0][1];
+	h->inertia_tensor[4] = mass_t2[1][2];
+	h->inertia_tensor[5] = mass_t2[2][0];
+#endif
     }
 }
 
@@ -454,6 +468,9 @@ void _calc_additional_halo_props(struct halo *h, int64_t total_p,
         h->b_to_a2 = h->b_to_a;
         h->c_to_a2 = h->c_to_a;
         memcpy(h->A2, h->A, sizeof(float) * 3);
+#ifdef OUTPUT_INERTIA_TENSOR
+	memcpy(h->inertia_tensor2, h->inertia_tensor, sizeof(float)*6);
+#endif
 #ifdef OUTPUT_INTERMEDIATE_AXIS
 	memcpy(h->A2_I, h->A_I, sizeof(float)*3);
 #endif

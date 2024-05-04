@@ -20,6 +20,11 @@ struct halo {
   float A2_I[3];
 #endif
 
+#ifdef OUTPUT_INERTIA_TENSOR
+  float inertia_tensor[6]; // xx, yy, zz, xy, yz, zx
+  float inertia_tensor2[6]; // xx, yy, zz, xy, yz, zx
+#endif
+
 };
 
 struct extra_halo_info {

@@ -33,6 +33,13 @@ extern "C" {
 FILE  *profile_out = NULL;
 double time_start;
 
+#ifdef OUTPUT_INTERMEDIATE_AXIS
+#ifdef OUTPUT_INERTIA_TENSOR
+#error
+#endif
+#endif
+
+
 void timed_output(const char *format, ...) {
     MPI_Barrier(MPI_COMM_WORLD);
     int my_rank;
@@ -1684,6 +1691,10 @@ void check_config( const int my_rank){
 
 #ifdef OUTPUT_INTERMEDIATE_AXIS
     fprintf( stderr, "#OUTPUT_INTERMEDIATE_AXIS on\n");
+#endif
+
+#ifdef OUTPUT_INERTIA_TENSOR
+    fprintf( stderr, "#OUTPUT_INERTIA_TENSOR on\n");
 #endif
 
   }
