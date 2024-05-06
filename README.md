@@ -58,7 +58,7 @@ non-Unix environments.  (Mac OS X is fine; Windows is not).
     Several example configuration files have been provided.  If you have a
     small simulation file and you'd like to run Rockstar on a single processor
     to test its output, edit the file "`quickstart.cfg`" and change the file
-    format to one of `ASCII`, `GADGET`, `AREPO`, `ART`, 
+    format to one of `ASCII`, `GADGET`, `AREPO`, `ART`, `GADGET4`
     or `TIPSY` to match your simulation file.  If you use the `ART` option,
     only PMss files are currently supported.  (PMcrs files, which do not include particle IDs
     explicitly, are not supported).
@@ -78,6 +78,10 @@ non-Unix environments.  (Mac OS X is fine; Windows is not).
     `AREPO_MASS_CONVERSION` to convert internal snapshot units to comoving Mpc/h
     and Msun/h, respectively.  Make sure to compile Rockstar with "`make with_hdf5`";
     otherwise, the code will not accept these config options.
+    `GADGET4` is the format similar to `AREPO` but some data column names are modified
+    to be compatible with Gadget-4 HDF5 format. For this format, `GADGET4_LENGTH_CONVERSION`
+    and `GADGET4_MASS_CONVERSION` may need to be specified for unit conversion.
+    This format also requires `hdf5`.
     
     If you use `TIPSY`, you should set the length and velocity
     conversion multipliers (`TIPSY_LENGTH_CONVERSION` and `TIPSY_MASS_CONVERSION`)
