@@ -1,19 +1,19 @@
-CFLAGS=-m64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_BSD_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200809L -D_SVID_SOURCE -D_DARWIN_C_SOURCE -Wall -fno-math-errno -fPIC -std=c99
-CXXFLAGS=-Wall -fno-math-errno -fPIC -std=c++11
-ADDFLAGS =  -DOUTPUT_RVMAX -DOUTPUT_INTERMEDIATE_AXIS
+CFLAGS=-m64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_DEFAULT_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200809L -D_DARWIN_C_SOURCE -Wall -fno-math-errno -fPIC -std=c99 -Nclang
+CXXFLAGS=-Wall -fno-math-errno -fPIC -std=c++11 -Nclang
+#ADDFLAGS = -DOUTPUT_RVMAX -DOUTPUT_INTERMEDIATE_AXIS
 CFLAGS += $(ADDFLAGS)
 CXXFLAGS += $(ADDFLAGS)
 LDFLAGS=-shared
-OFLAGS = -O3 -fopenmp
+OFLAGS = -Ofast -fopenmp $(ADDFLAGS)
 DEBUGFLAGS = -lm -g -O0 -std=c99 -rdynamic
 PROFFLAGS = -lm -g -pg -O2 -std=c99
-CC = mpicc
-CXX = mpic++
-CFILES = rockstar.c check_syscalls.c fof.c groupies.c subhalo_metric.c potential.c nfw.c jacobi.c fun_times.c interleaving.c universe_time.c hubble.c integrate.c distance.c config_vars.c config.c bounds.c inthash.c io/read_config.c merger.c inet/socket.c inet/rsocket.c inet/address.c io/meta_io.c io/io_internal.c io/io_ascii.c io/stringparse.c io/io_gadget.c io/io_generic.c io/io_art.c io/io_tipsy.c io/io_bgc2.c io/io_util.c io/io_arepo.c io/io_gadget4.c io/io_hdf5.c io/io_kyf.c
+CC = mpifccpx
+CXX = mpiFCCpx
+CFILES = rockstar.c check_syscalls.c fof.c groupies.c subhalo_metric.c potential.c nfw.c jacobi.c fun_times.c universe_time.c hubble.c integrate.c distance.c config_vars.c config.c bounds.c inthash.c io/read_config.c merger.c inet/socket.c inet/rsocket.c inet/address.c io/meta_io.c io/io_internal.c io/io_ascii.c io/stringparse.c io/io_gadget.c io/io_generic.c io/io_art.c io/io_tipsy.c io/io_bgc2.c io/io_util.c io/io_arepo.c io/io_gadget4.c io/io_hdf5.c io/io_kyf.c interleaving.c
 CPPFILES = mpi_main.cpp
 OBJS = $(CFILES:.c=.o) $(CPPFILES:.cpp=.o)
 DIST_FLAGS =
-HDF5_FLAGS = -DH5_USE_16_API -lhdf5 -DENABLE_HDF5 -I/opt/local/include -L/opt/local/lib
+HDF5_FLAGS = -DH5_USE_16_API -DENABLE_HDF5
 
 all:
 	@make rockstar EXTRA_FLAGS="$(OFLAGS)"
@@ -42,13 +42,13 @@ versiondist:
 	cd dist; tar xzf ../rockstar.tar.gz ; perl -ne '/\#define.*VERSION\D*([\d\.rcRC-]+)/ && print $$1' Rockstar/version.h > NUMBER ; mv Rockstar Rockstar-`cat NUMBER`; tar czf rockstar-`cat NUMBER`.tar.gz Rockstar-`cat NUMBER`
 
 rockstar: $(OBJS) main.o
-	@$(CXX) -o $@ $^ -lm -lstdc++ -fopenmp
+	@$(CXX) -o $@ $^ -lm -lstdc++ -ltirpc -fopenmp -lhdf5 -lz
 
 %.o: %.c
-	@$(CC) $(CFLAGS) -c $< -o $@ $(OFLAGS) -I/usr/include/tirpc
+	@$(CC) $(CFLAGS) -c $< -o $@ $(OFLAGS) $(HDF5_FLAGS) -I/usr/include/tirpc
 
 %.o: %.cpp
-	@$(CXX) $(CXXFLAGS) -c $< -o $@ $(OFLAGS)
+	@$(CXX) $(CXXFLAGS) -c $< -o $@ $(OFLAGS) $(HDF5_FLAGS)
 
 lib:
 	$(CC) $(CFLAGS) $(LDFLAGS) $(CFILES) -o librockstar.so $(OFLAGS)

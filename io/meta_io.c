@@ -147,7 +147,16 @@ void read_particles(char *filename) {
     double *origin, origin_offset[3] = {0};
     if (!strcasecmp(FILE_FORMAT, "ASCII"))
         load_particles(filename, &p, &num_p);
-    else if (!strncasecmp(FILE_FORMAT, "GADGET", 6) ||
+    else if (!strncasecmp(FILE_FORMAT, "GADGET4", 7)) {
+#ifdef ENABLE_HDF5
+        load_particles_gadget4(filename, &p, &num_p);
+        gadget = 1;
+#else
+        fprintf(stderr, "[Error] GADGET4 needs HDF5 support.  Recompile Rockstar "
+                        "using \"make with_hdf5\".\n");
+        exit(1);
+#endif
+    } else if (!strncasecmp(FILE_FORMAT, "GADGET", 6) ||
              !strncasecmp(FILE_FORMAT, "LGADGET", 7)) {
         load_particles_gadget2(filename, &p, &num_p);
         gadget = 1;
@@ -167,14 +176,6 @@ void read_particles(char *filename) {
         load_particles_arepo(filename, &p, &num_p);
 #else
         fprintf(stderr, "[Error] AREPO needs HDF5 support.  Recompile Rockstar "
-                        "using \"make with_hdf5\".\n");
-        exit(1);
-#endif
-    } else if (!strncasecmp(FILE_FORMAT, "GADGET4", 7)) {
-#ifdef ENABLE_HDF5
-        load_particles_gadget4(filename, &p, &num_p);
-#else
-        fprintf(stderr, "[Error] GADGET4 needs HDF5 support.  Recompile Rockstar "
                         "using \"make with_hdf5\".\n");
         exit(1);
 #endif

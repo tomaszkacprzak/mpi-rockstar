@@ -150,7 +150,7 @@ void load_particles_gadget4(char *filename, struct particle **p, int64_t *num_p)
     gadget4_readheader_array(HDF_Header, filename, "MassTable", H5T_NATIVE_FLOAT,
                              massTable);
 
-    TOTAL_PARTICLES = (int64_t)naprt_total[GADGET4_DM_PARTTYPE];
+    TOTAL_PARTICLES = (int64_t)npart_total[GADGET4_DM_PARTTYPE];
 
     H5Gclose(HDF_Header);
     H5Gclose(HDF_Parameters);
