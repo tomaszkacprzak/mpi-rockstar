@@ -11,6 +11,7 @@
 #include "rockstar.h"
 #include "bounds.h"
 #include "fun_times.h"
+#include "mpi.h"
 
 #define DEBUG_FUN_TIMES 0
 
@@ -130,10 +131,28 @@ void load_previous_halos(int64_t snap, int64_t chunk, float *bounds) {
         if (!p_bounds)
             check_realloc_s(p_bounds, sizeof(struct prev_bounds), NUM_WRITERS);
         prev_snap = snap - 1;
+	
+#if 0
         for (rchunk = 0; rchunk < NUM_WRITERS; rchunk++) {
             load_binary_header(snap - 1, rchunk, &bh);
             memcpy(p_bounds[rchunk].bounds, bh.bounds, sizeof(float) * 6);
         }
+#else
+	load_binary_header(snap - 1, chunk, &bh);
+	struct prev_bounds p_bounds0;
+	int str_size = sizeof(struct prev_bounds);
+	memcpy( &p_bounds0, bh.bounds, sizeof(float) * 6);
+	MPI_Allgather( &p_bounds0, str_size, MPI_CHAR, p_bounds, str_size, MPI_CHAR, MPI_COMM_WORLD);
+#endif
+#if 0
+	if( chunk == 0){
+	  for (rchunk = 0; rchunk < NUM_WRITERS; rchunk++) {
+	    fprintf( stdout, "%e\t%e\t%e\t%e\t%e\t%e\n", 
+		     p_bounds[rchunk].bounds[0], p_bounds[rchunk].bounds[1], p_bounds[rchunk].bounds[2], 
+		     p_bounds[rchunk].bounds[3], p_bounds[rchunk].bounds[4], p_bounds[rchunk].bounds[5]);
+	  }
+	}
+#endif    
     }
 
     for (rchunk = 0; rchunk < NUM_WRITERS; rchunk++) {
