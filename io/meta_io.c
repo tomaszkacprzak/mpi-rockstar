@@ -27,6 +27,7 @@
 
 #ifdef ENABLE_HDF5
 #include "io_arepo.h"
+#include "io_gadget4.h"
 #endif /* ENABLE_HDF5 */
 
 char **snapnames  = NULL;
@@ -69,7 +70,7 @@ void get_input_filename(char *buffer, int maxlen, int64_t snap, int64_t block) {
     out = strlen(buffer);
     if (FILES_PER_SUBDIR_INPUT > 0) {
         int64_t subdir = block / FILES_PER_SUBDIR_INPUT;
-	snprintf(buffer + out, maxlen - out, "%s%03" PRId64 "/%0*ld/", INBASE2, snap, (int)SUBDIR_DIGITS_INPUT, subdir);
+        snprintf(buffer + out, maxlen - out, "%s%03" PRId64 "/%0*ld/", INBASE2, snap, (int)SUBDIR_DIGITS_INPUT, subdir);
         out = strlen(buffer);
     }
     for (; (i < l) && (out < (maxlen - 1)); i++) {
@@ -84,8 +85,9 @@ void get_input_filename(char *buffer, int maxlen, int64_t snap, int64_t block) {
                 else {
                     if (!strncasecmp(FILE_FORMAT, "GADGET", 6) ||
                         !strncasecmp(FILE_FORMAT, "LGADGET", 7) ||
-			!strncasecmp(FILE_FORMAT, "KYF", 3) || 
-                        !strncasecmp(FILE_FORMAT, "AREPO", 5))
+                        !strncasecmp(FILE_FORMAT, "KYF", 3) ||
+                        !strncasecmp(FILE_FORMAT, "AREPO", 5) ||
+                        !strncasecmp(FILE_FORMAT, "GADGET4", 7))
                         snprintf(buffer + out, maxlen - out, "%03" PRId64,
                                  snap);
                     else
@@ -144,7 +146,16 @@ void read_particles(char *filename) {
     double *origin, origin_offset[3] = {0};
     if (!strcasecmp(FILE_FORMAT, "ASCII"))
         load_particles(filename, &p, &num_p);
-    else if (!strncasecmp(FILE_FORMAT, "GADGET", 6) ||
+    else if (!strncasecmp(FILE_FORMAT, "GADGET4", 7)) {
+#ifdef ENABLE_HDF5
+        load_particles_gadget4(filename, &p, &num_p);
+        gadget = 1;
+#else
+        fprintf(stderr, "[Error] GADGET4 needs HDF5 support.  Recompile Rockstar "
+                        "using \"make with_hdf5\".\n");
+        exit(1);
+#endif
+    } else if (!strncasecmp(FILE_FORMAT, "GADGET", 6) ||
              !strncasecmp(FILE_FORMAT, "LGADGET", 7)) {
         load_particles_gadget2(filename, &p, &num_p);
         gadget = 1;
