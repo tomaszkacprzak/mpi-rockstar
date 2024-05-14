@@ -4,7 +4,7 @@ CXXFLAGS = -Wall -fno-math-errno -fPIC -std=c++11 -Nclang
 CFLAGS   += $(ADDFLAGS)
 CXXFLAGS += $(ADDFLAGS)
 LDFLAGS  =-shared
-OFLAGS   = -Ofast -fopenmp $(ADDFLAGS)
+OFLAGS   = -Ofast -fopenmp
 DEBUGFLAGS = -lm -g -O0 -std=c99 -rdynamic
 PROFFLAGS = -lm -g -pg -O2 -std=c99
 CC = mpifccpx
