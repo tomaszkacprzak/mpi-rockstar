@@ -63,9 +63,9 @@ void gadget4_read_dataset(hid_t HDF_FileID, char *filename, char *gid,
     free(buffer);
 }
 
-float gadget4_readheader_double(hid_t HDF_GroupID, char *filename, char *objName) {
+double gadget4_readheader_double(hid_t HDF_GroupID, char *filename, char *objName) {
     char *gid        = "Header";
-    hid_t HDF_Type   = H5T_NATIVE_FLOAT;
+    hid_t HDF_Type   = H5T_NATIVE_DOUBLE;
     hid_t HDF_AttrID = check_H5Aopen_name(HDF_GroupID, objName, gid, filename);
     hid_t HDF_DataspaceID = check_H5Aget_space(HDF_AttrID);
 
@@ -79,7 +79,7 @@ float gadget4_readheader_double(hid_t HDF_GroupID, char *filename, char *objName
     return data;
 }
 
-float gadget4_readparameters_double(hid_t HDF_GroupID, char *filename, char *objName) {
+double gadget4_readparameters_double(hid_t HDF_GroupID, char *filename, char *objName) {
     char *gid        = "Parameters";
     hid_t HDF_Type   = H5T_NATIVE_DOUBLE;
     hid_t HDF_AttrID = check_H5Aopen_name(HDF_GroupID, objName, gid, filename);
@@ -137,7 +137,7 @@ void load_particles_gadget4(char *filename, struct particle **p, int64_t *num_p)
     Om        = gadget4_readparameters_double(HDF_Parameters, filename, "Omega0");
     h0        = gadget4_readparameters_double(HDF_Parameters, filename, "HubbleParam");
     SCALE_NOW = gadget4_readheader_double(HDF_Header, filename, "Time");
-    BOX_SIZE  = gadget4_readheader_double(HDF_Parameters, filename, "BoxSize");
+    BOX_SIZE  = gadget4_readheader_double(HDF_Header, filename, "BoxSize");
     BOX_SIZE *= GADGET4_LENGTH_CONVERSION;
 
     uint64_t npart[GADGET4_NTYPES], npart_total[GADGET4_NTYPES];
