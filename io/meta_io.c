@@ -19,13 +19,14 @@
 #include "io_gadget.h"
 #include "io_generic.h"
 #include "io_internal.h"
-#include "io_tipsy.h"
+//#include "io_tipsy.h"
 #include "io_kyf.h" // Added by TI 20160909
 #include "meta_io.h"
 #include "../distance.h"
 #include "../version.h"
 
 #ifdef ENABLE_HDF5
+#include "io_internal_hdf5.h"
 #include "io_arepo.h"
 #include "io_gadget4.h"
 #endif /* ENABLE_HDF5 */
@@ -166,8 +167,8 @@ void read_particles(char *filename) {
     } else if (!strncasecmp(FILE_FORMAT, "GENERIC", 7)) {
         assert(load_particles_generic != NULL);
         load_particles_generic(filename, &p, &num_p);
-    } else if (!strncasecmp(FILE_FORMAT, "TIPSY", 5)) {
-        load_particles_tipsy(filename, &p, &num_p);
+//    } else if (!strncasecmp(FILE_FORMAT, "TIPSY", 5)) {
+//        load_particles_tipsy(filename, &p, &num_p);
     } else if (!strncasecmp(FILE_FORMAT, "KYF", 3)) { // Added by TI 20160909
         load_particles_kyf(filename, &p, &num_p);
     } else if (!strncasecmp(FILE_FORMAT, "AREPO", 5)) {
@@ -465,6 +466,16 @@ void output_halos(int64_t id_offset, int64_t snap, int64_t chunk,
         !strcasecmp(OUTPUT_FORMAT, "BINARY") ||
         (TEMPORAL_HALO_FINDING && !LIGHTCONE))
         output_binary(id_offset, snap, chunk, bounds, 1);
+#ifdef ENABLE_HDF5
+    if (!strcasecmp(OUTPUT_FORMAT, "HDF5")){
+        output_binary(id_offset, snap, chunk, bounds, 1);
+        output_hdf5(id_offset, snap, chunk, bounds, 1);
+    }
+#else
+        fprintf(stderr, "[Error] HDF5 output format needs HDF5 support.  Recompile Rockstar "
+                        "using \"make with_hdf5\".\n");
+        exit(1);
+#endif
 
     if (chunk < FULL_PARTICLE_CHUNKS)
         output_full_particles(id_offset, snap, chunk, bounds);
