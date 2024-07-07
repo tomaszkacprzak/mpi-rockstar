@@ -4,7 +4,7 @@
 #include <string.h>
 #include <assert.h>
 #include "meta_io.h"
-#include "io_hdf5.h"
+#include "io_internal_hdf5.h"
 #include "../config_vars.h"
 #include "../rockstar.h"
 #include "../groupies.h"
@@ -163,7 +163,7 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
 
     dataspace_id = H5Screate_simple(1, dims1, NULL); 
     datatype_id = H5Tcopy(H5T_NATIVE_FLOAT);
-    dataset_id = H5Dcreate2(file_id, "/m", datatype_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    dataset_id = H5Dcreate2(file_id, "/Mvir", datatype_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, buff);
     status = H5Dclose(dataset_id);
     status = H5Tclose(datatype_id);
@@ -178,7 +178,7 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
     dataset_id = H5Dcreate2(file_id, "/Header", datatype_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     attribute_id = H5Screate(H5S_SCALAR);
-    attr = H5Acreate2(dataset_id, "Omega_m", H5T_NATIVE_FLOAT, attribute_id, H5P_DEFAULT, H5P_DEFAULT);
+    attr = H5Acreate2(dataset_id, "Omega_m", H5T_NATIVE_DOUBLE, attribute_id, H5P_DEFAULT, H5P_DEFAULT);
     status = H5Awrite(attr, H5T_NATIVE_INT, &Om);
 
     status = H5Aclose(attr);
@@ -192,5 +192,47 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
 
     status = H5Fclose(file_id);
 }
+
+void load_hdf5_header(int64_t snap, int64_t chunk,
+                      struct binary_output_header *bheader) {
+    char  buffer[1024];
+    FILE *input;
+    get_output_filename(buffer, 1024, snap, chunk, "bin");
+    input = check_fopen(buffer, "rb");
+    check_fread(bheader, sizeof(struct binary_output_header), 1, input);
+    assert(bheader->magic == ROCKSTAR_MAGIC);
+    fclose(input);
+}
+
+void load_hdf5_halos(int64_t snap, int64_t chunk,
+                     struct binary_output_header *bheader,
+                     struct halo **halos, int64_t **part_ids,
+                     int64_t coalesced) {
+    char    buffer[1024];
+    FILE   *input;
+    int64_t i, j;
+
+    if (!coalesced)
+        get_output_filename(buffer, 1024, snap, chunk, "bin");
+    else
+        get_output_filename(buffer, 1024, snap, chunk, "coalesced.bin");
+    input = check_fopen(buffer, "rb");
+    check_fread(bheader, sizeof(struct binary_output_header), 1, input);
+    assert(bheader->magic == ROCKSTAR_MAGIC);
+    assert(bheader->num_halos >= 0);
+    assert(bheader->num_particles >= 0);
+    check_realloc_s(*halos, sizeof(struct halo), bheader->num_halos);
+    check_realloc_s(*part_ids, sizeof(int64_t), bheader->num_particles);
+    i = check_fread(*halos, sizeof(struct halo), bheader->num_halos, input);
+    j = check_fread(*part_ids, sizeof(int64_t), bheader->num_particles, input);
+    if (i != bheader->num_halos || j != bheader->num_particles) {
+        fprintf(stderr, "[Error] Truncated input file %s!\n", buffer);
+        exit(1);
+    }
+    fclose(input);
+
+    read_binary_header_config(bheader);
+}
+
 
 #endif /* ENABLE_HDF5 */

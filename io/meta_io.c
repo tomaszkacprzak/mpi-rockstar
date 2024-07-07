@@ -19,7 +19,7 @@
 #include "io_gadget.h"
 #include "io_generic.h"
 #include "io_internal.h"
-//#include "io_tipsy.h"
+#include "io_tipsy.h"
 #include "io_kyf.h" // Added by TI 20160909
 #include "meta_io.h"
 #include "../distance.h"
