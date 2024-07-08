@@ -15,7 +15,18 @@
 #include "../version.h"
 #include "../halo.h"
 
-void write_hdf5_bheader(struct binary_output_header bheader) {
+
+void write_hdf5_dataset(hid_t HDF_FileID, char *dataid, hid_t type, hsize_t rank, hsize_t *dims, void *data) {
+    hid_t dataspace_id = H5Screate_simple(rank, dims, NULL); 
+    hid_t datatype_id = H5Tcopy(type);
+    hid_t dataset_id = H5Dcreate2(HDF_FileID, dataid, datatype_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    check_H5Dwrite(dataset_id, type, data);
+    check_H5Dclose(dataset_id);
+    check_H5Tclose(datatype_id);
+    check_H5Sclose(dataspace_id);
+}
+
+void write_hdf5_header(struct binary_output_header bheader) {
     /*
     dataspace_id = H5Screate(H5S_NULL);
     datatype_id = H5Tcopy(H5T_NATIVE_INT);
@@ -37,24 +48,19 @@ void write_hdf5_bheader(struct binary_output_header bheader) {
 void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
                  float *bounds, int64_t output_particles) {
     float                       max[3] = {0}, min[3] = {0};
-    struct halo                 tmp;
     char                        filename[1024];
     int64_t                     i, j, num_write, id = 0;
     int64_t                    *ids, *p_start;
     int                        *to_write; 
     struct binary_output_header bheader;
-    hid_t                       file_id, attr;
-    hid_t                       attribute_id, dataset_id, datatype_id, dataspace_id;
-    herr_t                      status;
-    hsize_t                     ndims;
-    hsize_t                     dims1[1], dims2[2];
-    float                       *buff;
-    int64_t                     *bufi;
+    hid_t                       file_id;
+    hsize_t                     dims1[1], dims2[2], dims3[2], dims4[2];
+    float                      *buffer_float;
+    int64_t                    *buffer_int;
 
 
     memset(&bheader, 0, sizeof(struct binary_output_header));
     to_write = (int *) malloc(sizeof(int) * num_halos);
-
     ids = (int64_t *) malloc(sizeof(int64_t) * num_halos);
     p_start = (int64_t *) malloc(sizeof(int64_t) * num_halos);
 
@@ -82,126 +88,120 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
         ids[id] = id + id_offset;
         p_start[id] = bheader.num_particles;
         bheader.num_halos++;
-        bheader.num_particles += tmp.num_p;
+        bheader.num_particles += halos[i].num_p;
         id++;
     }
 
     num_write = bheader.num_halos;
 
+    // set data dimensions and buffers
+    dims1[0] = num_write;
+
+    dims2[0] = num_write;
+    dims2[1] = 3;
+
+    dims3[0] = num_write;
+    dims3[1] = 4;
+
+    dims4[0] = num_write;
+    dims4[1] = 6;
+
+    buffer_float = (float *) malloc(sizeof(float) * 6 * num_write);
+    buffer_int = (int64_t *) malloc(sizeof(int64_t) * num_write);
+
+
+    // Create file
     get_output_filename(filename, 1024, snap, chunk, "hdf5");
     file_id = check_H5Fcreate(filename, H5F_ACC_TRUNC);
 
-    dims1[0] = num_write;
-
     // ID
-    dataspace_id = check_H5Screate_simple(1, dims1, NULL); 
-    datatype_id = check_H5Tcopy(H5T_NATIVE_LLONG);
-    dataset_id = check_H5Dcreate(file_id, "/ID", datatype_id, dataspace_id);
-    check_H5Dwrite(dataset_id, H5T_NATIVE_LLONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, ids);
-    status = H5Dclose(dataset_id);
-    status = H5Tclose(datatype_id);
-    status = H5Sclose(dataspace_id);
+    write_hdf5_dataset(file_id, "/ID", H5T_NATIVE_LLONG, 1, dims1, ids);
     free(ids);
 
-    // p_start
-    dataspace_id = H5Screate_simple(1, dims1, NULL); 
-    datatype_id = H5Tcopy(H5T_NATIVE_LLONG);
-    dataset_id = H5Dcreate2(file_id, "/p_start", datatype_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status = H5Dwrite(dataset_id, H5T_NATIVE_LLONG, H5S_ALL, H5S_ALL, H5P_DEFAULT, p_start);
-    status = H5Dclose(dataset_id);
-    status = H5Tclose(datatype_id);
-    status = H5Sclose(dataspace_id);
+    // ParticleStart
+    write_hdf5_dataset(file_id, "/ParticleStart", H5T_NATIVE_LLONG, 1, dims1, p_start);
     free(p_start);
 
-/*
-    // pos
-    buff = (float *) malloc(sizeof(float) * 6 * num_write);
-
-    dims2[0] = num_write;
-    dims2[1] = 6;
-
-    for (i = 0; i < num_halos; i++) {
-        if (!to_write[i])
-            continue;
-        for (j = 0; j < 6; j++){
-            buff[i * 6 + j] = halos[i].pos[j];
-        }
-    }
-
-    dataspace_id = H5Screate_simple(2, dims2, NULL); 
-    datatype_id = H5Tcopy(H5T_NATIVE_FLOAT);
-    dataset_id = H5Dcreate2(file_id, "/pos", datatype_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, buff);
-    status = H5Dclose(dataset_id);
-    status = H5Tclose(datatype_id);
-    status = H5Sclose(dataspace_id);
-    free(buff);
-
-    // corevel
-    buff = (float *) malloc(sizeof(float) * 3 * num_write);
-
-    dims2[0] = num_write;
-    dims2[1] = 3;
-
-    for (i = 0; i < num_halos; i++) {
+    // Coordinates
+    for (i = 0, id = 0; i < num_halos; i++) {
         if (!to_write[i])
             continue;
         for (j = 0; j < 3; j++){
-            buff[i * 3 + j] = halos[i].corevel[j];
+            buffer_float[id * 3 + j] = halos[i].pos[j];
         }
+        id++;
     }
+    write_hdf5_dataset(file_id, "/Coordinates", H5T_NATIVE_FLOAT, 2, dims2, buffer_float);
 
-    dataspace_id = H5Screate_simple(2, dims2, NULL); 
-    datatype_id = H5Tcopy(H5T_NATIVE_FLOAT);
-    dataset_id = H5Dcreate2(file_id, "/corevel", datatype_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, buff);
-    status = H5Dclose(dataset_id);
-    status = H5Tclose(datatype_id);
-    status = H5Sclose(dataspace_id);
-    free(buff);
-
-    // bulkvel
-    buff = (float *) malloc(sizeof(float) * 3 * num_write);
-
-    dims2[0] = num_write;
-    dims2[1] = 3;
-
-    for (i = 0; i < num_halos; i++) {
+    // Velocities
+    for (i = 0, id = 0; i < num_halos; i++) {
         if (!to_write[i])
             continue;
         for (j = 0; j < 3; j++){
-            buff[i * 3 + j] = halos[i].bulkvel[j];
+            buffer_float[id * 3 + j] = halos[i].pos[j+3];
         }
+        id++;
     }
+    write_hdf5_dataset(file_id, "/Velocities", H5T_NATIVE_FLOAT, 2, dims2, buffer_float);
 
-    dataspace_id = H5Screate_simple(2, dims2, NULL); 
-    datatype_id = H5Tcopy(H5T_NATIVE_FLOAT);
-    dataset_id = H5Dcreate2(file_id, "/bulkvel", datatype_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, buff);
-    status = H5Dclose(dataset_id);
-    status = H5Tclose(datatype_id);
-    status = H5Sclose(dataspace_id);
-    free(buff);
+    // CoreVelocities
+    for (i = 0, id = 0; i < num_halos; i++) {
+        if (!to_write[i])
+            continue;
+        for (j = 0; j < 3; j++){
+            buffer_float[id * 3 + j] = halos[i].corevel[j+3];
+        }
+        id++;
+    }
+    write_hdf5_dataset(file_id, "/CoreVelocities", H5T_NATIVE_FLOAT, 2, dims2, buffer_float);
+
+    // BulkVelocities
+    for (i = 0, id = 0; i < num_halos; i++) {
+        if (!to_write[i])
+            continue;
+        for (j = 0; j < 3; j++){
+            buffer_float[id * 3 + j] = halos[i].bulkvel[j+3];
+        }
+        id++;
+    }
+    write_hdf5_dataset(file_id, "/BulkVelocities", H5T_NATIVE_FLOAT, 2, dims2, buffer_float);
 
     // Mvir
-    buff = (float *) malloc(sizeof(float) * num_halos);
-
-    for (i = 0; i < num_halos; i++) {
+    for (i = 0, id = 0; i < num_halos; i++) {
         if (!to_write[i])
             continue;
-        buff[i] = halos[i].m;
+        buffer_float[id] = halos[i].m;
+        id++;
     }
+    write_hdf5_dataset(file_id, "/Mvir", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
 
-    dataspace_id = H5Screate_simple(1, dims1, NULL); 
-    datatype_id = H5Tcopy(H5T_NATIVE_FLOAT);
-    dataset_id = H5Dcreate2(file_id, "/Mvir", datatype_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, buff);
-    status = H5Dclose(dataset_id);
-    status = H5Tclose(datatype_id);
-    status = H5Sclose(dataspace_id);
-    free(buff);
-*/
+    // NumberParticles
+    for (i = 0, id = 0; i < num_halos; i++) {
+        if (!to_write[i])
+            continue;
+        buffer_int[id] = halos[i].num_p;
+        id++;
+    }
+    write_hdf5_dataset(file_id, "/NumberParticles", H5T_NATIVE_LLONG, 1, dims1, buffer_int);
 
+    free(buffer_float);
+    free(buffer_int);
+
+    /*
+    // Output Particles
+    if (output_particles) {
+        for (i = 0; i < num_halos; i++) {
+            if (!_should_print(halos + i, bounds))
+                continue;
+            for (j = 0; j < halos[i].num_p; j++)
+                _append_to_buffer(&(p[halos[i].p_start + j].id),
+                                  sizeof(int64_t), output);
+        }
+    }
+    _clear_buffer(output);
+    */
+
+    free(to_write);
 
     // Output header
     fill_binary_header(&bheader, snap, chunk);

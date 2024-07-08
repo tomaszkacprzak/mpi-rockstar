@@ -160,6 +160,27 @@ void check_H5Dwrite(hid_t HDF_DatasetID, hid_t type, void *buffer) {
     }
 }
 
+void check_H5Sclose(hid_t HDF_DataspaceID) {
+    if (H5Sclose(HDF_DataspaceID) < 0) {
+        fprintf(stderr, "[Error] Failed to close dataspace!\n");
+        exit(1);
+    }
+}
+
+void check_H5Tclose(hid_t HDF_TypeID) {
+    if (H5Tclose(HDF_TypeID) < 0) {
+        fprintf(stderr, "[Error] Failed to close datatype!\n");
+        exit(1);
+    }
+}
+
+void check_H5Dclose(hid_t HDF_DatasetID) {
+    if (H5Dclose(HDF_DatasetID) < 0) {
+        fprintf(stderr, "[Error] Failed to close dataset!\n");
+        exit(1);
+    }
+}
+
 void check_H5Fclose(hid_t HDF_FileID) {
     if (H5Fclose(HDF_FileID) < 0) {
         fprintf(stderr, "[Error] Failed to close HDF5 file!\n");

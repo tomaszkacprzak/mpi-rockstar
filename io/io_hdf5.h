@@ -29,6 +29,9 @@ hid_t check_H5Tcopy(hid_t type);
 hid_t check_H5Dcreate(hid_t HDF_GroupID, char *dataid, hid_t type,
                       hid_t dataspace);
 void check_H5Dwrite(hid_t HDF_DatasetID, hid_t type, void *buffer);
+void check_H5Sclose(hid_t HDF_DataspaceID);
+void check_H5Tclose(hid_t HDF_TypeID);
+void check_H5Dclose(hid_t HDF_DatasetID);
 void check_H5Fclose(hid_t HDF_FileID);
 
 #endif /* ENABLE_HDF5 */
