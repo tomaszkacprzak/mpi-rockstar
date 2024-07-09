@@ -123,6 +123,13 @@ hid_t check_H5Fcreate(char *filename, unsigned flags) {
     return HDF_FileID;
 }
 
+void check_H5Fclose(hid_t HDF_FileID) {
+    if (H5Fclose(HDF_FileID) < 0) {
+        fprintf(stderr, "[Error] Failed to close HDF5 file!\n");
+        exit(1);
+    }
+}
+
 hid_t check_H5Screate_simple(hsize_t rank, hsize_t *dims, hsize_t *maxdims) {
     hid_t HDF_DataspaceID = H5Screate_simple(rank, dims, maxdims);
     if (HDF_DataspaceID < 0) {
@@ -130,6 +137,22 @@ hid_t check_H5Screate_simple(hsize_t rank, hsize_t *dims, hsize_t *maxdims) {
         exit(1);
     }
     return HDF_DataspaceID;
+}
+
+hid_t check_H5Screate(H5S_class_t type) {
+    hid_t HDF_DataspaceID = H5Screate(type);
+    if (HDF_DataspaceID < 0) {
+        fprintf(stderr, "[Error] Failed to create HDF5 dataspace!\n");
+        exit(1);
+    }
+    return HDF_DataspaceID;
+}
+
+void check_H5Sclose(hid_t HDF_DataspaceID) {
+    if (H5Sclose(HDF_DataspaceID) < 0) {
+        fprintf(stderr, "[Error] Failed to close dataspace!\n");
+        exit(1);
+    }
 }
 
 hid_t check_H5Tcopy(hid_t type) {
@@ -141,9 +164,26 @@ hid_t check_H5Tcopy(hid_t type) {
     return HDF_TypeID;
 }
 
+hid_t check_H5Tset_size(hid_t type, size_t size) {
+    hid_t HDF_TypeID = H5Tset_size(type, size);
+    if (HDF_TypeID < 0) {
+        fprintf(stderr, "[Error] Failed to set HDF5 datatype!\n");
+        exit(1);
+    }
+    return HDF_TypeID;
+}
+
+void check_H5Tclose(hid_t HDF_TypeID) {
+    if (H5Tclose(HDF_TypeID) < 0) {
+        fprintf(stderr, "[Error] Failed to close datatype!\n");
+        exit(1);
+    }
+}
+
 hid_t check_H5Dcreate(hid_t HDF_GroupID, char *dataid, hid_t type,
-                      hid_t dataspace) {
-    hid_t HDF_DatasetID = H5Dcreate2(HDF_GroupID, dataid, type, dataspace, H5P_DEFAULT,
+                      hid_t HDF_DataspaceID) {
+    hid_t HDF_DatasetID = H5Dcreate2(HDF_GroupID, dataid, type,
+                                     HDF_DataspaceID, H5P_DEFAULT,
                                      H5P_DEFAULT, H5P_DEFAULT);
     if (HDF_DatasetID < 0) {
         fprintf(stderr, "[Error] Failed to create dataset %s!\n", dataid);
@@ -153,23 +193,8 @@ hid_t check_H5Dcreate(hid_t HDF_GroupID, char *dataid, hid_t type,
 }
 
 void check_H5Dwrite(hid_t HDF_DatasetID, hid_t type, void *buffer) {
-    if (H5Dwrite(HDF_DatasetID, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer) <
-        0) {
+    if (H5Dwrite(HDF_DatasetID, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer) < 0) {
         fprintf(stderr, "[Error] Failed to write HDF5 dataset!\n");
-        exit(1);
-    }
-}
-
-void check_H5Sclose(hid_t HDF_DataspaceID) {
-    if (H5Sclose(HDF_DataspaceID) < 0) {
-        fprintf(stderr, "[Error] Failed to close dataspace!\n");
-        exit(1);
-    }
-}
-
-void check_H5Tclose(hid_t HDF_TypeID) {
-    if (H5Tclose(HDF_TypeID) < 0) {
-        fprintf(stderr, "[Error] Failed to close datatype!\n");
         exit(1);
     }
 }
@@ -181,9 +206,27 @@ void check_H5Dclose(hid_t HDF_DatasetID) {
     }
 }
 
-void check_H5Fclose(hid_t HDF_FileID) {
-    if (H5Fclose(HDF_FileID) < 0) {
-        fprintf(stderr, "[Error] Failed to close HDF5 file!\n");
+hid_t check_H5Acreate(hid_t HDF_DatasetID, char *dataid, hid_t type,
+                      hid_t HDF_DataspaceID) {
+    hid_t HDF_AttrID = H5Acreate2(HDF_DatasetID, dataid, type, HDF_DataspaceID,
+                                  H5P_DEFAULT, H5P_DEFAULT);
+    if (HDF_AttrID < 0) {
+        fprintf(stderr, "[Error] Failed to create attribute %s!\n", dataid);
+        exit(1);
+    }
+    return HDF_AttrID;
+}
+
+void check_H5Awrite(hid_t HDF_AttrID, hid_t type, void *buffer) {
+    if (H5Awrite(HDF_AttrID, type, buffer) < 0) {
+        fprintf(stderr, "[Error] Failed to write HDF5 attribute!\n");
+        exit(1);
+    }
+}
+
+void check_H5Aclose(hid_t HDF_AttrID) {
+    if (H5Aclose(HDF_AttrID) < 0) {
+        fprintf(stderr, "[Error] Failed to close attribute!\n");
         exit(1);
     }
 }

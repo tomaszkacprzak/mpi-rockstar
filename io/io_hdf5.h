@@ -24,15 +24,25 @@ int64_t check_H5Sget_simple_extent_ndims(hid_t HDF_DataspaceID);
 void check_H5Sget_simple_extent_dims(hid_t HDF_DataspaceID, hsize_t *dimsize);
 
 hid_t check_H5Fcreate(char *filename, unsigned flags);
+void  check_H5Fclose(hid_t HDF_FileID);
+
 hid_t check_H5Screate_simple(hsize_t rank, hsize_t *dims, hsize_t *maxdims);
+hid_t check_H5Screate(H5S_class_t type);
+void  check_H5Sclose(hid_t HDF_DataspaceID);
+
 hid_t check_H5Tcopy(hid_t type);
+void  check_H5Tset_size(hid_t type, size_t size);
+void  check_H5Tclose(hid_t HDF_TypeID);
+
 hid_t check_H5Dcreate(hid_t HDF_GroupID, char *dataid, hid_t type,
-                      hid_t dataspace);
-void check_H5Dwrite(hid_t HDF_DatasetID, hid_t type, void *buffer);
-void check_H5Sclose(hid_t HDF_DataspaceID);
-void check_H5Tclose(hid_t HDF_TypeID);
-void check_H5Dclose(hid_t HDF_DatasetID);
-void check_H5Fclose(hid_t HDF_FileID);
+                      hid_t HDF_DataspaceID);
+void  check_H5Dwrite(hid_t HDF_DatasetID, hid_t type, void *buffer);
+void  check_H5Dclose(hid_t HDF_DatasetID);
+
+hid_t check_H5Acreate(hid_t HDF_DatasetID, char *dataid, hid_t type,
+                      hid_t HDF_DataspaceID);
+void  check_H5Awrite(hid_t HDF_AttrID, hid_t type, void *buffer);
+void  check_H5Aclose(hid_t HDF_AttrID);
 
 #endif /* ENABLE_HDF5 */
 #endif /* _IO_HDF5_H_ */
