@@ -5,6 +5,8 @@
 #include <inttypes.h>
 #include "../particle.h"
 
+void set_buffer(void *buffer, const int *to_write,
+                int64_t offset, int64_t stride, hsize_t type);
 void write_hdf5_dataset(hid_t HDF_FileID, char *dataid, hid_t type,
                         hsize_t rank, hsize_t *dims, void *data);
 void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bheader);
