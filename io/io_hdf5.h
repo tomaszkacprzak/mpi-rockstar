@@ -22,6 +22,8 @@ void  check_H5Aread(hid_t HDF_AttrID, hid_t type, void *buffer, char *dataid,
 void    check_H5Sselect_all(hid_t HDF_DataspaceID);
 int64_t check_H5Sget_simple_extent_ndims(hid_t HDF_DataspaceID);
 void check_H5Sget_simple_extent_dims(hid_t HDF_DataspaceID, hsize_t *dimsize);
+void check_H5Sset_extent_simple(hid_t HDF_DataspaceID, hsize_t rank,
+                                hsize_t *dims, hsize_t *maxdims);
 
 hid_t check_H5Fcreate(char *filename, unsigned flags);
 void  check_H5Fclose(hid_t HDF_FileID);
@@ -43,6 +45,9 @@ hid_t check_H5Acreate(hid_t HDF_DatasetID, char *dataid, hid_t type,
                       hid_t HDF_DataspaceID);
 void  check_H5Awrite(hid_t HDF_AttrID, hid_t type, void *buffer);
 void  check_H5Aclose(hid_t HDF_AttrID);
+
+hid_t check_H5Gcreate(hid_t HDF_FileID, char *groupid);
+void  check_H5Gclose(hid_t HDF_GroupID);
 
 #endif /* ENABLE_HDF5 */
 #endif /* _IO_HDF5_H_ */

@@ -148,6 +148,14 @@ hid_t check_H5Screate(H5S_class_t type) {
     return HDF_DataspaceID;
 }
 
+void check_H5Sset_extent_simple(hid_t HDF_DataspaceID, hsize_t rank,
+                                hsize_t *dims, hsize_t *maxdims) {
+    if (H5Sset_extent_simple(HDF_DataspaceID, rank, dims, maxdims) < 0) {
+        fprintf(stderr, "[Error] Failed to set dataspace!\n");
+        exit(1);
+    }
+}
+
 void check_H5Sclose(hid_t HDF_DataspaceID) {
     if (H5Sclose(HDF_DataspaceID) < 0) {
         fprintf(stderr, "[Error] Failed to close dataspace!\n");
@@ -227,6 +235,23 @@ void check_H5Awrite(hid_t HDF_AttrID, hid_t type, void *buffer) {
 void check_H5Aclose(hid_t HDF_AttrID) {
     if (H5Aclose(HDF_AttrID) < 0) {
         fprintf(stderr, "[Error] Failed to close attribute!\n");
+        exit(1);
+    }
+}
+
+hid_t check_H5Gcreate(hid_t HDF_FileID, char *groupid) {
+    hid_t HDF_GroupID = H5Gcreate2(HDF_FileID, groupid,
+                                   H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    if (HDF_GroupID < 0) {
+        fprintf(stderr, "[Error] Failed to create group %s!\n", groupid);
+        exit(1);
+    }
+    return HDF_GroupID;
+}
+
+void check_H5Gclose(hid_t HDF_GroupID) {
+    if (H5Gclose(HDF_GroupID) < 0) {
+        fprintf(stderr, "[Error] Failed to close group!\n");
         exit(1);
     }
 }

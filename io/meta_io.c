@@ -167,8 +167,8 @@ void read_particles(char *filename) {
     } else if (!strncasecmp(FILE_FORMAT, "GENERIC", 7)) {
         assert(load_particles_generic != NULL);
         load_particles_generic(filename, &p, &num_p);
-//    } else if (!strncasecmp(FILE_FORMAT, "TIPSY", 5)) {
-//        load_particles_tipsy(filename, &p, &num_p);
+    } else if (!strncasecmp(FILE_FORMAT, "TIPSY", 5)) {
+        load_particles_tipsy(filename, &p, &num_p);
     } else if (!strncasecmp(FILE_FORMAT, "KYF", 3)) { // Added by TI 20160909
         load_particles_kyf(filename, &p, &num_p);
     } else if (!strncasecmp(FILE_FORMAT, "AREPO", 5)) {
