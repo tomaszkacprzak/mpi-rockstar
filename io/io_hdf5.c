@@ -35,6 +35,15 @@ hid_t check_H5Dopen(hid_t HDF_GroupID, char *dataid, char *gid,
     return HDF_DatasetID;
 }
 
+hid_t check_H5Dopen2(hid_t HDF_GroupID, char *dataid) {
+    hid_t HDF_DatasetID = H5Dopen(HDF_GroupID, dataid);
+    if (HDF_DatasetID < 0) {
+        fprintf(stderr, "[Error] Failed to open dataset %s!\n", dataid);
+        exit(1);
+    }
+    return HDF_DatasetID;
+}
+
 hid_t check_H5Dget_space(hid_t HDF_DatasetID) {
     hid_t HDF_DataspaceID = H5Dget_space(HDF_DatasetID);
     if (HDF_DataspaceID < 0) {
@@ -49,8 +58,17 @@ void check_H5Dread(hid_t HDF_DatasetID, hid_t type, void *buffer, char *dataid,
     if (H5Dread(HDF_DatasetID, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer) <
         0) {
         fprintf(stderr,
-                "[Error] failed to read dataspace %s/%s in HDF5 file %s\n", gid,
+                "[Error] failed to read dataset %s/%s in HDF5 file %s\n", gid,
                 dataid, filename);
+        exit(1);
+    }
+}
+
+void check_H5Dread2(hid_t HDF_DatasetID, hid_t type, void *buffer, char *dataid) {
+    if (H5Dread(HDF_DatasetID, type, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer) <
+        0) {
+        fprintf(stderr,
+                "[Error] failed to read dataset %s!\n", dataid);
         exit(1);
     }
 }
@@ -62,6 +80,17 @@ hid_t check_H5Aopen_name(hid_t HDF_GroupID, char *dataid, char *gid,
         fprintf(stderr,
                 "[Error] Failed to open attribute %s/%s in HDF5 file %s!\n",
                 gid, dataid, filename);
+        exit(1);
+    }
+    return HDF_AttrID;
+}
+
+hid_t check_H5Aopen(hid_t HDF_GroupID, char *dataid, char *filename) {
+    hid_t HDF_AttrID = H5Aopen(HDF_GroupID, dataid, H5P_DEFAULT);
+    if (HDF_AttrID < 0) {
+        fprintf(stderr,
+                "[Error] Failed to open attribute %s in HDF5 file %s!\n",
+                dataid, filename);
         exit(1);
     }
     return HDF_AttrID;
@@ -82,6 +111,13 @@ void check_H5Aread(hid_t HDF_AttrID, hid_t type, void *buffer, char *dataid,
         fprintf(stderr,
                 "[Error] failed to read attribute %s/%s in HDF5 file %s\n", gid,
                 dataid, filename);
+        exit(1);
+    }
+}
+
+void check_H5Aread2(hid_t HDF_AttrID, hid_t type, void *buffer) {
+    if (H5Aread(HDF_AttrID, type, buffer) < 0) {
+        fprintf(stderr, "[Error] failed to read attribute\n");
         exit(1);
     }
 }

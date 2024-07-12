@@ -13,6 +13,10 @@
 #include "fun_times.h"
 #include "mpi.h"
 
+#ifdef ENABLE_HDF5
+#include "io/io_internal_hdf5.h"
+#endif /* ENABLE_HDF5 */
+
 #define DEBUG_FUN_TIMES 0
 
 #define FAST3TREE_TYPE   struct previous_halo
@@ -134,11 +138,13 @@ void load_previous_halos(int64_t snap, int64_t chunk, float *bounds) {
 	
 #if 0
         for (rchunk = 0; rchunk < NUM_WRITERS; rchunk++) {
-            load_binary_header(snap - 1, rchunk, &bh);
+            //load_binary_header(snap - 1, rchunk, &bh);
+            load_hdf5_header(snap - 1, chunk, &bh);
             memcpy(p_bounds[rchunk].bounds, bh.bounds, sizeof(float) * 6);
         }
 #else
-	load_binary_header(snap - 1, chunk, &bh);
+	//load_binary_header(snap - 1, chunk, &bh);
+	load_hdf5_header(snap - 1, chunk, &bh);
 	struct prev_bounds p_bounds0;
 	int str_size = sizeof(struct prev_bounds);
 	memcpy( &p_bounds0, bh.bounds, sizeof(float) * 6);
