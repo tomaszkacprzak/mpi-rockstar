@@ -27,9 +27,6 @@ extern "C" {
 #include "fun_times.h"
 #include "merger.h"
 #include "bitarray.h"
-#ifdef ENABLE_HDF5
-#include "io/io_internal_hdf5.h"
-#endif /* ENABLE_HDF5 */
 }
 
 #define CLIENT_DEBUG 0
@@ -1468,7 +1465,7 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
 
         timed_output("Output halos...\n");
         int64_t id_offset = 0;
-	int64_t num_halos_print = count_halos_to_print( writer_bounds[my_rank]);
+	int64_t num_halos_print = count_halos_to_print(writer_bounds[my_rank]);
 	MPI_Exscan(&num_halos_print, &id_offset, 1, MPI_INT64_T, MPI_SUM,
 		   MPI_COMM_WORLD);
         /*MPI_Exscan(&num_halos, &id_offset, 1, MPI_INT64_T, MPI_SUM,
@@ -1530,8 +1527,7 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
 
 void get_bounds(int64_t snap, int64_t chunk, float bounds[]) {
     struct binary_output_header bheader;
-    //load_binary_header(snap, chunk, &bheader);
-    load_hdf5_header(snap, chunk, &bheader);
+    load_binary_header(snap, chunk, &bheader);
     memcpy(bounds, bheader.bounds, sizeof(float) * 6);
 }
 
@@ -1539,8 +1535,7 @@ void transfer_halos(int64_t snap, int64_t my_rank, float (*writer_bounds)[6],
                     float (*bounds_prevsnap)[6]) {
     struct binary_output_header bheader;
     int64_t                    *part_ids = nullptr;
-    //load_binary_halos(snap, my_rank, &bheader, &halos, &part_ids, 0);
-    load_hdf5_halos(snap, my_rank, &bheader, &halos, &part_ids, 0);
+    load_binary_halos(snap, my_rank, &bheader, &halos, &part_ids, 0);
 
     auto send_halo_counts = allocate<int>(NUM_WRITERS);
     clear_counts(send_halo_counts, NUM_WRITERS);
@@ -1601,8 +1596,7 @@ void _do_merger_tree_part2(int64_t snap, int64_t my_rank) {
 
     struct binary_output_header bheader;
     int64_t                    *part_ids = nullptr;
-    //load_binary_halos(snap, my_rank, &bheader, &halos, &part_ids, 0);
-    load_hdf5_halos(snap, my_rank, &bheader, &halos, &part_ids, 0);
+    load_binary_halos(snap, my_rank, &bheader, &halos, &part_ids, 0);
 
     std::vector<struct halo> new_halos;
 
