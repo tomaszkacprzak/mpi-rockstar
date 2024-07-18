@@ -208,13 +208,11 @@ hid_t check_H5Tcopy(hid_t type) {
     return HDF_TypeID;
 }
 
-hid_t check_H5Tset_size(hid_t type, size_t size) {
-    hid_t HDF_TypeID = H5Tset_size(type, size);
-    if (HDF_TypeID < 0) {
+void check_H5Tset_size(hid_t type, size_t size) {
+    if (H5Tset_size(type, size) < 0) {
         fprintf(stderr, "[Error] Failed to set HDF5 datatype!\n");
         exit(1);
     }
-    return HDF_TypeID;
 }
 
 void check_H5Tclose(hid_t HDF_TypeID) {

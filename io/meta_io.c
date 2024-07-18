@@ -457,6 +457,14 @@ int64_t count_halos_to_print(float *bounds) {
     return to_print;
 }
 
+int64_t count_particles_to_print(float *bounds) {
+    int64_t to_print = 0, i;
+    for (i = 0; i < num_halos; i++)
+        if (_should_print(halos + i, bounds))
+            to_print += halos[i].num_p;
+    return to_print;
+}
+
 void output_halos(int64_t id_offset, int64_t snap, int64_t chunk,
                   float *bounds) {
     if (!strcasecmp(OUTPUT_FORMAT, "BOTH") ||
