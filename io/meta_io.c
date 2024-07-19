@@ -609,6 +609,7 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
     return cat;
 }
 
+#if 0
 void output_merger_catalog(int64_t snap, int64_t chunk, int64_t location,
                            int64_t length, char *cat) {
     FILE *output;
@@ -622,3 +623,29 @@ void output_merger_catalog(int64_t snap, int64_t chunk, int64_t location,
     fclose(output);
     free(cat);
 }
+
+
+#else
+
+#include <mpi.h>
+
+void output_merger_catalog(int64_t snap, int64_t chunk, int64_t location,
+                           int64_t length, char *cat) {
+  /* File describing the header already exists. */
+  char buffer[1024];
+  get_outlist_filename(buffer, 1024, snap, chunk);
+
+  MPI_File   mfh;
+  MPI_Info   info;
+  MPI_Status mst;
+
+  MPI_Info_create(&info);
+  MPI_File_open(MPI_COMM_WORLD, buffer, MPI_MODE_WRONLY, info, &mfh);
+  MPI_File_set_view(mfh, (MPI_Offset)location, MPI_CHAR, MPI_CHAR, "native", info);
+  MPI_File_write_all(mfh, &cat[0], length, MPI_CHAR, &mst);
+
+  MPI_File_close(&mfh);
+  MPI_Info_free(&info);
+  free(cat);
+}
+#endif

@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+void init_mpi(int argc, char *argv[]);
 void mpi_main(int argc, char *argv[]);
 
 #ifdef __cplusplus

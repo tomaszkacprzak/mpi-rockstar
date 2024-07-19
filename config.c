@@ -9,6 +9,11 @@
 #include "io/read_config.h"
 #include "universal_constants.h"
 
+#ifdef DO_CONFIG_MPI
+#include "mpi.h"    
+#endif  
+
+
 void setup_config(void) {
     if (!NUM_READERS)
         NUM_READERS = NUM_BLOCKS;
@@ -59,9 +64,36 @@ void setup_config(void) {
 }
 
 void do_config(char *filename) {
-    struct configfile c = {0};
-    if (filename && strlen(filename))
-        load_config(&c, filename);
+  struct configfile c = {0};
+
+  if (filename && strlen(filename)){
+#ifdef DO_CONFIG_MPI
+    int my_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    if( my_rank == 0)  load_config(&c, filename);
+    MPI_Bcast( &c.num_entries, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    if( my_rank != 0){
+      c.keys = (char **)malloc( sizeof(char *)*(c.num_entries+10));
+      c.values = (char **)malloc( sizeof(char *)*(c.num_entries+10));
+      c.touched = (int *)malloc( sizeof(int)*(c.num_entries+10));
+    }
+    MPI_Bcast( c.touched, c.num_entries, MPI_INT, 0, MPI_COMM_WORLD);
+    int i, len;
+    for( i=0; i<c.num_entries; i++){
+      if( my_rank == 0)  len = strlen( c.keys[i]) + 1;
+      MPI_Bcast( &len, 1, MPI_INT, 0, MPI_COMM_WORLD);
+      if( my_rank != 0)  c.keys[i] = (char *)malloc( sizeof(char)*len);
+      MPI_Bcast( c.keys[i], len, MPI_CHAR, 0, MPI_COMM_WORLD);
+      if( my_rank == 0)  len = strlen( c.values[i]) + 1;
+      MPI_Bcast( &len, 1, MPI_INT, 0, MPI_COMM_WORLD);
+      if( my_rank != 0)  c.values[i] = (char *)malloc( sizeof(char)*len);
+      MPI_Bcast( c.values[i], len, MPI_CHAR, 0, MPI_COMM_WORLD);
+      //fprintf( stderr, "%d\t%s\t%s\t%d\n", my_rank, c.keys[i], c.values[i], c.touched[i]);
+    }
+#else
+    load_config(&c, filename);
+#endif
+  }
 
 #define string(a, b)  a = config_to_string(&c, #a, b)
 #define real(a, b)    a = config_to_real(&c, #a, b)
@@ -72,14 +104,16 @@ void do_config(char *filename) {
 #undef real
 #undef real3
 #undef integer
-    syntax_check(&c, "[Warning]");
-    setup_config();
-    free_config(c);
-    if (filename && strlen(filename)) {
-        free(ROCKSTAR_CONFIG_FILENAME);
-        ROCKSTAR_CONFIG_FILENAME = strdup(filename);
-    }
+  
+  syntax_check(&c, "[Warning]");
+  setup_config();
+  free_config(c);
+  if (filename && strlen(filename)) {
+    free(ROCKSTAR_CONFIG_FILENAME);
+    ROCKSTAR_CONFIG_FILENAME = strdup(filename);
+  }
 }
+
 
 void output_config(char *filename) {
     char  buffer[1024];

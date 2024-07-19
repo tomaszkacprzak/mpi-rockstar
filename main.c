@@ -41,6 +41,10 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+#ifdef DO_CONFIG_MPI
+    init_mpi( argc, argv);
+#endif    
+
     for (i = 1; i < argc - 1; i++) {
         if (!strcmp("-c", argv[i])) {
             do_config(argv[i + 1]);

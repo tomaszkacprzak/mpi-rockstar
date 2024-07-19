@@ -310,13 +310,15 @@ void decide_reader_bounds(float *reader_bounds, int reader_rank) {
     if (reader_rank != -1) {
         // Handle the case where the positions round to BOX_SIZE
         // due to floating-point precision
-        for (int64_t i = 0; i < num_p; i++) {
+#if 1
+      for (int64_t i = 0; i < num_p; i++) {
             for (int64_t j = 0; j < 3; j++) {
                 if (p[i].pos[j] == static_cast<float>(BOX_SIZE)) {
                     p[i].pos[j] = 0;
                 }
             }
-        }
+      }
+#endif
         calc_particle_bounds(reader_bounds);
         if (TRIM_OVERLAP)
             trim_particles(reader_bounds);
@@ -1727,12 +1729,24 @@ void check_config( const int my_rank){
 }
 
 
+
+void init_mpi(int argc, char *argv[]) {
+
+  MPI_Init(&argc, &argv);
+
+}
+
+
+
 void mpi_main(int argc, char *argv[]) {
     char    buffer[1024];
     int64_t reload_parts = 0, n;
 
     int num_procs, my_rank;
-    MPI_Init(&argc, &argv);
+    //MPI_Init(&argc, &argv);
+#ifndef DO_CONFIG_MPI
+    init_mpi( argc, argv);
+#endif
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
