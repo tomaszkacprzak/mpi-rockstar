@@ -156,7 +156,7 @@ void read_hdf5_halos(hid_t HDF_FileID, struct halo *halos,
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].child_r) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/Vmax_r", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_FileID, "/RadiusDynamicalVirial", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].vmax_r) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
@@ -750,9 +750,9 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
                        "Child radius");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].vmax_r) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/Vmax_r", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/Vmax_r", "kpc/h (comoving)",
-                       "Vmax_r?");
+    write_hdf5_dataset(HDF_FileID, "/RadiusDynamicalVirial", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_FileID, "/RadiusDynamicalVirial", "kpc/h (comoving)",
+                       "Radius of Vmax times dynamical time, used to normalize the position-space distance");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].mgrav) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_FileID, "/Mbound", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
