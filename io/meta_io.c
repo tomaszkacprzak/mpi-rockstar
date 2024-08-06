@@ -474,14 +474,6 @@ void output_halos(int64_t id_offset, int64_t snap, int64_t chunk,
         !strcasecmp(OUTPUT_FORMAT, "BINARY") ||
         (TEMPORAL_HALO_FINDING && !LIGHTCONE))
         output_binary(id_offset, snap, chunk, bounds, 1);
-#ifdef ENABLE_HDF5
-    if (!strcasecmp(OUTPUT_FORMAT, "HDF5"))
-        output_hdf5(id_offset, snap, chunk, bounds, 1);
-#else
-        fprintf(stderr, "[Error] HDF5 output format needs HDF5 support.  Recompile Rockstar "
-                        "using \"make with_hdf5\".\n");
-        exit(1);
-#endif
 
     if (chunk < FULL_PARTICLE_CHUNKS)
         output_full_particles(id_offset, snap, chunk, bounds);

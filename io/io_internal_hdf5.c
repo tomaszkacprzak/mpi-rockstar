@@ -257,7 +257,7 @@ void read_hdf5_halos(hid_t HDF_FileID, struct halo *halos,
 
     read_hdf5_dataset(HDF_FileID, "/IntermediateAxis2", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
-                (char *) &(halos[0].A_I2[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
+                (char *) &(halos[0].A2_I[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
 #endif
 
     read_hdf5_dataset(HDF_FileID, "/SpinBullock", H5T_NATIVE_FLOAT, buffer_float);
@@ -326,9 +326,11 @@ void read_hdf5_halos(hid_t HDF_FileID, struct halo *halos,
     free(buffer_int);
 }
 
-void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh) {
+void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh,
+                       int64_t tot_num_halos, int64_t tot_num_p) {
     hid_t attr_id, attrspace_id, attrtype_id;
     hsize_t dim[1];
+    int64_t ibuffer;
     float buffer;
 
     hid_t group_id = check_H5Gcreate(HDF_FileID, "/Header");
@@ -489,6 +491,30 @@ void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh) {
     check_H5Sclose(attrspace_id);
     check_H5Tclose(attrtype_id);
 
+    // TotalNumberHalos
+    attrspace_id = check_H5Screate(H5S_SCALAR);
+    attr_id = check_H5Acreate(group_id, "TotalNumberHalos", H5T_NATIVE_LLONG, attrspace_id);
+    ibuffer = tot_num_halos;
+    check_H5Awrite(attr_id, H5T_NATIVE_LLONG, &ibuffer);
+    check_H5Aclose(attr_id);
+    check_H5Sclose(attrspace_id);
+
+    // TotalChunks
+    attrspace_id = check_H5Screate(H5S_SCALAR);
+    attr_id = check_H5Acreate(group_id, "TotalChunks", H5T_NATIVE_LLONG, attrspace_id);
+    ibuffer = NUM_WRITERS;
+    check_H5Awrite(attr_id, H5T_NATIVE_LLONG, &ibuffer);
+    check_H5Aclose(attr_id);
+    check_H5Sclose(attrspace_id);
+
+    // TotalNumberParticles
+    attrspace_id = check_H5Screate(H5S_SCALAR);
+    attr_id = check_H5Acreate(group_id, "TotalNumberParticles", H5T_NATIVE_LLONG, attrspace_id);
+    ibuffer = tot_num_p;
+    check_H5Awrite(attr_id, H5T_NATIVE_LLONG, &ibuffer);
+    check_H5Aclose(attr_id);
+    check_H5Sclose(attrspace_id);
+
     check_H5Gclose(group_id);
 }
 
@@ -631,7 +657,8 @@ void read_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh, char *f
 
 
 void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
-                 float *bounds, int64_t output_particles) {
+                 float *bounds, int64_t tot_num_halos, int64_t tot_num_p,
+                 int64_t output_particles) {
     float                       max[3] = {0}, min[3] = {0};
     char                        filename[1024], dataid[256], description[256];
     int64_t                     i, j, num_write, num_particles;
@@ -883,7 +910,7 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
                        description);
 
     sprintf(description, "Intermediate axis direction (mass definition: %s)", MASS_DEFINITION4);
-    set_buffer(buffer_float, to_write, (char *) &(halos[0].A_I2[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
+    set_buffer(buffer_float, to_write, (char *) &(halos[0].A2_I[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_FileID, "/IntermediateAxis2", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
     add_hdf5_attribute(HDF_FileID, "/IntermediateAxis2", "Normalized",
                        description);
@@ -980,7 +1007,7 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
         memcpy(bheader.bounds, min, sizeof(float) * 3);
         memcpy(&(bheader.bounds[3]), max, sizeof(float) * 3);
     }
-    write_hdf5_header(HDF_FileID, &bheader);
+    write_hdf5_header(HDF_FileID, &bheader, tot_num_halos, tot_num_p);
 
     // Output Particles
     if (output_particles) {
@@ -1002,7 +1029,7 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
                            "ID of particles");
         free(buffer_id);
 
-        write_hdf5_header(HDF_FileID_Part, &bheader);
+        write_hdf5_header(HDF_FileID_Part, &bheader, tot_num_halos, tot_num_p);
 
         check_H5Fclose(HDF_FileID_Part);
     }
@@ -1062,59 +1089,6 @@ void load_hdf5_halos(int64_t snap, int64_t chunk,
     */
 
     read_binary_header_config(bheader);
-}
-
-void add_total_numbers_hdf5(int64_t tot_num_halos, int64_t tot_num_p,
-                            int64_t snap, int64_t chunk) {
-    char  filename[1024];
-    int64_t ibuffer;
-    hid_t HDF_FileID, HDF_GroupID, HDF_AttrSpaceID, HDF_AttributeID;
-
-    get_output_filename(filename, 1024, snap, chunk, "hdf5");
-    HDF_FileID = check_H5Fopen(filename, H5F_ACC_RDWR);
-    HDF_GroupID = check_H5Gopen(HDF_FileID, "Header", filename);
-
-    HDF_AttrSpaceID = check_H5Screate(H5S_SCALAR);
-    HDF_AttributeID = check_H5Acreate(HDF_GroupID, "TotalNumberHalos",
-                                      H5T_NATIVE_LLONG, HDF_AttrSpaceID);
-    ibuffer = tot_num_halos;
-    check_H5Awrite(HDF_AttributeID, H5T_NATIVE_LLONG, &ibuffer);
-    check_H5Aclose(HDF_AttributeID);
-    check_H5Sclose(HDF_AttrSpaceID);
-
-    HDF_AttrSpaceID = check_H5Screate(H5S_SCALAR);
-    HDF_AttributeID = check_H5Acreate(HDF_GroupID, "TotalChunks",
-                                      H5T_NATIVE_LLONG, HDF_AttrSpaceID);
-    ibuffer = NUM_WRITERS;
-    check_H5Awrite(HDF_AttributeID, H5T_NATIVE_LLONG, &ibuffer);
-    check_H5Aclose(HDF_AttributeID);
-    check_H5Sclose(HDF_AttrSpaceID);
-
-    check_H5Gclose(HDF_GroupID);
-    check_H5Fclose(HDF_FileID);
-
-    get_output_filename(filename, 1024, snap, chunk, "id.hdf5");
-    HDF_FileID = check_H5Fopen(filename, H5F_ACC_RDWR);
-    HDF_GroupID = check_H5Gopen(HDF_FileID, "Header", filename);
-
-    HDF_AttrSpaceID = check_H5Screate(H5S_SCALAR);
-    HDF_AttributeID = check_H5Acreate(HDF_GroupID, "TotalNumberParticles",
-                                      H5T_NATIVE_LLONG, HDF_AttrSpaceID);
-    ibuffer = tot_num_p;
-    check_H5Awrite(HDF_AttributeID, H5T_NATIVE_LLONG, &ibuffer);
-    check_H5Aclose(HDF_AttributeID);
-    check_H5Sclose(HDF_AttrSpaceID);
-
-    HDF_AttrSpaceID = check_H5Screate(H5S_SCALAR);
-    HDF_AttributeID = check_H5Acreate(HDF_GroupID, "TotalChunks",
-                                      H5T_NATIVE_LLONG, HDF_AttrSpaceID);
-    ibuffer = NUM_WRITERS;
-    check_H5Awrite(HDF_AttributeID, H5T_NATIVE_LLONG, &ibuffer);
-    check_H5Aclose(HDF_AttributeID);
-    check_H5Sclose(HDF_AttrSpaceID);
-
-    check_H5Gclose(HDF_GroupID);
-    check_H5Fclose(HDF_FileID);
 }
 
 #endif /* ENABLE_HDF5 */

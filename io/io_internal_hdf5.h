@@ -17,18 +17,18 @@ void read_hdf5_dataset(hid_t HDF_FileID, char *dataid,
                        hid_t type, void *buffer);
 void read_hdf5_halos(hid_t HDF_FileID, struct halo *halos,
                      struct binary_output_header *bh);
-void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bheader);
+void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bheader,
+                       int64_t tot_num_halos, int64_t tot_num_p);
 void read_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh, char *filename);
 void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
-                 float *bounds, int64_t output_particles);
+                 float *bounds, int64_t tot_num_halos, int64_t tot_num_p,
+                 int64_t output_particles);
 void load_hdf5_header(int64_t snap, int64_t chunk,
                       struct binary_output_header *bheader);
 void load_hdf5_halos(int64_t snap, int64_t chunk,
                      struct binary_output_header *bheader,
                      struct halo **halos, int64_t **part_ids,
                      int64_t coalesced);
-void add_total_numbers_hdf5(int64_t tot_num_halos, int64_t tot_num_p,
-                            int64_t snap, int64_t chunk);
 
 #endif /* ENABLE_HDF5 */
 #endif /* _IO_INTERNAL_HDF5_H_ */

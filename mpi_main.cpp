@@ -1488,7 +1488,8 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
                           MPI_COMM_WORLD);
             MPI_Allreduce(&num_p_print, &tot_num_p, 1, MPI_INT64_T, MPI_SUM,
                           MPI_COMM_WORLD);
-            add_total_numbers_hdf5(tot_num_halos, tot_num_p, snap, my_rank);
+            output_hdf5(id_offset, snap, my_rank, writer_bounds[my_rank],
+                        tot_num_halos, tot_num_p, 1);                              
         }
 #endif
 
