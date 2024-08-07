@@ -26,6 +26,7 @@
 #include "../version.h"
 
 #ifdef ENABLE_HDF5
+#include "io_internal_hdf5.h"
 #include "io_arepo.h"
 #include "io_gadget4.h"
 #endif /* ENABLE_HDF5 */
@@ -453,6 +454,14 @@ int64_t count_halos_to_print(float *bounds) {
     for (i = 0; i < num_halos; i++)
         if (_should_print(halos + i, bounds))
             to_print++;
+    return to_print;
+}
+
+int64_t count_particles_to_print(float *bounds) {
+    int64_t to_print = 0, i;
+    for (i = 0; i < num_halos; i++)
+        if (_should_print(halos + i, bounds))
+            to_print += halos[i].num_p;
     return to_print;
 }
 

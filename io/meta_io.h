@@ -14,6 +14,7 @@ void get_output_filename(char *buffer, int maxlen, int64_t snap, int64_t chunk,
                          char *type);
 void read_particles(char *filename);
 int64_t count_halos_to_print(float *bounds);
+int64_t count_particles_to_print(float *bounds);
 void    delete_binary(int64_t snap, int64_t chunk);
 void    output_halos(int64_t id_offset, int64_t snap, int64_t chunk,
                      float *bounds);
