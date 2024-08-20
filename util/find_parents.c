@@ -11,7 +11,8 @@
     int64_t descid, np;                                                        \
     float   alt_m[4], J[3], spin, bullock_spin, Xoff, Voff, b_to_a, c_to_a,    \
         A[3], klypin_rs, kin_to_pot, m_all, m_pe_b, m_pe_d, b_to_a2, c_to_a2,  \
-        A2[3], halfmass_radius;
+      A2[3], halfmass_radius, rvmax, inertia_tensor[6], inertia_tensor2[6];
+
 #include "read_tree.h"
 
 double BOX_SIZE = 250;
@@ -34,7 +35,17 @@ void read_hlist(char *filename, float *bounds) {
     char        buffer[1024];
 
     SHORT_PARSETYPE;
-#define NUM_INPUTS 41
+
+#if defined(OUTPUT_RVMAX) && defined(OUTPUT_INERTIA_TENSOR)
+  #define NUM_INPUTS 54
+#elif defined(OUTPUT_RVMAX)
+  #define NUM_INPUTS 42
+#elif defined(OUTPUT_INERTIA_TENSOR)
+  #define NUM_INPUTS 53
+#else
+  #define NUM_INPUTS 41
+#endif
+
     enum short_parsetype stypes[NUM_INPUTS] = {
         D64, D64, F,   F, F, //  #id desc_id mvir vmax vrms
         F,   F,   D64, F,    //  Rvir Rs Np x
@@ -45,6 +56,13 @@ void read_hlist(char *filename, float *bounds) {
         F,   F,   F,   F, F, // A[x] A[y] A[z] b_to_a500 c_to_a500
         F,   F,   F,   F, F, //  A2[x] A2[y] A2[z] T/|U| M_PE_Behroozi
         F,   F               // M_PE_Diemer Halfmass_Radius
+#ifdef OUTPUT_RVMAX
+	, F  //Rvmax
+#endif
+#ifdef OUTPUT_INERTIA_TENSOR
+	, F, F, F, F, F, F // Inertial tensor
+	, F, F, F, F, F, F // Inertial tensor(500c)
+#endif
     };
 
     enum parsetype types[NUM_INPUTS];
@@ -88,7 +106,17 @@ void read_hlist(char *filename, float *bounds) {
                                        &(h.kin_to_pot),
                                        &(h.m_pe_b),
                                        &(h.m_pe_d),
-                                       &(h.halfmass_radius)};
+                                       &(h.halfmass_radius)
+#ifdef OUTPUT_RVMAX 
+	, &(h.rvmax)
+#endif
+#ifdef OUTPUT_INERTIA_TENSOR
+	, &(h.inertia_tensor[0]), &(h.inertia_tensor[1]), &(h.inertia_tensor[2])
+	, &(h.inertia_tensor[3]), &(h.inertia_tensor[4]), &(h.inertia_tensor[5])
+	, &(h.inertia_tensor2[0]), &(h.inertia_tensor2[1]), &(h.inertia_tensor2[2])
+	, &(h.inertia_tensor2[3]), &(h.inertia_tensor2[4]), &(h.inertia_tensor2[5])
+#endif
+	};
 
     for (n = 0; n < NUM_INPUTS; n++)
         types[n] = stypes[n];
@@ -151,7 +179,17 @@ void read_hlist(char *filename, float *bounds) {
         printf("%" PRId64 " %" PRId64 " %.3e %.2f %.2f %.3f %.3f %" PRId64
                " %.5f %.5f %.5f %.2f %.2f %.2f %.3e %.3e %.3e %.5f %.5f %.4e "
                "%.4e %.4e %.4e %.4e %.5f %.2f %.5f %.5f %.5f %.5f %.5f %.5f "
-               "%.5f %.5f %.5f %.5f %.5f %.4f %.3e %.3e %.3f %" PRId64 "\n",
+               "%.5f %.5f %.5f %.5f %.5f %.4f %.3e %.3e %.3f"
+#ifdef OUTPUT_RVMAX
+	       " %.3f"
+#endif
+#ifdef OUTPUT_INTERMEDIATE_AXIS
+	       " %.5f %.5f %.5f %.5f %.5f %.5f"
+#endif
+#ifdef OUTPUT_INERTIA_TENSOR
+	       " %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e %.4e"
+#endif
+               " %" PRId64 "\n",
                th->id, th->descid, th->mvir, th->vmax, th->vrms, th->rvir,
                th->rs, th->np, th->pos[0], th->pos[1], th->pos[2], th->vel[0],
                th->vel[1], th->vel[2], th->J[0], th->J[1], th->J[2], th->spin,
@@ -159,8 +197,23 @@ void read_hlist(char *filename, float *bounds) {
                th->alt_m[2], th->alt_m[3], th->Xoff, th->Voff, th->bullock_spin,
                th->b_to_a, th->c_to_a, th->A[0], th->A[1], th->A[2],
                th->b_to_a2, th->c_to_a2, th->A2[0], th->A2[1], th->A2[2],
-               th->kin_to_pot, th->m_pe_b, th->m_pe_d, th->halfmass_radius,
-               th->pid);
+               th->kin_to_pot, th->m_pe_b, th->m_pe_d, th->halfmass_radius
+#ifdef OUTPUT_RVMAX
+	       ,th->rvmax
+#endif
+#ifdef OUTPUT_INTERMEDIATE_AXIS
+	       ,
+	       th->A_I[0], th->A_I[1], th->A_I[2], 
+               th->A2_I[0], th->A2_I[1], th->A2_I[2]
+#endif
+#ifdef OUTPUT_INERTIA_TENSOR
+               ,
+               th->inertia_tensor[0], th->inertia_tensor[1], th->inertia_tensor[2], 
+               th->inertia_tensor[3], th->inertia_tensor[4], th->inertia_tensor[5], 
+               th->inertia_tensor2[0], th->inertia_tensor2[1], th->inertia_tensor2[2], 
+               th->inertia_tensor2[3], th->inertia_tensor2[4], th->inertia_tensor2[5]
+#endif
+	      ,th->pid);
     }
 }
 
