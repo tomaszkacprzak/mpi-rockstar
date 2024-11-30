@@ -11,7 +11,8 @@
     int64_t descid, np;                                                        \
     float   alt_m[4], J[3], spin, bullock_spin, Xoff, Voff, b_to_a, c_to_a,    \
         A[3], klypin_rs, kin_to_pot, m_all, m_pe_b, m_pe_d, b_to_a2, c_to_a2,  \
-      A2[3], halfmass_radius, rvmax, inertia_tensor[6], inertia_tensor2[6];
+      A2[3], halfmass_radius, rvmax, chi2, A_I[3], A2_I[3], \
+      inertia_tensor[6], inertia_tensor2[6];
 
 #include "read_tree.h"
 
@@ -36,6 +37,7 @@ void read_hlist(char *filename, float *bounds) {
 
     SHORT_PARSETYPE;
 
+    /*
 #if defined(OUTPUT_RVMAX) && defined(OUTPUT_INERTIA_TENSOR)
   #define NUM_INPUTS 54
 #elif defined(OUTPUT_RVMAX)
@@ -45,6 +47,25 @@ void read_hlist(char *filename, float *bounds) {
 #else
   #define NUM_INPUTS 41
 #endif
+    */
+
+#define NUM_INPUTS 61
+
+    int ncolumns = 41;
+
+#ifdef OUTPUT_RVMAX
+    ncolumns ++;
+#endif
+#ifdef OUTPUT_NFW_CHI2
+    ncolumns ++;
+#endif
+#ifdef OUTPUT_INTERMEDIATE_AXIS
+    ncolumns += 6;
+#endif
+#ifdef OUTPUT_INERTIA_TENSOR
+    ncolumns += 12;
+#endif
+    fprintf( stderr, "ncolumns= %d\n", ncolumns);
 
     enum short_parsetype stypes[NUM_INPUTS] = {
         D64, D64, F,   F, F, //  #id desc_id mvir vmax vrms
@@ -58,6 +79,12 @@ void read_hlist(char *filename, float *bounds) {
         F,   F               // M_PE_Diemer Halfmass_Radius
 #ifdef OUTPUT_RVMAX
 	, F  //Rvmax
+#endif
+#ifdef OUTPUT_NFW_CHI2
+	, F  //Rvmax
+#endif
+#ifdef OUTPUT_INTERMEDIATE_AXIS
+	, F, F, F, F, F, F
 #endif
 #ifdef OUTPUT_INERTIA_TENSOR
 	, F, F, F, F, F, F // Inertial tensor
@@ -110,6 +137,12 @@ void read_hlist(char *filename, float *bounds) {
 #ifdef OUTPUT_RVMAX 
 	, &(h.rvmax)
 #endif
+#ifdef OUTPUT_NFW_CHI2
+	, &(h.chi2)
+#endif
+#ifdef OUTPUT_INTERMEDIATE_AXIS
+       , &(h.A_I[0]), &(h.A_I[1]), &(h.A_I[2]), &(h.A2_I[0]), &(h.A2_I[1]), &(h.A2_I[2])
+#endif
 #ifdef OUTPUT_INERTIA_TENSOR
 	, &(h.inertia_tensor[0]), &(h.inertia_tensor[1]), &(h.inertia_tensor[2])
 	, &(h.inertia_tensor[3]), &(h.inertia_tensor[4]), &(h.inertia_tensor[5])
@@ -118,7 +151,8 @@ void read_hlist(char *filename, float *bounds) {
 #endif
 	};
 
-    for (n = 0; n < NUM_INPUTS; n++)
+    //for (n = 0; n < NUM_INPUTS; n++)
+    for (n = 0; n < ncolumns; n++)
         types[n] = stypes[n];
     input = check_fopen(filename, "r");
     while (fgets(buffer, 1024, input)) {
@@ -132,7 +166,8 @@ void read_hlist(char *filename, float *bounds) {
             }
         }
         n = stringparse(buffer, data, (enum parsetype *)types, NUM_INPUTS);
-        if (n < NUM_INPUTS)
+        //if (n < NUM_INPUTS)
+	if (n < ncolumns)
             continue;
         if (bounds) {
             float rvir = h.rvir / 1.0e3; // in Mpc/h
@@ -183,6 +218,9 @@ void read_hlist(char *filename, float *bounds) {
 #ifdef OUTPUT_RVMAX
 	       " %.3f"
 #endif
+#ifdef OUTPUT_NFW_CHI2
+	       " %.4e"
+#endif
 #ifdef OUTPUT_INTERMEDIATE_AXIS
 	       " %.5f %.5f %.5f %.5f %.5f %.5f"
 #endif
@@ -200,6 +238,9 @@ void read_hlist(char *filename, float *bounds) {
                th->kin_to_pot, th->m_pe_b, th->m_pe_d, th->halfmass_radius
 #ifdef OUTPUT_RVMAX
 	       ,th->rvmax
+#endif
+#ifdef OUTPUT_NFW_CHI2
+	       ,th->chi2
 #endif
 #ifdef OUTPUT_INTERMEDIATE_AXIS
 	       ,
