@@ -67,8 +67,9 @@ float chi2_scale(float rs, float *bin_r, float *weights, int64_t num_bins) {
     return chi2;
 }
 
-float calc_scale_from_bins(float rs, float *bin_r, float *weights,
-                           int64_t num_bins) {
+//float calc_scale_from_bins(float rs, float *bin_r, float *weights, int64_t num_bins) {
+float calc_scale_from_bins(float rs, float *bin_r, float *weights, 
+			   int64_t num_bins, float *_chi2) {
     if (!(rs > bin_r[0]) || !(rs < bin_r[num_bins]))
         rs = bin_r[(num_bins + 1) / 2];
     float   initial_rs = rs;
@@ -120,7 +121,10 @@ float calc_scale_from_bins(float rs, float *bin_r, float *weights,
         chi2 = new_chi2;
         iter++;
     }
+
+    *_chi2 = chi2;
     return rs;
+
 }
 
 void calc_scale_radius(struct halo *h, float mvir, float rvir, float vmax,
@@ -159,5 +163,11 @@ void calc_scale_radius(struct halo *h, float mvir, float rvir, float vmax,
         if (bin_r[i] * 1e-3 < 3 * FORCE_RES)
             weights[i] = 0.1;
 
-    h->rs = calc_scale_from_bins(rs, bin_r, weights, num_bins);
+    float chi2 = 0.0;
+    h->rs = calc_scale_from_bins(rs, bin_r, weights, num_bins, &chi2);
+#ifdef OUTPUT_NFW_CHI2
+    h->chi2 = chi2;
+#endif    
+    //h->rs = calc_scale_from_bins(rs, bin_r, weights, num_bins);
+
 }

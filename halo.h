@@ -25,6 +25,10 @@ struct halo {
   float inertia_tensor2[6]; // xx, yy, zz, xy, yz, zx
 #endif
 
+#ifdef OUTPUT_NFW_CHI2
+  float chi2;
+#endif
+
 };
 
 struct extra_halo_info {

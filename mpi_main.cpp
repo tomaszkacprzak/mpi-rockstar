@@ -43,6 +43,17 @@ double time_start;
 #endif
 
 
+
+int64_t accumulate(int64_t n){
+
+  int64_t n_total = 0;
+  MPI_Allreduce(&n, &n_total, 1, MPI_LONG_LONG_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  return n_total;
+
+}
+
+
 void timed_output(const char *format, ...) {
     MPI_Barrier(MPI_COMM_WORLD);
     int my_rank;
@@ -113,6 +124,37 @@ int64_t exchange_data(const T send_data[], int counts[], T *&recv_data,
     return num_to_recv;
 }
 
+
+
+void createDivision( const int n, int *ndiv){
+
+  int nx, ny, nz;
+  int n0, n1;
+  n0 = (int)pow(n+0.1,0.33333333333333333333);
+  while(n%n0)n0--;
+  nx = n0;
+  n1 = n/nx;
+  n0 = (int)sqrt(n1+0.1);
+  while(n1%n0)n0++;
+  ny = n0; nz = n1/n0;
+  int ntmp;
+  if (nz > ny){
+    ntmp = nz; nz = ny; ny = ntmp;
+  }
+  if (ny > nx){
+    ntmp = nx; nx = ny; ny = ntmp;
+  }
+  if (nz > ny){
+    ntmp = nz; nz = ny; ny = ntmp;
+  }
+
+  ndiv[0] = nx;
+  ndiv[1] = ny;
+  ndiv[2] = nz;
+
+}
+
+
 void check_num_writers(void) {
     if (NUM_WRITERS == 1) {
         if (PERIODIC) {
@@ -125,7 +167,8 @@ void check_num_writers(void) {
         return;
     } else {
         int factors[3] = {0};
-        MPI_Dims_create(NUM_WRITERS, 3, factors);
+        //MPI_Dims_create(NUM_WRITERS, 3, factors);
+	createDivision( NUM_WRITERS, factors);
         if ((factors[0] < 2) || (factors[1] < 2) || (factors[2] < 2)) {
             fprintf(stderr,
                     "[Error] NUM_WRITERS should be the product of at least "
@@ -459,12 +502,24 @@ void decide_chunks_for_memory_balance(const int chunks[],
     particle_indices = reallocate(particle_indices, 0);
 }
 
+
+
+
+
 void decide_writer_bounds(float (*writer_bounds)[6], const int my_rank) {
     int chunks[3] = {0};
-    MPI_Dims_create(NUM_WRITERS, 3, chunks);
+    //MPI_Dims_create(NUM_WRITERS, 3, chunks);
+    createDivision( NUM_WRITERS, chunks);
+
     // if (strlen(LOAD_BALANCE_SCRIPT)) decide_chunks_by_script();
     // else if (NUM_WRITERS == 1) decide_chunks_for_volume_balance();
     // else decide_chunks_for_memory_balance();
+    /*
+    int tmp = chunks[0];
+    chunks[0] = chunks[2];
+    chunks[2] = tmp;
+    */
+
     decide_chunks_for_memory_balance(chunks, writer_bounds);
 
     if( my_rank == 0){
@@ -510,38 +565,14 @@ MPI_Datatype create_mpi_bgroup_type() {
 
 MPI_Datatype create_mpi_halo_type() {
     MPI_Datatype mpi_halo_type;
-#if 0
-    int          block_lengths[] = {1, 48, 6, 3};
-    MPI_Aint     displacements[] = {
-        offsetof(struct halo, id),
-        offsetof(struct halo, pos),
-        offsetof(struct halo, num_p),
-        offsetof(struct halo, min_pos_err),
-    };
-    MPI_Datatype types[] = {MPI_INT64_T, MPI_FLOAT, MPI_INT64_T, MPI_FLOAT};
-    MPI_Type_create_struct(4, block_lengths, displacements, types,
-                           &mpi_halo_type);
-#else
     MPI_Type_contiguous( sizeof(struct halo), MPI_CHAR, &mpi_halo_type);
-#endif
     MPI_Type_commit(&mpi_halo_type);
     return mpi_halo_type;
 }
 
 MPI_Datatype create_mpi_ehi_type() {
     MPI_Datatype mpi_ehi_type;
-#if 0
-    int          block_lengths[] = {5, 1};
-    MPI_Aint     displacements[] = {
-        offsetof(struct extra_halo_info, child),
-        offsetof(struct extra_halo_info, max_metric),
-    };
-    MPI_Datatype types[] = {MPI_INT64_T, MPI_FLOAT};
-    MPI_Type_create_struct(2, block_lengths, displacements, types,
-                           &mpi_ehi_type);
-#else
     MPI_Type_contiguous( sizeof(struct extra_halo_info), MPI_CHAR, &mpi_ehi_type);
-#endif
     MPI_Type_commit(&mpi_ehi_type);
     return mpi_ehi_type;
 }
@@ -556,30 +587,15 @@ struct complete_halo {
 MPI_Datatype create_mpi_complete_halo_type(MPI_Datatype mpi_halo_type,
                                            MPI_Datatype mpi_ehi_type) {
     MPI_Datatype mpi_complete_halo_type;
-#if 0
-    int          block_lengths[] = {1, 1};
-    MPI_Aint     displacements[] = {
-        offsetof(struct complete_halo, h),
-        offsetof(struct complete_halo, ehi),
-    };
-    MPI_Datatype types[] = {mpi_halo_type, mpi_ehi_type};
-    MPI_Type_create_struct(2, block_lengths, displacements, types,
-                           &mpi_complete_halo_type);
-#else
     MPI_Type_contiguous( sizeof(struct complete_halo), MPI_CHAR, &mpi_complete_halo_type);
-#endif
     MPI_Type_commit(&mpi_complete_halo_type);
     return mpi_complete_halo_type;
 }
 
 MPI_Datatype create_mpi_eparticle_type() {
+
     MPI_Datatype mpi_eparticle_type;
-    int          block_lengths[] = {2, 6};
-    MPI_Aint     displacements[] = {offsetof(struct particle, id),
-                                    offsetof(struct particle, pos)};
-    MPI_Datatype types[]         = {MPI_INT64_T, MPI_FLOAT};
-    MPI_Type_create_struct(2, block_lengths, displacements, types,
-                           &mpi_eparticle_type);
+    MPI_Type_contiguous( sizeof(struct extended_particle), MPI_CHAR, &mpi_eparticle_type);
     MPI_Type_commit(&mpi_eparticle_type);
     return mpi_eparticle_type;
 }
@@ -594,7 +610,8 @@ void transfer_particles(int my_reader_rank, float *my_reader_bounds,
         std::vector<int64_t> recipients;
         for (int64_t i = 0; i < NUM_WRITERS; i++) {
             float bounds[6];
-            if (bounds_overlap(my_reader_bounds, writer_bounds[i], bounds, 0)) {
+            //if (bounds_overlap(my_reader_bounds, writer_bounds[i], bounds, 0)) {
+	    if (bounds_overlap(my_reader_bounds, writer_bounds[i], bounds, FORCE_RES)) {
                 recipients.emplace_back(i);
             }
         }
@@ -1323,13 +1340,10 @@ void gather_spheres(int64_t my_rank, float (*writer_bounds)[6],
                 bounds[k + 3] = writer_bounds[recipient][k + 3] + sp.r;
             }
 
-            if (_check_bounds(halos[i].pos, sp.cen, bounds)) {
+	    if (_check_bounds(halos[i].pos, sp.cen, bounds)) {
                 sphere_requests[recipient].emplace_back(sp);
-                /*
-                printf("%f %f %f %f\n", sp.cen[0], sp.cen[1], sp.cen[2], sp.r);
-                fflush(stdout);
-                */
-            }
+	    }
+
         }
     }
 
@@ -1352,7 +1366,8 @@ void gather_spheres(int64_t my_rank, float (*writer_bounds)[6],
     }
 
     MPI_Datatype mpi_sp_type;
-    MPI_Type_contiguous(4, MPI_FLOAT, &mpi_sp_type);
+    //MPI_Type_contiguous(4, MPI_FLOAT, &mpi_sp_type);
+    MPI_Type_contiguous( sizeof(sphere_request), MPI_CHAR, &mpi_sp_type);
     MPI_Type_commit(&mpi_sp_type);
     struct sphere_request *recv_requests = nullptr;
     exchange_data(send_buffer, counts, recv_requests, 0, mpi_sp_type);
@@ -1389,6 +1404,7 @@ void gather_spheres(int64_t my_rank, float (*writer_bounds)[6],
     num_ep2 =
         exchange_data(epbuffer.data(), counts, ep2, 0, mpi_eparticle_type);
     MPI_Type_free(&mpi_eparticle_type);
+
 }
 
 void find_halos(int64_t snap, int64_t my_rank, char *buffer,
@@ -1474,11 +1490,6 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
         int64_t num_p_print = count_particles_to_print(writer_bounds[my_rank]);
         MPI_Exscan(&num_halos_print, &id_offset, 1, MPI_INT64_T, MPI_SUM,
                    MPI_COMM_WORLD);
-        /*
-        MPI_Exscan(&num_halos, &id_offset, 1, MPI_INT64_T, MPI_SUM,
-	               MPI_COMM_WORLD);
-	    fprintf(stderr, "%lld %lld %lld\n", my_rank, num_halos, id_offset);
-        */
         output_halos(id_offset, snap, my_rank, writer_bounds[my_rank]);
 
 #ifdef ENABLE_HDF5
@@ -1494,7 +1505,6 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
 #endif
 
         if (check_bgc2_snap(snap) || STRICT_SO_MASSES) {
-            /*
             timed_output("Generating BGC2 files/SO Masses...\n");
 
             // p[0..num_p] are local particles not belonging to any halo
@@ -1513,7 +1523,12 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
                     total_num_p += halos[i].num_p;
             }
             // The sum of total_num_p for all procs should equal TOTAL_PARTICLES
-            printf("%ld\n", total_num_p);
+
+#if 1
+	    for( int i=0; i<(num_p+num_additional_p); i++){
+	      wrap_into_box(p[i].pos);
+	    }
+#endif
 
             float my_halo_bounds[6];
             calc_halo_bounds(my_halo_bounds);
@@ -1521,17 +1536,16 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
             std::vector<int64_t> recipients;
             for (int64_t i = 0; i < NUM_WRITERS; i++) {
                 float bounds[6];
-                if (bounds_overlap(my_halo_bounds, writer_bounds[i], bounds,
-                                   0)) {
+                if (bounds_overlap(my_halo_bounds, writer_bounds[i], bounds, 0)) {
                     recipients.emplace_back(i);
-                }
+		}
             }
 
             init_extended_particle_tree();
             gather_spheres(my_rank, writer_bounds, recipients);
+
             output_bgc2(id_offset, snap, my_rank, writer_bounds[my_rank]);
             free_extended_particle_tree();
-            */
         }
         free_halos();
         particle_cleanup();
@@ -1789,6 +1803,7 @@ void mpi_main(int argc, char *argv[]) {
             decide_writer_bounds(writer_bounds, my_rank);
 
             transfer_particles(my_reader_rank, my_reader_bounds, writer_bounds);
+	    
             std::sort(p, p + num_p,
                       [](const struct particle &a, const struct particle &b) {
                           return a.id < b.id;

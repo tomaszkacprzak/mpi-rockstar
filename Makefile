@@ -1,7 +1,7 @@
 CFLAGS   = -m64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_BSD_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200809L -D_SVID_SOURCE -D_DARWIN_C_SOURCE -Wall -fno-math-errno -fPIC -std=c99
 CXXFLAGS = -Wall -fno-math-errno -fPIC -std=c++11
 #ADDFLAGS = -DOUTPUT_RVMAX -DOUTPUT_INTERMEDIATE_AXIS
-ADDFLAGS = -DOUTPUT_RVMAX -DOUTPUT_INERTIA_TENSOR -DDO_CONFIG_MPI
+ADDFLAGS = -DOUTPUT_RVMAX -DOUTPUT_INERTIA_TENSOR -DDO_CONFIG_MPI -DOUTPUT_NFW_CHI2 
 CFLAGS   += $(ADDFLAGS)
 CXXFLAGS += $(ADDFLAGS)
 LDFLAGS  = -shared
@@ -64,7 +64,7 @@ bgc2:
 	$(CC) $(CFLAGS) io/extra_bgc2.c util/bgc2_to_ascii.c $(CFILES) -o util/bgc2_to_ascii  $(OFLAGS)
 
 parents:
-	$(CC) $(CFLAGS) util/find_parents.c io/stringparse.c check_syscalls.c  -o util/find_parents $(OFLAGS)
+	$(CC) $(CFLAGS) util/find_parents.c io/stringparse.c check_syscalls.c  -o util/find_parents $(OFLAGS) -lm
 
 substats:
 	$(CC) $(CFLAGS) util/subhalo_stats.c $(CFILES) -o util/subhalo_stats  $(OFLAGS)

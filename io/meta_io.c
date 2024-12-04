@@ -495,6 +495,11 @@ void get_outlist_filename(char *buffer, int maxlen, int64_t snap,
         snprintf(buffer + out, maxlen - out, "-%" PRId64, chunk);
         out = strlen(buffer);
     }
+    else{
+      snprintf(buffer, maxlen, "%s/out_%" PRId64 ".list", OUTBASE, snap);
+      out = strlen(buffer);      
+    }
+
 }
 
 char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
@@ -520,6 +525,9 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
             "A[z](%s) T/|U| M_pe_Behroozi M_pe_Diemer Halfmass_Radius"
 #ifdef OUTPUT_RVMAX
 	    " rvmax"
+#endif
+#ifdef OUTPUT_NFW_CHI2
+	    " NFW_chi2"
 #endif
 #ifdef OUTPUT_INTERMEDIATE_AXIS
 	    " B[x] B[y] B[z] B[x](%s) B[y](%s) B[z](%s)"
@@ -564,6 +572,9 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
 #ifdef OUTPUT_RVMAX
 	    " %.3f"
 #endif
+#ifdef OUTPUT_NFW_CHI2
+	    " %.4e"
+#endif
 #ifdef OUTPUT_INTERMEDIATE_AXIS
 	    " %.5f %.5f %.5f %.5f %.5f %.5f"
 #endif
@@ -581,6 +592,9 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
             th->halfmass_radius
 #ifdef OUTPUT_RVMAX
 	    ,th->rvmax
+#endif
+#ifdef OUTPUT_NFW_CHI2
+	    ,th->chi2
 #endif
 #ifdef OUTPUT_INTERMEDIATE_AXIS
             ,
@@ -601,23 +615,7 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
     return cat;
 }
 
-#if 0
-void output_merger_catalog(int64_t snap, int64_t chunk, int64_t location,
-                           int64_t length, char *cat) {
-    FILE *output;
-    char  buffer[1024];
-    get_outlist_filename(buffer, 1024, snap, chunk);
-    output = check_fopen(buffer, "r+");
-    check_lseek(fileno(output), location,
-                SEEK_SET);                    // Increases length as needed
-    check_fseeko(output, location, SEEK_SET); // Sets stream file pointer
-    check_fwrite(cat, 1, length, output);
-    fclose(output);
-    free(cat);
-}
 
-
-#else
 
 #include <mpi.h>
 
@@ -627,17 +625,34 @@ void output_merger_catalog(int64_t snap, int64_t chunk, int64_t location,
   char buffer[1024];
   get_outlist_filename(buffer, 1024, snap, chunk);
 
-  MPI_File   mfh;
-  MPI_Info   info;
-  MPI_Status mst;
+  if (OUTLIST_PARALLEL) {
+    FILE *output;
+    char  buffer[1024];
+    get_outlist_filename(buffer, 1024, snap, chunk);
+    output = check_fopen(buffer, "r+");
+    check_lseek(fileno(output), location,
+                SEEK_SET);                    // Increases length as needed
+    check_fseeko(output, location, SEEK_SET); // Sets stream file pointer
+    check_fwrite(cat, 1, length, output);
+    fclose(output);
+  }
+  else{
 
-  MPI_Info_create(&info);
-  MPI_File_open(MPI_COMM_WORLD, buffer, MPI_MODE_WRONLY, info, &mfh);
-  MPI_File_set_view(mfh, (MPI_Offset)location, MPI_CHAR, MPI_CHAR, "native", info);
-  MPI_File_write_all(mfh, &cat[0], length, MPI_CHAR, &mst);
+    MPI_File   mfh;
+    MPI_Info   info;
+    MPI_Status mst;
 
-  MPI_File_close(&mfh);
-  MPI_Info_free(&info);
+    MPI_Info_create(&info);
+    MPI_File_open(MPI_COMM_WORLD, buffer, MPI_MODE_WRONLY, info, &mfh);
+    MPI_File_set_view(mfh, (MPI_Offset)location, MPI_CHAR, MPI_CHAR, "native", info);
+    MPI_File_write_all(mfh, &cat[0], length, MPI_CHAR, &mst);
+
+    MPI_File_close(&mfh);
+    MPI_Info_free(&info);
+  }
+    
   free(cat);
+
+
 }
-#endif
+
