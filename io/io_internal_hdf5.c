@@ -174,6 +174,12 @@ void read_hdf5_halos(hid_t HDF_FileID, struct halo *halos,
                 (char *) &(halos[0].rvmax) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 #endif
 
+#ifdef OUTPUT_NFW_CHI2
+    read_hdf5_dataset(HDF_FileID, "/NFWChi2", H5T_NATIVE_FLOAT, buffer_float);
+    load_buffer(buffer_float, halos, num_halos,
+                (char *) &(halos[0].chi2) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+#endif
+
     read_hdf5_dataset(HDF_FileID, "/ScaleRadius", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].rs) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
@@ -796,6 +802,13 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
     write_hdf5_dataset(HDF_FileID, "/VmaxRadius", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
     add_hdf5_attribute(HDF_FileID, "/VmaxRadius", "kpc/h (comoving)",
                        "Radius where circular velocity is maximum");
+#endif
+
+#ifdef OUTPUT_NFW_CHI2
+    set_buffer(buffer_float, to_write, (char *) &(halos[0].chi2) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+    write_hdf5_dataset(HDF_FileID, "/NFWChi2", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_FileID, "/NFWChi2", "N/A",
+                       "Chi square of the NFW fitting");
 #endif
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].rs) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
