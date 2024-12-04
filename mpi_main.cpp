@@ -124,6 +124,37 @@ int64_t exchange_data(const T send_data[], int counts[], T *&recv_data,
     return num_to_recv;
 }
 
+
+
+void createDivision( const int n, int *ndiv){
+
+  int nx, ny, nz;
+  int n0, n1;
+  n0 = (int)pow(n+0.1,0.33333333333333333333);
+  while(n%n0)n0--;
+  nx = n0;
+  n1 = n/nx;
+  n0 = (int)sqrt(n1+0.1);
+  while(n1%n0)n0++;
+  ny = n0; nz = n1/n0;
+  int ntmp;
+  if (nz > ny){
+    ntmp = nz; nz = ny; ny = ntmp;
+  }
+  if (ny > nx){
+    ntmp = nx; nx = ny; ny = ntmp;
+  }
+  if (nz > ny){
+    ntmp = nz; nz = ny; ny = ntmp;
+  }
+
+  ndiv[0] = nx;
+  ndiv[1] = ny;
+  ndiv[2] = nz;
+
+}
+
+
 void check_num_writers(void) {
     if (NUM_WRITERS == 1) {
         if (PERIODIC) {
@@ -136,7 +167,8 @@ void check_num_writers(void) {
         return;
     } else {
         int factors[3] = {0};
-        MPI_Dims_create(NUM_WRITERS, 3, factors);
+        //MPI_Dims_create(NUM_WRITERS, 3, factors);
+	createDivision( NUM_WRITERS, factors);
         if ((factors[0] < 2) || (factors[1] < 2) || (factors[2] < 2)) {
             fprintf(stderr,
                     "[Error] NUM_WRITERS should be the product of at least "
@@ -471,34 +503,6 @@ void decide_chunks_for_memory_balance(const int chunks[],
 }
 
 
-
-void createDivision( const int n, int *ndiv){
-
-  int nx, ny, nz;
-  int n0, n1;
-  n0 = (int)pow(n+0.1,0.33333333333333333333);
-  while(n%n0)n0--;
-  nx = n0;
-  n1 = n/nx;
-  n0 = (int)sqrt(n1+0.1);
-  while(n1%n0)n0++;
-  ny = n0; nz = n1/n0;
-  int ntmp;
-  if (nz > ny){
-    ntmp = nz; nz = ny; ny = ntmp;
-  }
-  if (ny > nx){
-    ntmp = nx; nx = ny; ny = ntmp;
-  }
-  if (nz > ny){
-    ntmp = nz; nz = ny; ny = ntmp;
-  }
-
-  ndiv[0] = nx;
-  ndiv[1] = ny;
-  ndiv[2] = nz;
-
-}
 
 
 
