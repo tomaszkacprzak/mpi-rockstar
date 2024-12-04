@@ -1307,17 +1307,6 @@ void gather_spheres(int64_t my_rank, float (*writer_bounds)[6],
     std::vector<std::vector<struct sphere_request>> sphere_requests(
         NUM_WRITERS, std::vector<struct sphere_request>());
 
-#if 0
-    for( int i=0; i<NUM_WRITERS; i++){
-      if( my_rank == i){
-	fprintf( stderr, "%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n", my_rank,
-		 writer_bounds[my_rank][0], writer_bounds[my_rank][3], writer_bounds[my_rank][1],
-		 writer_bounds[my_rank][4], writer_bounds[my_rank][2], writer_bounds[my_rank][5]);
-      }
-      MPI_Barrier(MPI_COMM_WORLD);
-    }
-#endif
-
     for (int64_t i = 0; i < num_halos; i++) {
         if (!_should_print(halos + i, writer_bounds[my_rank]))
             continue;
@@ -1416,8 +1405,6 @@ void gather_spheres(int64_t my_rank, float (*writer_bounds)[6],
         exchange_data(epbuffer.data(), counts, ep2, 0, mpi_eparticle_type);
     MPI_Type_free(&mpi_eparticle_type);
 
-    //fprintf(stderr, "my_rank=%d num_ep2= %d %d %d %d %d\n", my_rank, num_ep2, num_halos, num_p, num_additional_p, total_requests);
-
 }
 
 void find_halos(int64_t snap, int64_t my_rank, char *buffer,
@@ -1488,17 +1475,6 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
             load_previous_halos(snap, my_rank, new_bounds);
         }
 
-#if 0
-	char cbuf[256];
-	sprintf(cbuf, "part-%lld", my_rank);
-	FILE *fout = check_fopen(cbuf, "w");
-	for( int i=0; i<num_p; i++){
-	  fprintf( fout, "%lf\t%lf\t%lf\t%lld\n", 
-		   p[i].pos[0], p[i].pos[1], p[i].pos[2], p[i].id);
-	}
-	fclose(fout);
-#endif
-
         do_halo_finding(meta_fofs, num_meta_fofs);
         clear_prev_files();
 
@@ -1565,7 +1541,6 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
 		}
             }
 
-	    //fprintf(stderr, "my_rank=%d %d %d %d\n", my_rank, num_p, num_additional_p, recipients.size());
             init_extended_particle_tree();
             gather_spheres(my_rank, writer_bounds, recipients);
 
