@@ -528,19 +528,27 @@ void decide_writer_bounds(float (*writer_bounds)[6], const int my_rank) {
 }
 
 MPI_Datatype create_mpi_particle_type() {
+
     MPI_Datatype mpi_particle_type;
+#if 0
     int          block_lengths[] = {1, 6};
     MPI_Aint     displacements[] = {offsetof(struct particle, id),
                                     offsetof(struct particle, pos)};
     MPI_Datatype types[]         = {MPI_INT64_T, MPI_FLOAT};
     MPI_Type_create_struct(2, block_lengths, displacements, types,
                            &mpi_particle_type);
+#else
+    MPI_Type_contiguous( sizeof(struct particle), MPI_CHAR, &mpi_particle_type);
+#endif
     MPI_Type_commit(&mpi_particle_type);
     return mpi_particle_type;
+
 }
 
 MPI_Datatype create_mpi_bparticle_type() {
+
     MPI_Datatype mpi_bparticle_type;
+#if 0
     int          block_lengths[] = {1, 6, 1, 1};
     MPI_Aint     displacements[] = {
         offsetof(struct bparticle, id), offsetof(struct bparticle, pos),
@@ -548,33 +556,47 @@ MPI_Datatype create_mpi_bparticle_type() {
     MPI_Datatype types[] = {MPI_INT64_T, MPI_FLOAT, MPI_INT64_T, MPI_INT64_T};
     MPI_Type_create_struct(4, block_lengths, displacements, types,
                            &mpi_bparticle_type);
+#else
+    MPI_Type_contiguous( sizeof(struct bparticle), MPI_CHAR, &mpi_bparticle_type);
+#endif
     MPI_Type_commit(&mpi_bparticle_type);
     return mpi_bparticle_type;
+
 }
 
 MPI_Datatype create_mpi_bgroup_type() {
-    MPI_Datatype mpi_bgroup_type;
-    int          block_lengths[] = {6};
-    MPI_Aint     displacements[] = {offsetof(struct bgroup, id)};
-    MPI_Datatype types[]         = {MPI_INT64_T};
-    MPI_Type_create_struct(1, block_lengths, displacements, types,
-                           &mpi_bgroup_type);
-    MPI_Type_commit(&mpi_bgroup_type);
+
+  MPI_Datatype mpi_bgroup_type;
+#if 0
+  int          block_lengths[] = {6};
+  MPI_Aint     displacements[] = {offsetof(struct bgroup, id)};
+  MPI_Datatype types[]         = {MPI_INT64_T};
+  MPI_Type_create_struct(1, block_lengths, displacements, types,
+			 &mpi_bgroup_type);
+#else
+  MPI_Type_contiguous( sizeof(struct bgroup), MPI_CHAR, &mpi_bgroup_type);
+#endif
+  MPI_Type_commit(&mpi_bgroup_type);
     return mpi_bgroup_type;
+
 }
 
 MPI_Datatype create_mpi_halo_type() {
+
     MPI_Datatype mpi_halo_type;
     MPI_Type_contiguous( sizeof(struct halo), MPI_CHAR, &mpi_halo_type);
     MPI_Type_commit(&mpi_halo_type);
     return mpi_halo_type;
+
 }
 
 MPI_Datatype create_mpi_ehi_type() {
+
     MPI_Datatype mpi_ehi_type;
     MPI_Type_contiguous( sizeof(struct extra_halo_info), MPI_CHAR, &mpi_ehi_type);
     MPI_Type_commit(&mpi_ehi_type);
     return mpi_ehi_type;
+
 }
 
 struct complete_halo {
@@ -584,13 +606,16 @@ struct complete_halo {
         : h(h_), ehi(ehi_) {}
 };
 
+
 MPI_Datatype create_mpi_complete_halo_type(MPI_Datatype mpi_halo_type,
                                            MPI_Datatype mpi_ehi_type) {
     MPI_Datatype mpi_complete_halo_type;
     MPI_Type_contiguous( sizeof(struct complete_halo), MPI_CHAR, &mpi_complete_halo_type);
     MPI_Type_commit(&mpi_complete_halo_type);
     return mpi_complete_halo_type;
+
 }
+
 
 MPI_Datatype create_mpi_eparticle_type() {
 
@@ -598,7 +623,9 @@ MPI_Datatype create_mpi_eparticle_type() {
     MPI_Type_contiguous( sizeof(struct extended_particle), MPI_CHAR, &mpi_eparticle_type);
     MPI_Type_commit(&mpi_eparticle_type);
     return mpi_eparticle_type;
+
 }
+
 
 void transfer_particles(int my_reader_rank, float *my_reader_bounds,
                         float (*writer_bounds)[6]) {
@@ -1367,7 +1394,7 @@ void gather_spheres(int64_t my_rank, float (*writer_bounds)[6],
 
     MPI_Datatype mpi_sp_type;
     //MPI_Type_contiguous(4, MPI_FLOAT, &mpi_sp_type);
-    MPI_Type_contiguous( sizeof(sphere_request), MPI_CHAR, &mpi_sp_type);
+    MPI_Type_contiguous( sizeof(struct sphere_request), MPI_CHAR, &mpi_sp_type);
     MPI_Type_commit(&mpi_sp_type);
     struct sphere_request *recv_requests = nullptr;
     exchange_data(send_buffer, counts, recv_requests, 0, mpi_sp_type);
@@ -1703,10 +1730,18 @@ void do_merger_tree(int64_t snap, int64_t my_rank, float (*writer_bounds)[6]) {
             p_bounds = reallocate(p_bounds, NUM_WRITERS);
         }
         MPI_Datatype mpi_pbounds_type;
+#if 0
         MPI_Type_contiguous(6, MPI_FLOAT, &mpi_pbounds_type);
         MPI_Type_commit(&mpi_pbounds_type);
         MPI_Allgather(bounds, 6, MPI_FLOAT, p_bounds, 1, mpi_pbounds_type,
                       MPI_COMM_WORLD);
+#else
+	MPI_Type_contiguous( sizeof(struct prev_bounds), MPI_CHAR, &mpi_pbounds_type);
+        MPI_Type_commit(&mpi_pbounds_type);
+	struct prev_bounds bounds_snap;
+	for( int i=0; i<6; i++)  bounds_snap.bounds[i] = bounds[i];
+	MPI_Allgather( &bounds_snap, 1, mpi_pbounds_type, p_bounds, 1, mpi_pbounds_type, MPI_COMM_WORLD);
+#endif
         MPI_Type_free(&mpi_pbounds_type);
         prev_snap = snap;
 
