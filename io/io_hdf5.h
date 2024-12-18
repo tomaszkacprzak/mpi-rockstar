@@ -7,6 +7,7 @@
 hid_t check_H5Fopen(char *filename, unsigned flags);
 
 hid_t check_H5Gopen(hid_t HDF_FileID, char *gid, char *filename);
+hid_t check_H5Gopen2(hid_t HDF_FileID, char *gid);
 
 hid_t check_H5Dopen(hid_t HDF_GroupID, char *dataid, char *gid, char *filename);
 hid_t check_H5Dopen2(hid_t HDF_GroupID, char *dataid);

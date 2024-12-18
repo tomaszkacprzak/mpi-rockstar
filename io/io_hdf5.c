@@ -23,6 +23,15 @@ hid_t check_H5Gopen(hid_t HDF_FileID, char *gid, char *filename) {
     return HDF_GroupID;
 }
 
+hid_t check_H5Gopen2(hid_t HDF_FileID, char *gid) {
+    hid_t HDF_GroupID = H5Gopen(HDF_FileID, gid);
+    if (HDF_GroupID < 0) {
+        fprintf(stderr, "[Error] Failed to open group %s !\n", gid);
+        exit(1);
+    }
+    return HDF_GroupID;
+}
+
 hid_t check_H5Dopen(hid_t HDF_GroupID, char *dataid, char *gid,
                     char *filename) {
     hid_t HDF_DatasetID = H5Dopen(HDF_GroupID, dataid);

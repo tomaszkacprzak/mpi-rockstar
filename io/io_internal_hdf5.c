@@ -61,20 +61,21 @@ void load_buffer(void *buffer, struct halo *halos, int64_t to_read,
     }
 }
 
-void write_hdf5_dataset(hid_t HDF_FileID, char *dataid, hid_t type,
+void write_hdf5_dataset(hid_t hid, char *dataid, hid_t type,
                         hsize_t rank, hsize_t *dims, void *data) {
     hid_t HDF_DataspaceID = check_H5Screate_simple(rank, dims, NULL); 
-    hid_t HDF_DatasetID   = check_H5Dcreate(HDF_FileID, dataid, type, HDF_DataspaceID);
+    hid_t HDF_DatasetID   = check_H5Dcreate(hid, dataid, type, HDF_DataspaceID);
+
     check_H5Dwrite(HDF_DatasetID, type, data);
     check_H5Dclose(HDF_DatasetID);
     check_H5Sclose(HDF_DataspaceID);
 }
 
-void add_hdf5_attribute(hid_t HDF_FileID, char *dataid,
+void add_hdf5_attribute(hid_t hid, char *dataid,
                         char *unit, char *description) {
     hid_t dataspace_id, attrtype_id, attrspace_id, attr_id;
 
-    dataspace_id = check_H5Dopen2(HDF_FileID, dataid);
+    dataspace_id = check_H5Dopen2(hid, dataid);
 
     attrtype_id = check_H5Tcopy(H5T_C_S1);
     check_H5Tset_size(attrtype_id, 256);
@@ -97,10 +98,11 @@ void add_hdf5_attribute(hid_t HDF_FileID, char *dataid,
     check_H5Dclose(dataspace_id);
 }
 
-void read_hdf5_dataset(hid_t HDF_FileID, char *dataid,
+void read_hdf5_dataset(hid_t hid, char *dataid,
                        hid_t type, void *buffer) {
-    hid_t HDF_DatasetID   = check_H5Dopen2(HDF_FileID, dataid);
+    hid_t HDF_DatasetID   = check_H5Dopen2(hid, dataid);
     hid_t HDF_DataspaceID = check_H5Dget_space(HDF_DatasetID);
+
     check_H5Sselect_all(HDF_DataspaceID);
     check_H5Dread2(HDF_DatasetID, type, buffer, dataid);
     H5Sclose(HDF_DataspaceID);
@@ -113,220 +115,233 @@ void read_hdf5_halos(hid_t HDF_FileID, struct halo *halos,
     float   *buffer_float;
     int64_t  num_halos;
     char     dataid[256];
+    hid_t    HDF_GroupID;
 
     num_halos = bh->num_halos;
     buffer_float = (float *) malloc(sizeof(float) * 6 * num_halos);
     buffer_int = (int64_t *) malloc(sizeof(int64_t) * num_halos);
 
-    read_hdf5_dataset(HDF_FileID, "/ID", H5T_NATIVE_LLONG, buffer_int);
+    HDF_GroupID = check_H5Gopen2(HDF_FileID, "/Subhalo");
+
+    read_hdf5_dataset(HDF_GroupID, "ID", H5T_NATIVE_LLONG, buffer_int);
     load_buffer(buffer_int, halos, num_halos,
                 (char *) &(halos[0].id) - (char *) (halos), 1, H5T_NATIVE_LLONG);
 
-    read_hdf5_dataset(HDF_FileID, "/ParticleStart", H5T_NATIVE_LLONG, buffer_int);
+    read_hdf5_dataset(HDF_GroupID, "ParticleStart", H5T_NATIVE_LLONG, buffer_int);
     load_buffer(buffer_int, halos, num_halos,
                 (char *) &(halos[0].p_start) - (char *) (halos), 1, H5T_NATIVE_LLONG);
 
-    read_hdf5_dataset(HDF_FileID, "/Position", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "Position", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].pos[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/Velocity", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "Velocity", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].pos[3]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/CoreVelocity", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "CoreVelocity", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].corevel[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/BulkVelocity", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "BulkVelocity", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].bulkvel[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
 
-    sprintf(dataid, "/M%s", MASS_DEFINITION);
-    read_hdf5_dataset(HDF_FileID, dataid, H5T_NATIVE_FLOAT, buffer_float);
+    sprintf(dataid, "M%s", MASS_DEFINITION);
+    read_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].m) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    sprintf(dataid, "/R%s", MASS_DEFINITION);
-    read_hdf5_dataset(HDF_FileID, dataid, H5T_NATIVE_FLOAT, buffer_float);
+    sprintf(dataid, "R%s", MASS_DEFINITION);
+    read_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].r) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/ChildRadius", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "ChildRadius", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].child_r) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/RadiusDynamicalVirial", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "RadiusDynamicalVirial", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].vmax_r) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/Mbound", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "Mbound", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].mgrav) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/Vmax", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "Vmax", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].vmax) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
 #ifdef OUTPUT_RVMAX
-    read_hdf5_dataset(HDF_FileID, "/VmaxRadius", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "VmaxRadius", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].rvmax) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 #endif
 
 #ifdef OUTPUT_NFW_CHI2
-    read_hdf5_dataset(HDF_FileID, "/NFWChi2", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "NFWChi2", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].chi2) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 #endif
 
-    read_hdf5_dataset(HDF_FileID, "/ScaleRadius", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "ScaleRadius", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].rs) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/ScaleRadiusKlypin", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "ScaleRadiusKlypin", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].klypin_rs) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/Vrms", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "Vrms", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].vrms) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/AngularMomentum", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "AngularMomentum", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].J[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/Energy", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "Energy", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].energy) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/Spin", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "Spin", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].spin) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    sprintf(dataid, "/M%s", MASS_DEFINITION2);
-    read_hdf5_dataset(HDF_FileID, dataid, H5T_NATIVE_FLOAT, buffer_float);
+    sprintf(dataid, "M%s", MASS_DEFINITION2);
+    read_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].alt_m[0]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    sprintf(dataid, "/M%s", MASS_DEFINITION3);
-    read_hdf5_dataset(HDF_FileID, dataid, H5T_NATIVE_FLOAT, buffer_float);
+    sprintf(dataid, "M%s", MASS_DEFINITION3);
+    read_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].alt_m[1]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    sprintf(dataid, "/M%s", MASS_DEFINITION4);
-    read_hdf5_dataset(HDF_FileID, dataid, H5T_NATIVE_FLOAT, buffer_float);
+    sprintf(dataid, "M%s", MASS_DEFINITION4);
+    read_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].alt_m[2]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    sprintf(dataid, "/M%s", MASS_DEFINITION5);
-    read_hdf5_dataset(HDF_FileID, dataid, H5T_NATIVE_FLOAT, buffer_float);
+    sprintf(dataid, "M%s", MASS_DEFINITION5);
+    read_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].alt_m[3]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/PositionOffset", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "PositionOffset", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].Xoff) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/VelocityOffset", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "VelocityOffset", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].Voff) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/IntermediateToMajorAxisRatio", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "SpinBullock", H5T_NATIVE_FLOAT, buffer_float);
+    load_buffer(buffer_float, halos, num_halos,
+                (char *) &(halos[0].bullock_spin) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+
+    read_hdf5_dataset(HDF_GroupID, "KineticToPotentialRatio", H5T_NATIVE_FLOAT, buffer_float);
+    load_buffer(buffer_float, halos, num_halos,
+                (char *) &(halos[0].kin_to_pot) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+
+    read_hdf5_dataset(HDF_GroupID, "MpeBehroozi", H5T_NATIVE_FLOAT, buffer_float);
+    load_buffer(buffer_float, halos, num_halos,
+                (char *) &(halos[0].m_pe_b) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+
+    read_hdf5_dataset(HDF_GroupID, "MpeDiemer", H5T_NATIVE_FLOAT, buffer_float);
+    load_buffer(buffer_float, halos, num_halos,
+                (char *) &(halos[0].m_pe_d) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+
+    read_hdf5_dataset(HDF_GroupID, "HalfMassRadius", H5T_NATIVE_FLOAT, buffer_float);
+    load_buffer(buffer_float, halos, num_halos,
+                (char *) &(halos[0].halfmass_radius) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+
+    read_hdf5_dataset(HDF_GroupID, "NumberParticles", H5T_NATIVE_LLONG, buffer_int);
+    load_buffer(buffer_int, halos, num_halos,
+                (char *) &(halos[0].num_p) - (char *) (halos), 1, H5T_NATIVE_LLONG);
+
+    read_hdf5_dataset(HDF_GroupID, "NumberChildParticles", H5T_NATIVE_LLONG, buffer_int);
+    load_buffer(buffer_int, halos, num_halos,
+                (char *) &(halos[0].num_child_particles) - (char *) (halos), 1, H5T_NATIVE_LLONG);
+
+    read_hdf5_dataset(HDF_GroupID, "DescendantID", H5T_NATIVE_LLONG, buffer_int);
+    load_buffer(buffer_int, halos, num_halos,
+                (char *) &(halos[0].desc) - (char *) (halos), 1, H5T_NATIVE_LLONG);
+
+    read_hdf5_dataset(HDF_GroupID, "Flags", H5T_NATIVE_LLONG, buffer_int);
+    load_buffer(buffer_int, halos, num_halos,
+                (char *) &(halos[0].flags) - (char *) (halos), 1, H5T_NATIVE_LLONG);
+
+    read_hdf5_dataset(HDF_GroupID, "NumberCoreParticles", H5T_NATIVE_LLONG, buffer_int);
+    load_buffer(buffer_int, halos, num_halos,
+                (char *) &(halos[0].n_core) - (char *) (halos), 1, H5T_NATIVE_LLONG);
+
+    check_H5Gclose(HDF_GroupID);
+
+    HDF_GroupID = check_H5Gopen2(HDF_FileID, "/Shape");
+
+    read_hdf5_dataset(HDF_GroupID, "IntermediateToMajorAxisRatio", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].b_to_a) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/MinorToMajorAxisRatio", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "MinorToMajorAxisRatio", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].c_to_a) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/IntermediateToMajorAxisRatio2", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "IntermediateToMajorAxisRatio2", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].b_to_a2) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/MinorToMajorAxisRatio2", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "MinorToMajorAxisRatio2", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].c_to_a2) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/MajorAxis", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "MajorAxis", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].A[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/MajorAxis2", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "MajorAxis2", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].A2[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
 
 #ifdef OUTPUT_INTERMEDIATE_AXIS
-    read_hdf5_dataset(HDF_FileID, "/IntermediateAxis", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "IntermediateAxis", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].A_I[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/IntermediateAxis2", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "IntermediateAxis2", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].A2_I[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
 #endif
 
-    read_hdf5_dataset(HDF_FileID, "/SpinBullock", H5T_NATIVE_FLOAT, buffer_float);
-    load_buffer(buffer_float, halos, num_halos,
-                (char *) &(halos[0].bullock_spin) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-
-    read_hdf5_dataset(HDF_FileID, "/KineticToPotentialRatio", H5T_NATIVE_FLOAT, buffer_float);
-    load_buffer(buffer_float, halos, num_halos,
-                (char *) &(halos[0].kin_to_pot) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-
-    read_hdf5_dataset(HDF_FileID, "/MpeBehroozi", H5T_NATIVE_FLOAT, buffer_float);
-    load_buffer(buffer_float, halos, num_halos,
-                (char *) &(halos[0].m_pe_b) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-
-    read_hdf5_dataset(HDF_FileID, "/MpeDiemer", H5T_NATIVE_FLOAT, buffer_float);
-    load_buffer(buffer_float, halos, num_halos,
-                (char *) &(halos[0].m_pe_d) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-
-    read_hdf5_dataset(HDF_FileID, "/HalfMassRadius", H5T_NATIVE_FLOAT, buffer_float);
-    load_buffer(buffer_float, halos, num_halos,
-                (char *) &(halos[0].halfmass_radius) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-
 #ifdef OUTPUT_INERTIA_TENSOR
-    read_hdf5_dataset(HDF_FileID, "/InertiaTensor", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "InertiaTensor", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].inertia_tensor[0]) - (char *) (halos), 6, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/InertiaTensor2", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "InertiaTensor2", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].inertia_tensor2[0]) - (char *) (halos), 6, H5T_NATIVE_FLOAT);
 #endif
 
-    read_hdf5_dataset(HDF_FileID, "/NumberParticles", H5T_NATIVE_LLONG, buffer_int);
-    load_buffer(buffer_int, halos, num_halos,
-                (char *) &(halos[0].num_p) - (char *) (halos), 1, H5T_NATIVE_LLONG);
+    check_H5Gclose(HDF_GroupID);
 
-    read_hdf5_dataset(HDF_FileID, "/NumberChildParticles", H5T_NATIVE_LLONG, buffer_int);
-    load_buffer(buffer_int, halos, num_halos,
-                (char *) &(halos[0].num_child_particles) - (char *) (halos), 1, H5T_NATIVE_LLONG);
+    HDF_GroupID = check_H5Gopen2(HDF_FileID, "/Error");
 
-    read_hdf5_dataset(HDF_FileID, "/DescendantID", H5T_NATIVE_LLONG, buffer_int);
-    load_buffer(buffer_int, halos, num_halos,
-                (char *) &(halos[0].desc) - (char *) (halos), 1, H5T_NATIVE_LLONG);
-
-    read_hdf5_dataset(HDF_FileID, "/Flags", H5T_NATIVE_LLONG, buffer_int);
-    load_buffer(buffer_int, halos, num_halos,
-                (char *) &(halos[0].flags) - (char *) (halos), 1, H5T_NATIVE_LLONG);
-
-    read_hdf5_dataset(HDF_FileID, "/NumberCoreParticles", H5T_NATIVE_LLONG, buffer_int);
-    load_buffer(buffer_int, halos, num_halos,
-                (char *) &(halos[0].n_core) - (char *) (halos), 1, H5T_NATIVE_LLONG);
-
-    read_hdf5_dataset(HDF_FileID, "/MinPosError", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "MinPosError", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].min_pos_err) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/MinVelError", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "MinVelError", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].min_vel_err) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    read_hdf5_dataset(HDF_FileID, "/MinBulkVelError", H5T_NATIVE_FLOAT, buffer_float);
+    read_hdf5_dataset(HDF_GroupID, "MinBulkVelError", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].min_bulkvel_err) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+
+    check_H5Gclose(HDF_GroupID);
 
     free(buffer_float);
     free(buffer_int);
@@ -672,7 +687,7 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
     int64_t                    *ids, *p_start;
     int                        *to_write; 
     struct binary_output_header bheader;
-    hid_t                       HDF_FileID, HDF_FileID_Part;
+    hid_t                       HDF_FileID, HDF_FileID_Part, HDF_GroupID;
     hsize_t                     dims1[1], dims3[2], dims6[2], dims_part[1];
     float                      *buffer_float;
     int64_t                    *buffer_int, *buffer_id;
@@ -731,282 +746,295 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
     get_output_filename(filename, 1024, snap, chunk, "hdf5");
     HDF_FileID = check_H5Fcreate(filename, H5F_ACC_TRUNC);
 
+
+    HDF_GroupID = check_H5Gcreate(HDF_FileID, "/Subhalo");
+
     // ID and ParticleStart are already set, write these data here
-    write_hdf5_dataset(HDF_FileID, "/ID", H5T_NATIVE_LLONG, 1, dims1, ids);
-    add_hdf5_attribute(HDF_FileID, "/ID", "N/A",
+    write_hdf5_dataset(HDF_GroupID, "ID", H5T_NATIVE_LLONG, 1, dims1, ids);
+    add_hdf5_attribute(HDF_GroupID, "ID", "N/A",
                        "Halo ID");
     free(ids);
 
-    write_hdf5_dataset(HDF_FileID, "/ParticleStart", H5T_NATIVE_LLONG, 1, dims1, p_start);
-    add_hdf5_attribute(HDF_FileID, "/ParticleStart", "N/A",
+    write_hdf5_dataset(HDF_GroupID, "ParticleStart", H5T_NATIVE_LLONG, 1, dims1, p_start);
+    add_hdf5_attribute(HDF_GroupID, "ParticleStart", "N/A",
                        "Index of the first particle in the halo");
     free(p_start);
 
     // Write data to hdf5 file
     set_buffer(buffer_float, to_write, (char *) &(halos[0].pos[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/Position", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/Position", "Mpc/h (comoving)",
+    write_hdf5_dataset(HDF_GroupID, "Position", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "Position", "Mpc/h (comoving)",
                        "Position of the halo centre (potential minimum)");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].pos[3]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/Velocity", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/Velocity", "km/s (physical, peculiar)",
+    write_hdf5_dataset(HDF_GroupID, "Velocity", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "Velocity", "km/s (physical, peculiar)",
                        "Velocity of the halo");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].corevel[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/CoreVelocity", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/CoreVelocity", "km/s (physical, peculiar)",
+    write_hdf5_dataset(HDF_GroupID, "CoreVelocity", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "CoreVelocity", "km/s (physical, peculiar)",
                        "Velocity of core");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].bulkvel[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/BulkVelocity", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/BulkVelocity", "km/s (physical, peculiar)",
+    write_hdf5_dataset(HDF_GroupID, "BulkVelocity", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "BulkVelocity", "km/s (physical, peculiar)",
                        "Bulk velocity");
 
-    sprintf(dataid, "/M%s", MASS_DEFINITION);
+    sprintf(dataid, "M%s", MASS_DEFINITION);
     sprintf(description, "Halo mass (%s)", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].m) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, dataid, "Msun/h",
+    write_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, dataid, "Msun/h",
                        description);
 
-    sprintf(dataid, "/R%s", MASS_DEFINITION);
+    sprintf(dataid, "R%s", MASS_DEFINITION);
     sprintf(description, "Halo radius (%s)", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].r) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, dataid, "kpc / h (comoving)",
+    write_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, dataid, "kpc / h (comoving)",
                        description);
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].child_r) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/ChildRadius", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/ChildRadius", "kpc/h (comoving)",
+    write_hdf5_dataset(HDF_GroupID, "ChildRadius", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "ChildRadius", "kpc/h (comoving)",
                        "Child radius");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].vmax_r) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/RadiusDynamicalVirial", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/RadiusDynamicalVirial", "kpc/h (comoving)",
+    write_hdf5_dataset(HDF_GroupID, "RadiusDynamicalVirial", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "RadiusDynamicalVirial", "kpc/h (comoving)",
                        "Radius of Vmax times dynamical time, used to normalize the position-space distance");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].mgrav) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/Mbound", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/Mbound", "Msun/h",
+    write_hdf5_dataset(HDF_GroupID, "Mbound", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "Mbound", "Msun/h",
                        "All bounded mass");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].vmax) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/Vmax", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/Vmax", "km/s (physical, peculiar)",
+    write_hdf5_dataset(HDF_GroupID, "Vmax", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "Vmax", "km/s (physical, peculiar)",
                        "Maximum circular velocity");
 
 #ifdef OUTPUT_RVMAX
     set_buffer(buffer_float, to_write, (char *) &(halos[0].rvmax) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/VmaxRadius", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/VmaxRadius", "kpc/h (comoving)",
+    write_hdf5_dataset(HDF_FileID, "VmaxRadius", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_FileID, "VmaxRadius", "kpc/h (comoving)",
                        "Radius where circular velocity is maximum");
 #endif
 
 #ifdef OUTPUT_NFW_CHI2
     set_buffer(buffer_float, to_write, (char *) &(halos[0].chi2) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/NFWChi2", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/NFWChi2", "N/A",
+    write_hdf5_dataset(HDF_FileID, "NFWChi2", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_FileID, "NFWChi2", "N/A",
                        "Chi square of the NFW fitting");
 #endif
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].rs) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/ScaleRadius", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/ScaleRadius", "kpc/h (comoving)",
+    write_hdf5_dataset(HDF_GroupID, "ScaleRadius", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "ScaleRadius", "kpc/h (comoving)",
                        "Scale radius");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].klypin_rs) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/ScaleRadiusKlypin", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/ScaleRadiusKlypin", "kpc/h (comoving)",
+    write_hdf5_dataset(HDF_GroupID, "ScaleRadiusKlypin", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "ScaleRadiusKlypin", "kpc/h (comoving)",
                        "Scale radius in Klypin's definition");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].vrms) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/Vrms", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/Vrms", "km/s (physical, peculiar)",
+    write_hdf5_dataset(HDF_GroupID, "Vrms", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "Vrms", "km/s (physical, peculiar)",
                        "Root-mean square velocity dispersion");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].J[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/AngularMomentum", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/AngularMomentum", "(Msun/h) * (Mpc/h) * km/s (physical)",
+    write_hdf5_dataset(HDF_GroupID, "AngularMomentum", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "AngularMomentum", "(Msun/h) * (Mpc/h) * km/s (physical)",
                        "Angular momentum");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].energy) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/Energy", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/Energy", "(Msun/h) * (km/s)^2 (physical)",
+    write_hdf5_dataset(HDF_GroupID, "Energy", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "Energy", "(Msun/h) * (km/s)^2 (physical)",
                        "Energy (kinetic + potential)");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].spin) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/Spin", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/Spin", "Dimensionless",
+    write_hdf5_dataset(HDF_GroupID, "Spin", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "Spin", "Dimensionless",
                        "Halo spin parameter (Peebles)");
 
-    sprintf(dataid, "/M%s", MASS_DEFINITION2);
+    sprintf(dataid, "M%s", MASS_DEFINITION2);
     sprintf(description, "Halo mass (%s)", MASS_DEFINITION2);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].alt_m[0]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, dataid, "Msun/h",
+    write_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, dataid, "Msun/h",
                        description);
 
-    sprintf(dataid, "/M%s", MASS_DEFINITION3);
+    sprintf(dataid, "M%s", MASS_DEFINITION3);
     sprintf(description, "Halo mass (%s)", MASS_DEFINITION3);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].alt_m[1]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, dataid, "Msun/h",
+    write_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, dataid, "Msun/h",
                        description);
 
-    sprintf(dataid, "/M%s", MASS_DEFINITION4);
+    sprintf(dataid, "M%s", MASS_DEFINITION4);
     sprintf(description, "Halo mass (%s)", MASS_DEFINITION4);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].alt_m[2]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, dataid, "Msun/h",
+    write_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, dataid, "Msun/h",
                        description);
 
-    sprintf(dataid, "/M%s", MASS_DEFINITION5);
+    sprintf(dataid, "M%s", MASS_DEFINITION5);
     sprintf(description, "Halo mass (%s)", MASS_DEFINITION5);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].alt_m[3]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, dataid, "Msun/h",
+    write_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, dataid, "Msun/h",
                        description);
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].Xoff) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/PositionOffset", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/PositionOffset", "kpc/h (comoving)",
+    write_hdf5_dataset(HDF_GroupID, "PositionOffset", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "PositionOffset", "kpc/h (comoving)",
                        "Position offset (mean - potential minimum)");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].Voff) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/VelocityOffset", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/VelocityOffset", "km/s (physical, peculiar)",
+    write_hdf5_dataset(HDF_GroupID, "VelocityOffset", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "VelocityOffset", "km/s (physical, peculiar)",
                        "Velocity offset (mean - potential minimum)");
+
+    set_buffer(buffer_float, to_write, (char *) &(halos[0].bullock_spin) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+    write_hdf5_dataset(HDF_GroupID, "SpinBullock", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "SpinBullock", "Dimensionless",
+                       "Halo spin parameter (Bullock)");
+
+    set_buffer(buffer_float, to_write, (char *) &(halos[0].kin_to_pot) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+    write_hdf5_dataset(HDF_GroupID, "KineticToPotentialRatio", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "KineticToPotentialRatio", "Dimensionless",
+                       "Ratio between kinetic and potential energies: T/|U|");
+
+    set_buffer(buffer_float, to_write, (char *) &(halos[0].m_pe_b) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+    write_hdf5_dataset(HDF_GroupID, "MpeBehroozi", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "MpeBehroozi", "Msun/h",
+                       "Pseudo-evolution corrected mass (Behroozi)");
+
+    set_buffer(buffer_float, to_write, (char *) &(halos[0].m_pe_d) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+    write_hdf5_dataset(HDF_GroupID, "MpeDiemer", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "MpeDiemer", "Msun/h",
+                       "Pseudo-evolution corrected mass (Diemer)");
+
+    set_buffer(buffer_float, to_write, (char *) &(halos[0].halfmass_radius) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
+    write_hdf5_dataset(HDF_GroupID, "HalfMassRadius", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "HalfMassRadius", "kpc/h (comoving)",
+                       "Half-mass radius");
+
+    set_buffer(buffer_int, to_write, (char *) &(halos[0].num_p) - (char *) (halos), 1, H5T_NATIVE_LLONG);
+    write_hdf5_dataset(HDF_GroupID, "NumberParticles", H5T_NATIVE_LLONG, 1, dims1, buffer_int);
+    add_hdf5_attribute(HDF_GroupID, "NumberParticles", "N/A",
+                       "Number of particles");
+
+    set_buffer(buffer_int, to_write, (char *) &(halos[0].num_child_particles) - (char *) (halos), 1, H5T_NATIVE_LLONG);
+    write_hdf5_dataset(HDF_GroupID, "NumberChildParticles", H5T_NATIVE_LLONG, 1, dims1, buffer_int);
+    add_hdf5_attribute(HDF_GroupID, "NumberChildParticles", "N/A",
+                       "Number of child particles");
+
+    set_buffer(buffer_int, to_write, (char *) &(halos[0].desc) - (char *) (halos), 1, H5T_NATIVE_LLONG);
+    write_hdf5_dataset(HDF_GroupID, "DescendantID", H5T_NATIVE_LLONG, 1, dims1, buffer_int);
+    add_hdf5_attribute(HDF_GroupID, "DescendantID", "N/A",
+                       "ID of the descendant halo");
+
+    set_buffer(buffer_int, to_write, (char *) &(halos[0].flags) - (char *) (halos), 1, H5T_NATIVE_LLONG);
+    write_hdf5_dataset(HDF_GroupID, "Flags", H5T_NATIVE_LLONG, 1, dims1, buffer_int);
+    add_hdf5_attribute(HDF_GroupID, "Flags", "N/A",
+                       "Halo flags");
+
+    set_buffer(buffer_int, to_write, (char *) &(halos[0].n_core) - (char *) (halos), 1, H5T_NATIVE_LLONG);
+    write_hdf5_dataset(HDF_GroupID, "NumberCoreParticles", H5T_NATIVE_LLONG, 1, dims1, buffer_int);
+    add_hdf5_attribute(HDF_GroupID, "NumberCoreParticles", "N/A",
+                       "Number of core particles");
+
+    check_H5Gclose(HDF_GroupID);
+
+    HDF_GroupID = check_H5Gcreate(HDF_FileID, "/Shape");
 
     sprintf(description, "Intermediate to major axis ratio (mass definition: %s): b/a", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].b_to_a) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/IntermediateToMajorAxisRatio", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/IntermediateToMajorAxisRatio", "Dimensionless",
+    write_hdf5_dataset(HDF_GroupID, "IntermediateToMajorAxisRatio", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "IntermediateToMajorAxisRatio", "Dimensionless",
                        description);
 
     sprintf(description, "Minor to major axis ratio (mass definition: %s): c/a", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].c_to_a) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/MinorToMajorAxisRatio", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/MinorToMajorAxisRatio", "Dimensionless",
+    write_hdf5_dataset(HDF_GroupID, "MinorToMajorAxisRatio", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "MinorToMajorAxisRatio", "Dimensionless",
                        description);
 
     sprintf(description, "Intermediate to major axis ratio (mass definition: %s): b/a", MASS_DEFINITION4);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].b_to_a2) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/IntermediateToMajorAxisRatio2", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/IntermediateToMajorAxisRatio2", "Dimensionless",
+    write_hdf5_dataset(HDF_GroupID, "IntermediateToMajorAxisRatio2", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "IntermediateToMajorAxisRatio2", "Dimensionless",
                        description);
 
     sprintf(description, "Minor to major axis ratio (mass definition: %s): c/a", MASS_DEFINITION4);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].c_to_a2) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/MinorToMajorAxisRatio2", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/MinorToMajorAxisRatio2", "Dimensionless",
+    write_hdf5_dataset(HDF_GroupID, "MinorToMajorAxisRatio2", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "MinorToMajorAxisRatio2", "Dimensionless",
                        description);
 
     sprintf(description, "Major axis direction (mass definition: %s)", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].A[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/MajorAxis", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/MajorAxis", "Normalized",
+    write_hdf5_dataset(HDF_GroupID, "MajorAxis", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "MajorAxis", "Normalized",
                        description);
 
     sprintf(description, "Major axis direction (mass definition: %s)", MASS_DEFINITION4);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].A2[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/MajorAxis2", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/MajorAxis2", "Normalized",
+    write_hdf5_dataset(HDF_GroupID, "MajorAxis2", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "MajorAxis2", "Normalized",
                        description);
 
 #ifdef OUTPUT_INTERMEDIATE_AXIS
     sprintf(description, "Intermediate axis direction (mass definition: %s)", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].A_I[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/IntermediateAxis", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/IntermediateAxis", "Normalized",
+    write_hdf5_dataset(HDF_GroupID, "IntermediateAxis", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "IntermediateAxis", "Normalized",
                        description);
 
     sprintf(description, "Intermediate axis direction (mass definition: %s)", MASS_DEFINITION4);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].A2_I[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/IntermediateAxis2", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/IntermediateAxis2", "Normalized",
+    write_hdf5_dataset(HDF_GroupID, "IntermediateAxis2", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "IntermediateAxis2", "Normalized",
                        description);
 #endif
-
-    set_buffer(buffer_float, to_write, (char *) &(halos[0].bullock_spin) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/SpinBullock", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/SpinBullock", "Dimensionless",
-                       "Halo spin parameter (Bullock)");
-
-    set_buffer(buffer_float, to_write, (char *) &(halos[0].kin_to_pot) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/KineticToPotentialRatio", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/KineticToPotentialRatio", "Dimensionless",
-                       "Ratio between kinetic and potential energies: T/|U|");
-
-    set_buffer(buffer_float, to_write, (char *) &(halos[0].m_pe_b) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/MpeBehroozi", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/MpeBehroozi", "Msun/h",
-                       "Pseudo-evolution corrected mass (Behroozi)");
-
-    set_buffer(buffer_float, to_write, (char *) &(halos[0].m_pe_d) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/MpeDiemer", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/MpeDiemer", "Msun/h",
-                       "Pseudo-evolution corrected mass (Diemer)");
-
-    set_buffer(buffer_float, to_write, (char *) &(halos[0].halfmass_radius) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/HalfMassRadius", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/HalfMassRadius", "kpc/h (comoving)",
-                       "Half-mass radius");
 
 #ifdef OUTPUT_INERTIA_TENSOR
     sprintf(description, "Inertia tensor (mass definition: %s): (Ixx, Iyy, Izz, Ixy, Iyz, Izx)", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].inertia_tensor[0]) - (char *) (halos), 6, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/InertiaTensor", H5T_NATIVE_FLOAT, 2, dims6, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/InertiaTensor", "Msun/h * (kpc/h)^2 (comoving)",
+    write_hdf5_dataset(HDF_GroupID, "InertiaTensor", H5T_NATIVE_FLOAT, 2, dims6, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "InertiaTensor", "Msun/h * (kpc/h)^2 (comoving)",
                        description);
 
     sprintf(description, "Inertia tensor (mass definition: %s): (Ixx, Iyy, Izz, Ixy, Iyz, Izx)", MASS_DEFINITION4);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].inertia_tensor2[0]) - (char *) (halos), 6, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/InertiaTensor2", H5T_NATIVE_FLOAT, 2, dims6, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/InertiaTensor2", "Msun/h * (kpc/h)^2 (comoving)",
+    write_hdf5_dataset(HDF_GroupID, "InertiaTensor2", H5T_NATIVE_FLOAT, 2, dims6, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "InertiaTensor2", "Msun/h * (kpc/h)^2 (comoving)",
                        description);
 #endif
 
-    set_buffer(buffer_int, to_write, (char *) &(halos[0].num_p) - (char *) (halos), 1, H5T_NATIVE_LLONG);
-    write_hdf5_dataset(HDF_FileID, "/NumberParticles", H5T_NATIVE_LLONG, 1, dims1, buffer_int);
-    add_hdf5_attribute(HDF_FileID, "/NumberParticles", "N/A",
-                       "Number of particles");
+    check_H5Gclose(HDF_GroupID);
 
-    set_buffer(buffer_int, to_write, (char *) &(halos[0].num_child_particles) - (char *) (halos), 1, H5T_NATIVE_LLONG);
-    write_hdf5_dataset(HDF_FileID, "/NumberChildParticles", H5T_NATIVE_LLONG, 1, dims1, buffer_int);
-    add_hdf5_attribute(HDF_FileID, "/NumberChildParticles", "N/A",
-                       "Number of child particles");
-
-    set_buffer(buffer_int, to_write, (char *) &(halos[0].desc) - (char *) (halos), 1, H5T_NATIVE_LLONG);
-    write_hdf5_dataset(HDF_FileID, "/DescendantID", H5T_NATIVE_LLONG, 1, dims1, buffer_int);
-    add_hdf5_attribute(HDF_FileID, "/DescendantID", "N/A",
-                       "ID of the descendant halo");
-
-    set_buffer(buffer_int, to_write, (char *) &(halos[0].flags) - (char *) (halos), 1, H5T_NATIVE_LLONG);
-    write_hdf5_dataset(HDF_FileID, "/Flags", H5T_NATIVE_LLONG, 1, dims1, buffer_int);
-    add_hdf5_attribute(HDF_FileID, "/Flags", "N/A",
-                       "Halo flags");
-
-    set_buffer(buffer_int, to_write, (char *) &(halos[0].n_core) - (char *) (halos), 1, H5T_NATIVE_LLONG);
-    write_hdf5_dataset(HDF_FileID, "/NumberCoreParticles", H5T_NATIVE_LLONG, 1, dims1, buffer_int);
-    add_hdf5_attribute(HDF_FileID, "/NumberCoreParticles", "N/A",
-                       "Number of core particles");
+    HDF_GroupID = check_H5Gcreate(HDF_FileID, "/Error");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].min_pos_err) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/MinPosError", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/MinPosError", "Mpc/h (comoving)",
+    write_hdf5_dataset(HDF_GroupID, "MinPosError", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "MinPosError", "Mpc/h (comoving)",
                        "Uncertainty of position");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].min_vel_err) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/MinVelError", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/MinVelError", "km/s (physical, peculiar)",
+    write_hdf5_dataset(HDF_GroupID, "MinVelError", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "MinVelError", "km/s (physical, peculiar)",
                        "Uncertainty of velocity");
 
     set_buffer(buffer_float, to_write, (char *) &(halos[0].min_bulkvel_err) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-    write_hdf5_dataset(HDF_FileID, "/MinBulkVelError", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
-    add_hdf5_attribute(HDF_FileID, "/MinBulkVelError", "km/s (physical, peculiar)",
+    write_hdf5_dataset(HDF_GroupID, "MinBulkVelError", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
+    add_hdf5_attribute(HDF_GroupID, "MinBulkVelError", "km/s (physical, peculiar)",
                        "Uncertainty of bulk velocity");
+
+    check_H5Gclose(HDF_GroupID);
 
     free(buffer_float);
     free(buffer_int);
@@ -1021,6 +1049,7 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
         memcpy(&(bheader.bounds[3]), max, sizeof(float) * 3);
     }
     write_hdf5_header(HDF_FileID, &bheader, tot_num_halos, tot_num_p);
+
 
     // Output Particles
     if (output_particles) {
