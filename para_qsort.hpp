@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <stdint.h>
+#include <mpi.h>
 #include <omp.h>
 
 MPI_Datatype create_mpi_particle_type();
