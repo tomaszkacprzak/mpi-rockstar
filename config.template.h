@@ -136,5 +136,5 @@ integer(SNAPSHOT_SUBDIR_DIGITS, 3);  // The length of snapshot subdir numbers
 integer(FILES_PER_SUBDIR_OUTPUT, 0); // The number of files in each subdir (or sub-sub-dir)
 integer(SUBDIR_DIGITS_OUTPUT, 4);    // and the length of subdir names (or sub-sub-dir)
 
-
-
+// Additional parameters for MPI Rockstar for memory saving transfer
+integer(MEMORY_SAVING_TRANSFER, 0); // Flag for using memory saving transfer

@@ -1,4 +1,5 @@
 #include "mpi_main.h"
+#include "para_qsort.hpp"
 #include <algorithm>
 #include <mpi.h>
 #include <omp.h>
@@ -691,6 +692,77 @@ void transfer_particles(int my_reader_rank, float *my_reader_bounds,
     MPI_Type_free(&mpi_particle_type);
     send_buffer = reallocate(send_buffer, 0);
     send_counts = reallocate(send_counts, 0);
+
+    timed_output("Transferring particles to writers...\n");
+}
+
+void transfer_particles_mem_save(int my_reader_rank, float *my_reader_bounds,
+                                 float (*writer_bounds)[6]) {
+    auto send_counts = allocate<int>(NUM_WRITERS);
+    clear_counts(send_counts, NUM_WRITERS);
+
+    // struct particle *send_buffer = nullptr;
+    struct particle *recv_buffer = nullptr;
+
+    if (my_reader_rank != -1) {
+        std::vector<int64_t> recipients;
+        for (int64_t i = 0; i < NUM_WRITERS; i++) {
+            float bounds[6];
+            if (bounds_overlap(my_reader_bounds, writer_bounds[i], bounds, 0)) {
+                recipients.emplace_back(i);
+            }
+        }
+
+        // auto dest_procs = allocate<int64_t>(num_p);
+        auto dest_procs = allocate<int>(num_p);
+#pragma omp parallel for
+        for (int64_t i = 0; i < num_p; i++) {
+            for (auto j : recipients) {
+                if (_check_bounds_raw(p[i].pos, writer_bounds[j])) {
+                    dest_procs[i] = j;
+                    break;
+                }
+            }
+        }
+
+        for (int64_t i = 0; i < num_p; i++) {
+            send_counts[dest_procs[i]]++;
+        }
+
+        std::vector<int64_t>().swap(recipients);
+
+        /*
+        auto send_displs = allocate<int>(NUM_WRITERS);
+        auto num_to_send = calc_displs(send_counts, NUM_WRITERS, send_displs);
+        assert(num_to_send == num_p);
+
+                send_buffer = allocate<struct particle>(num_to_send);
+                for (int64_t i = 0; i < num_p; i++) {
+                    send_buffer[send_displs[dest_procs[i]]++] = p[i];
+                }
+        */
+
+        // in-place sort by key
+        // single_qsort_key(p, dest_procs, 0, num_p - 1);
+        para_qsort_key(p, dest_procs, 0, num_p - 1);
+
+        dest_procs = reallocate(dest_procs, 0);
+    }
+
+    // p   = reallocate(p, 0);
+    num_p = 0;
+    timed_output("Transferring...\n");
+
+    recv_buffer = allocate<struct particle>(1024); // temporary
+
+    auto mpi_particle_type = create_mpi_particle_type();
+    num_p = exchange_data(p, send_counts, recv_buffer, 0, mpi_particle_type);
+    MPI_Type_free(&mpi_particle_type);
+    send_counts = reallocate(send_counts, 0);
+
+    p = reallocate(p, 0);
+    p = recv_buffer;
+    // recv_buffer = reallocate(recv_buffer, 0);
 
     timed_output("Transferring particles to writers...\n");
 }
@@ -1837,8 +1909,13 @@ void mpi_main(int argc, char *argv[]) {
             decide_reader_bounds(my_reader_bounds, my_reader_rank);
             decide_writer_bounds(writer_bounds, my_rank);
 
-            transfer_particles(my_reader_rank, my_reader_bounds, writer_bounds);
-	    
+            if (!MEMORY_SAVING_TRANSFER) {
+              transfer_particles(my_reader_rank, my_reader_bounds, writer_bounds);
+            }
+            else {
+              transfer_particles_mem_save(my_reader_rank, my_reader_bounds, writer_bounds);
+            }
+
             std::sort(p, p + num_p,
                       [](const struct particle &a, const struct particle &b) {
                           return a.id < b.id;

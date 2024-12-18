@@ -1,5 +1,5 @@
-#ifndef _MPI_MAIN_H
-#define _MPI_MAIN_H
+#ifndef _MPI_MAIN_H_
+#define _MPI_MAIN_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,4 +12,4 @@ void mpi_main(int argc, char *argv[]);
 }
 #endif
 
-#endif /* _MPI_MAIN_H */
+#endif /* _MPI_MAIN_H_ */
