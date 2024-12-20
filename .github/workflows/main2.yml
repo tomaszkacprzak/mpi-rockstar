@@ -3,7 +3,7 @@ on:
   push:
     paths:
       - paper/**
-      - .github/workflows/main.yml
+      - .github/workflows/main2.yml
 
 jobs:
   paper:
