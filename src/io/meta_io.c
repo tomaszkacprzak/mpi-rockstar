@@ -184,6 +184,17 @@ void read_particles(char *filename) {
         exit(1);
     }
 
+    if (PERIODIC) {
+        for (i = p_start; i < num_p; i++) {
+            for (j = 0; j < 3; j++) {
+                if (p[i].pos[j] > BOX_SIZE)
+                    p[i].pos[j] -= BOX_SIZE;
+                else if (p[i].pos[j] < 0)
+                    p[i].pos[j] += BOX_SIZE;
+            }
+        }
+    }
+
     if (NON_COSMOLOGICAL) {
         SCALE_NOW = 1;
     }
