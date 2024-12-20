@@ -10,6 +10,7 @@
 #include <cstring>
 #include <cstdarg>
 #include <cstddef>
+#include <ctime>
 #include <sys/stat.h>
 
 extern "C" {
@@ -1586,12 +1587,12 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
         timed_output("Output halos...\n");
         int64_t id_offset = 0;
         int64_t num_halos_print = count_halos_to_print(writer_bounds[my_rank]);
-        int64_t num_p_print = count_particles_to_print(writer_bounds[my_rank]);
         MPI_Exscan(&num_halos_print, &id_offset, 1, MPI_INT64_T, MPI_SUM,
                    MPI_COMM_WORLD);
         output_halos(id_offset, snap, my_rank, writer_bounds[my_rank]);
 
 #ifdef ENABLE_HDF5
+        int64_t num_p_print = count_particles_to_print(writer_bounds[my_rank]);
         if (!strcasecmp(OUTPUT_FORMAT, "HDF5")) {
             int64_t tot_num_halos, tot_num_p;
             MPI_Allreduce(&num_halos_print, &tot_num_halos, 1, MPI_INT64_T, MPI_SUM,
