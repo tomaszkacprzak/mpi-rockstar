@@ -39,7 +39,6 @@ bibliography: paper.bib
 
 ---
 
-##############################################################
 # Summary
 
 According to the concordance cosmological theory, structure
@@ -67,7 +66,6 @@ handle the analysis of more than a trillion particles on more than
 for the next generation of cosmological surveys.
 
 
-##############################################################
 # Statement of need 
 
 Owing to the advance of supercomputing power and highly scalable
@@ -86,7 +84,6 @@ processes in a hybrid way using MPI and OpenMP.  As new functions to
 the original Rockstar code, MPI-Rockstar supports HDF5 as an output format and can
 output additional halo properties such as the inertia tensor.
 
-##############################################################
 # Acknowledgements 
 
 This work has been supported by IAAR Research
@@ -98,5 +95,4 @@ the RIKEN Center for Computational Science (Project ID: hp230173, and
 hp240184).
 
 
-##############################################################
 # References
