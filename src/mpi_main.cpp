@@ -1863,6 +1863,10 @@ void check_config( const int my_rank){
     fprintf( stderr, "#OUTPUT_INERTIA_TENSOR on\n");
 #endif
 
+#ifdef OUTPUT_NFW_CHI2
+    fprintf( stderr, "#OUTPUT_NFW_CHI2 on\n");
+#endif
+
   }
 
   if( PARALLEL_IO != 1){
