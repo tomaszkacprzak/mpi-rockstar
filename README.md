@@ -4,7 +4,7 @@ Copyright(c) 2024 Tokuue Tomoyuki, Tomoaki Ishiyama, Ken Osato, Satoshi Tanaka, 
 
 License: GNU GPLv3
 
-Base code: Rockstar ((C)2011-2016 Peter Behroozi)  
+Base code: Rockstar ( (c) 2011-2016 Peter Behroozi)  
 Repository: https://bitbucket.org/gfcstanford/rockstar/src/main/  
 Science/Documentation Paper: https://ui.adsabs.harvard.edu/abs/2013ApJ...762..109B/  
 
