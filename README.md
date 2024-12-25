@@ -38,6 +38,12 @@ In the original Rockstar, `PID` is the parent halo's ID and can be added by `fin
 make find_parents -C src
 ```
 
+In some environments, due to a comptibility issue, you may encounter this or something similar error.
+```
+/usr/include/tirpc/rpc/xdr.h:111:52: error: unknown type name 'u_int'
+```
+You may be able to solve it by removing `-I/usr/include/tirpc` from `.c.o:` in the `Makefile`.
+
 
 ## HDF5 and Gadget-4 Format Supports for Output ##
 
