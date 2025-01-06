@@ -181,9 +181,21 @@ void load_particles_gadget4(char *filename, struct particle **p, int64_t *num_p)
     // read IDs, pos, vel
     char buffer[100];
     snprintf(buffer, 100, "PartType%" PRId64, GADGET4_DM_PARTTYPE);
-    gadget4_read_dataset(
-        HDF_FileID, filename, buffer, "ParticleIDs", *p + (*num_p), to_read,
-        (char *)&(p[0][0].id) - (char *)(p[0]), 1, H5T_NATIVE_ULLONG);
+    if (GADGET4_ID_BYTES == 8) {
+        gadget4_read_dataset(
+            HDF_FileID, filename, buffer, "ParticleIDs", *p + (*num_p), to_read,
+            (char *)&(p[0][0].id) - (char *)(p[0]), 1, H5T_NATIVE_ULLONG);
+    }
+    else if (GADGET4_ID_BYTES == 4) {
+        gadget4_read_dataset(
+            HDF_FileID, filename, buffer, "ParticleIDs", *p + (*num_p), to_read,
+            (char *)&(p[0][0].id) - (char *)(p[0]), 1, H5T_NATIVE_UINT);
+    }
+    else {
+        fprintf(stderr, "[Error] Unrecognized GADGET4_ID_BYTES:%ld\n", GADGET4_ID_BYTES);
+        exit(1);
+    }
+
     gadget4_read_dataset(
         HDF_FileID, filename, buffer, "Coordinates", *p + (*num_p), to_read,
         (char *)&(p[0][0].pos[0]) - (char *)(p[0]), 3, H5T_NATIVE_FLOAT);
