@@ -65,6 +65,11 @@ The default number of Gadget-4 particle types is NTYPES=6. You can use other typ
 GADGET4_NTYPES=<your ntypes>
 ```
 
+The code assumes 8-byte particle IDs by default. When you use 4-bytes particle IDs, please also add the below line. 
+```
+GADGET4_ID_BYTES=4
+```
+
 
 ## Abolished Configuration Options ##
 
