@@ -60,6 +60,11 @@ Gadget-4 (HDF5) format is also supported as input snapshots.
 FILE_FORMAT="GADGET4"
 ```
 
+The default number of Gadget-4 particle types is NTYPES=6. You can use other types by adding the below line in a configuration file.
+```
+GADGET4_NTYPES=<your ntypes>
+```
+
 
 ## Abolished Configuration Options ##
 
