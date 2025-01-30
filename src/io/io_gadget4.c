@@ -55,9 +55,9 @@ void gadget4_readdataset_float(hid_t HDF_FileID, char *filename, char *gid,
     free(buffer);
 }
 
-void gadget4_readdataset_uint32(hid_t HDF_FileID, char *filename, char *gid,
-                                char *dataid, struct particle *p, int64_t to_read,
-                                int64_t offset, int64_t stride) {
+void gadget4_readdataset_ID_uint32(hid_t HDF_FileID, char *filename, char *gid,
+                                   char *dataid, struct particle *p, int64_t to_read,
+                                   int64_t offset, int64_t stride) {
     int64_t   width   = H5Tget_size(H5T_NATIVE_UINT32);
     void     *buffer  = check_malloc_s(buffer, to_read, width * stride);
     uint32_t *ibuffer = buffer;
@@ -85,14 +85,14 @@ void gadget4_readdataset_uint32(hid_t HDF_FileID, char *filename, char *gid,
     H5Gclose(HDF_GroupID);
 
     for (int64_t i = 0; i < to_read; i++)
-        memcpy(((char *)&(p[i])) + offset, ibuffer + (i * stride), stride * width);
+        p[i].id = (int64_t) ibuffer[i];
 
     free(buffer);
 }
 
-void gadget4_readdataset_uint64(hid_t HDF_FileID, char *filename, char *gid,
-                                char *dataid, struct particle *p, int64_t to_read,
-                                int64_t offset, int64_t stride) {
+void gadget4_readdataset_ID_uint64(hid_t HDF_FileID, char *filename, char *gid,
+                                   char *dataid, struct particle *p, int64_t to_read,
+                                   int64_t offset, int64_t stride) {
     int64_t   width   = H5Tget_size(H5T_NATIVE_UINT64);
     void     *buffer  = check_malloc_s(buffer, to_read, width * stride);
     uint64_t *ibuffer = buffer;
@@ -120,7 +120,7 @@ void gadget4_readdataset_uint64(hid_t HDF_FileID, char *filename, char *gid,
     H5Gclose(HDF_GroupID);
 
     for (int64_t i = 0; i < to_read; i++)
-        memcpy(((char *)&(p[i])) + offset, ibuffer + (i * stride), stride * width);
+        p[i].id = (int64_t) ibuffer[i];
 
     free(buffer);
 }
@@ -247,11 +247,11 @@ void load_particles_gadget4(char *filename, struct particle **p, int64_t *num_p)
     snprintf(buffer, 100, "PartType%" PRId64, GADGET4_DM_PARTTYPE);
 
     if (GADGET4_ID_BYTES == 8)
-        gadget4_readdataset_uint64(
+        gadget4_readdataset_ID_uint64(
             HDF_FileID, filename, buffer, "ParticleIDs", *p + (*num_p), to_read,
             (char *)&(p[0][0].id) - (char *)(p[0]), 1);
     else if (GADGET4_ID_BYTES == 4)
-        gadget4_readdataset_uint32(
+        gadget4_readdataset_ID_uint32(
             HDF_FileID, filename, buffer, "ParticleIDs", *p + (*num_p), to_read,
             (char *)&(p[0][0].id) - (char *)(p[0]), 1);
     else {
