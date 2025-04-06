@@ -41,7 +41,7 @@ In the original Rockstar, `PID` is the parent halo's ID and can be added by `fin
 make find_parents -C src
 ```
 
-In some environments, due to a comptibility issue, you may encounter this or something similar error.
+In some environments, due to a compatibility issue, you may encounter this or something similar error.
 ```
 /usr/include/tirpc/rpc/xdr.h:111:52: error: unknown type name 'u_int'
 ```
@@ -60,15 +60,18 @@ Gadget-4 (HDF5) format is also supported as input snapshots.
 FILE_FORMAT="GADGET4"
 ```
 
-The default number of Gadget-4 particle types is NTYPES=6. You can use other types by adding the below line in a configuration file.
+The default number of Gadget-4 particle types is `NTYPES=6`. You can use other types by adding the line below to a configuration file.
 ```
 GADGET4_NTYPES=<your ntypes>
 ```
 
-The code assumes 8-byte particle IDs by default. When you use 4-bytes particle IDs, please also add the below line. 
+The code assumes 8-byte (`uint64_t`) particle IDs by default (and recommended). When you use 4-byte (`uint32_t`) particle IDs, please also add the below line. 
 ```
 GADGET4_ID_BYTES=4
 ```
+In Gadget4 `Config.sh`, you can set `IDS_64BIT` for 8-byte IDs or `IDS_32BIT` for 4-byte IDs. 6-byte ID (`IDS_48BIT`) is not supported. 
+
+The code also assumes a single precision (4-byte float) for particle positions. Ensure that `POSITIONS_IN_32BIT` is defined in Gadget4 `Config.sh`. 
 
 
 ## Abolished Configuration Options ##
