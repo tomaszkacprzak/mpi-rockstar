@@ -48,14 +48,16 @@ In some environments, due to a compatibility issue, you may encounter this or so
 You may be able to solve it by removing `-I/usr/include/tirpc` from `.c.o:` in the `Makefile`.
 
 
-## HDF5 and Gadget-4 Format Supports for Output ##
+## HDF5 Output ##
 
 MPI-Rockstar supports the HDF5 output of halo catalogs by adding this line in a configuration file.
 ```
 OUTPUT_FORMAT="HDF5"
 ```
 
-Gadget-4 (HDF5) format is also supported as input snapshots.
+## Gadget-2/3/4 HDF5 Format ##
+
+Gadget-4 (HDF5) format is supported as input snapshots.
 ```
 FILE_FORMAT="GADGET4"
 ```
@@ -73,12 +75,15 @@ In Gadget4 `Config.sh`, you can set `IDS_64BIT` for 8-byte IDs or `IDS_32BIT` fo
 
 The code also assumes a single precision (4-byte float) for particle positions. Ensure that `POSITIONS_IN_32BIT` is defined in Gadget4 `Config.sh`.
 
+Gadget-2/3 HDF5 format is also supported by passing the file format as `AREPO`.
+This format has a different header structure from Gadget-4 but AREPO HDF5 format has the same structure.
+Note that when you use Gadget-2/3 HDF5 format with `FILE_FORMAT = AREPO` , set `AREPO_MASS_CONVERSION`, `AREPO_LENGTH_CONVERSION`, etc. if needed,
+instead of `GADGET_MASS_CONVERSION`, `GADGET_LENGTH_CONVERSION`, etc., which are effective only for binary Gadget formats.
+Be careful that `AREPO_LENGTH_CONVERSION = 1e-3` by default, i.e., the length unit is kpc/h.
 
 ## Abolished Configuration Options ##
 
 MPI-Rockstar can no-longer run on single process, therefore, only `PARALLEL_IO=1` is accepted (default value). The number of writer and reader processes are automatically set from the number of processes, therefore, `NUM_WRITERS`, `NUM_READERS`, `FORK_READERS_FROM_WRITERS`, and `FORK_PROCESSORS_PER_MACHINE` are abolished.
-
-
 
 ## New Compiling Options ##
 
