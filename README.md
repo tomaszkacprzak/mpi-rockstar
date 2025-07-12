@@ -55,35 +55,29 @@ MPI-Rockstar supports the HDF5 output of halo catalogs by adding this line in a 
 OUTPUT_FORMAT="HDF5"
 ```
 
-## Gadget-2/3/4 HDF5 Format ##
+## Gadget-2/3/4 and AREPO HDF5 Format ##
 
-Gadget-4 (HDF5) format is supported as input snapshots.
+Gadget-4 (HDF5) format is newly supported as input snapshots.
 ```
 FILE_FORMAT="GADGET4"
 ```
 
-The default number of Gadget-4 particle types is `NTYPES=6`. You can use other types by adding the line below to a configuration file.
+The default number of Gadget-4 particle types is `NTYPES=6`. You can use other numbers by adding the line below to a configuration file.
 ```
 GADGET4_NTYPES=<your ntypes>
 ```
+This is the same as AREPO HDF5 format. You can pass the number for AREPO format in a similar manner.
+```
+AREPO_NTYPES=<your ntypes>
+```
 
-The code assumes 8-byte (`uint64_t`) particle IDs by default (and recommended). When you use 4-byte (`uint32_t`) particle IDs, please also add the below line.
-```
-GADGET4_ID_BYTES=4
-```
-In Gadget4 `Config.sh`, you can set `IDS_64BIT` for 8-byte IDs or `IDS_32BIT` for 4-byte IDs. 6-byte ID (`IDS_48BIT`) is not supported.
-
-Particle positions and velocities are assumed to be written in single precision (4-byte float) by default.
-If `OUTPUT_IN_DOUBLEPRECISION` is set, i.e., positions and velocities are output in double precision (8-byte float), in Gadget-4 `Config.sh`, set the following line in the configuration file.
-```
-GADGET4_DOUBLE_PRECISION=1
-```
-However, even if this option is set, `MPI-rockstar` always internally stores positions and velocities in single precision.
-The positions and velocities of halo catalogues are also written in single precision.
+In Gadget4 `Config.sh`, you can set `IDS_64BIT` for 8-byte IDs or `IDS_32BIT` for 4-byte IDs. Both are supported but 6-byte ID (`IDS_48BIT`) is not accepted.
+`MPI-Rockstar` can load snapshots with single- and double-precision particle positions and velocities.
+However, `MPI-Rockstar` always internally stores positions and velocities in single precision. The output catalogue is also in single precision.
 
 Gadget-2/3 HDF5 format is also supported by passing the file format as `AREPO`.
 This format has a different header structure from Gadget-4 but AREPO HDF5 format has the same structure.
-Note that when you use Gadget-2/3 HDF5 format with `FILE_FORMAT = AREPO` , set `AREPO_MASS_CONVERSION`, `AREPO_LENGTH_CONVERSION`, etc. if needed,
+Note that when you use Gadget-2/3 HDF5 format with `FILE_FORMAT = AREPO`, set `AREPO_MASS_CONVERSION`, `AREPO_LENGTH_CONVERSION`, etc. if needed,
 instead of `GADGET_MASS_CONVERSION`, `GADGET_LENGTH_CONVERSION`, etc., which are effective only for binary Gadget formats.
 Be careful that `AREPO_LENGTH_CONVERSION = 1e-3` by default, i.e., the length unit is kpc/h.
 

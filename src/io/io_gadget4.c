@@ -20,12 +20,13 @@
 #include "../config.h"
 #include "../particle.h"
 
-void gadget4_readdataset_float(hid_t HDF_FileID, char *filename, char *gid,
-                               char *dataid, struct particle *p, int64_t to_read,
-                               int64_t offset, int64_t stride) {
-    int64_t   width   = H5Tget_size(H5T_NATIVE_FLOAT);
-    void     *buffer  = check_malloc_s(buffer, to_read, width * stride);
-    float    *fbuffer = buffer;
+void gadget4_readdataset(hid_t HDF_FileID, char *filename, char *gid,
+                         char *dataid, struct particle *p, int64_t to_read,
+                         int64_t offset, int64_t stride, hid_t type) {
+    int64_t  width   = (type == H5T_NATIVE_INT64) ? 8 : 4;
+    void    *buffer  = check_malloc_s(buffer, to_read, width * stride);
+    int64_t *ibuffer = buffer;
+    float   *fbuffer = buffer;
 
     hid_t HDF_GroupID     = check_H5Gopen(HDF_FileID, gid, filename);
     hid_t HDF_DatasetID   = check_H5Dopen(HDF_GroupID, dataid, gid, filename);
@@ -43,125 +44,19 @@ void gadget4_readdataset_float(hid_t HDF_FileID, char *filename, char *gid,
         exit(1);
     }
 
-    check_H5Dread(HDF_DatasetID, H5T_NATIVE_FLOAT, buffer, dataid, gid, filename);
+    check_H5Dread(HDF_DatasetID, type, buffer, dataid, gid, filename);
 
     H5Sclose(HDF_DataspaceID);
     H5Dclose(HDF_DatasetID);
     H5Gclose(HDF_GroupID);
 
-    for (int64_t i = 0; i < to_read; i++)
-        memcpy(((char *)&(p[i])) + offset, fbuffer + (i * stride), stride * width);
-
-    free(buffer);
-}
-
-void gadget4_readdataset_double(hid_t HDF_FileID, char *filename, char *gid,
-                               char *dataid, struct particle *p, int64_t to_read,
-                               int64_t offset, int64_t stride) {
-    int64_t   rwidth  = H5Tget_size(H5T_NATIVE_DOUBLE);
-    int64_t   wwidth  = sizeof(float);
-    void     *rbuffer = check_malloc_s(rbuffer, to_read, rwidth * stride);
-    double   *dbuffer = rbuffer;
-    void     *wbuffer = check_malloc_s(wbuffer, to_read, wwidth * stride);
-    float    *fbuffer = wbuffer;
-
-    hid_t HDF_GroupID     = check_H5Gopen(HDF_FileID, gid, filename);
-    hid_t HDF_DatasetID   = check_H5Dopen(HDF_GroupID, dataid, gid, filename);
-    hid_t HDF_DataspaceID = check_H5Dget_space(HDF_DatasetID);
-
-    check_H5Sselect_all(HDF_DataspaceID);
-    hssize_t npoints = H5Sget_select_npoints(HDF_DataspaceID);
-
-    if (npoints != to_read * stride) {
-        fprintf(stderr,
-                "[Error] dataspace %s/%s in HDF5 file %s not expected size!\n  "
-                "(Actual size = %" PRId64 " elements; expected size = %" PRId64
-                " elements\n",
-                gid, dataid, filename, (int64_t)(npoints), stride * to_read);
-        exit(1);
-    }
-
-    check_H5Dread(HDF_DatasetID, H5T_NATIVE_DOUBLE, rbuffer, dataid, gid, filename);
-
-    H5Sclose(HDF_DataspaceID);
-    H5Dclose(HDF_DatasetID);
-    H5Gclose(HDF_GroupID);
-
-    for (int64_t i = 0; i < to_read * stride; i++) fbuffer[i] = (float) dbuffer[i];
-
-    for (int64_t i = 0; i < to_read; i++)
-        memcpy(((char *)&(p[i])) + offset, fbuffer + (i * stride), stride * wwidth);
-
-    free(rbuffer);
-    free(wbuffer);
-}
-
-void gadget4_readdataset_ID_uint32(hid_t HDF_FileID, char *filename, char *gid,
-                                   char *dataid, struct particle *p, int64_t to_read,
-                                   int64_t offset, int64_t stride) {
-    int64_t   width   = H5Tget_size(H5T_NATIVE_UINT32);
-    void     *buffer  = check_malloc_s(buffer, to_read, width * stride);
-    uint32_t *ibuffer = buffer;
-
-    hid_t HDF_GroupID     = check_H5Gopen(HDF_FileID, gid, filename);
-    hid_t HDF_DatasetID   = check_H5Dopen(HDF_GroupID, dataid, gid, filename);
-    hid_t HDF_DataspaceID = check_H5Dget_space(HDF_DatasetID);
-
-    check_H5Sselect_all(HDF_DataspaceID);
-    hssize_t npoints = H5Sget_select_npoints(HDF_DataspaceID);
-
-    if (npoints != to_read * stride) {
-        fprintf(stderr,
-                "[Error] dataspace %s/%s in HDF5 file %s not expected size!\n  "
-                "(Actual size = %" PRId64 " elements; expected size = %" PRId64
-                " elements\n",
-                gid, dataid, filename, (int64_t)(npoints), stride * to_read);
-        exit(1);
-    }
-
-    check_H5Dread(HDF_DatasetID, H5T_NATIVE_UINT32, buffer, dataid, gid, filename);
-
-    H5Sclose(HDF_DataspaceID);
-    H5Dclose(HDF_DatasetID);
-    H5Gclose(HDF_GroupID);
-
-    for (int64_t i = 0; i < to_read; i++)
-        p[i].id = (int64_t) ibuffer[i];
-
-    free(buffer);
-}
-
-void gadget4_readdataset_ID_uint64(hid_t HDF_FileID, char *filename, char *gid,
-                                   char *dataid, struct particle *p, int64_t to_read,
-                                   int64_t offset, int64_t stride) {
-    int64_t   width   = H5Tget_size(H5T_NATIVE_UINT64);
-    void     *buffer  = check_malloc_s(buffer, to_read, width * stride);
-    uint64_t *ibuffer = buffer;
-
-    hid_t HDF_GroupID     = check_H5Gopen(HDF_FileID, gid, filename);
-    hid_t HDF_DatasetID   = check_H5Dopen(HDF_GroupID, dataid, gid, filename);
-    hid_t HDF_DataspaceID = check_H5Dget_space(HDF_DatasetID);
-
-    check_H5Sselect_all(HDF_DataspaceID);
-    hssize_t npoints = H5Sget_select_npoints(HDF_DataspaceID);
-
-    if (npoints != to_read * stride) {
-        fprintf(stderr,
-                "[Error] dataspace %s/%s in HDF5 file %s not expected size!\n  "
-                "(Actual size = %" PRId64 " elements; expected size = %" PRId64
-                " elements\n",
-                gid, dataid, filename, (int64_t)(npoints), stride * to_read);
-        exit(1);
-    }
-
-    check_H5Dread(HDF_DatasetID, H5T_NATIVE_UINT64, buffer, dataid, gid, filename);
-
-    H5Sclose(HDF_DataspaceID);
-    H5Dclose(HDF_DatasetID);
-    H5Gclose(HDF_GroupID);
-
-    for (int64_t i = 0; i < to_read; i++)
-        p[i].id = (int64_t) ibuffer[i];
+    if (width == 8)
+        for (int64_t i = 0; i < to_read; i++)
+            p[i].id = ibuffer[i];
+    else
+        for (int64_t i = 0; i < to_read; i++)
+            memcpy(((char *)&(p[i])) + offset, fbuffer + (i * stride),
+                   stride * width);
 
     free(buffer);
 }
@@ -244,13 +139,13 @@ void load_particles_gadget4(char *filename, struct particle **p, int64_t *num_p)
     BOX_SIZE *= GADGET4_LENGTH_CONVERSION;
 
     uint64_t npart[GADGET4_NTYPES], npart_total[GADGET4_NTYPES];
-    float    massTable[GADGET4_NTYPES];
+    double   massTable[GADGET4_NTYPES];
 
     gadget4_readheader_array(HDF_Header, filename, "NumPart_ThisFile",
                              H5T_NATIVE_UINT64, npart);
     gadget4_readheader_array(HDF_Header, filename, "NumPart_Total",
                              H5T_NATIVE_UINT64, npart_total);
-    gadget4_readheader_array(HDF_Header, filename, "MassTable", H5T_NATIVE_FLOAT,
+    gadget4_readheader_array(HDF_Header, filename, "MassTable", H5T_NATIVE_DOUBLE,
                              massTable);
 
     TOTAL_PARTICLES = (int64_t)npart_total[GADGET4_DM_PARTTYPE];
@@ -292,36 +187,15 @@ void load_particles_gadget4(char *filename, struct particle **p, int64_t *num_p)
     char buffer[100];
     snprintf(buffer, 100, "PartType%" PRId64, GADGET4_DM_PARTTYPE);
 
-    if (GADGET4_ID_BYTES == 8)
-        gadget4_readdataset_ID_uint64(
-            HDF_FileID, filename, buffer, "ParticleIDs", *p + (*num_p), to_read,
-            (char *)&(p[0][0].id) - (char *)(p[0]), 1);
-    else if (GADGET4_ID_BYTES == 4)
-        gadget4_readdataset_ID_uint32(
-            HDF_FileID, filename, buffer, "ParticleIDs", *p + (*num_p), to_read,
-            (char *)&(p[0][0].id) - (char *)(p[0]), 1);
-    else {
-        fprintf(stderr, "[Error] Unrecognized GADGET4_ID_BYTES:%d\n", (int) GADGET4_ID_BYTES);
-        exit(1);
-    }
-
-    if (!GADGET4_DOUBLE_PRECISION) {
-        gadget4_readdataset_float(
-            HDF_FileID, filename, buffer, "Coordinates", *p + (*num_p), to_read,
-            (char *)&(p[0][0].pos[0]) - (char *)(p[0]), 3);
-        gadget4_readdataset_float(
-            HDF_FileID, filename, buffer, "Velocities", *p + (*num_p), to_read,
-            (char *)&(p[0][0].pos[3]) - (char *)(p[0]), 3);
-    } 
-    else {
-        gadget4_readdataset_double(
-            HDF_FileID, filename, buffer, "Coordinates", *p + (*num_p), to_read,
-            (char *)&(p[0][0].pos[0]) - (char *)(p[0]), 3);
-        gadget4_readdataset_double(
-            HDF_FileID, filename, buffer, "Velocities", *p + (*num_p), to_read,
-            (char *)&(p[0][0].pos[3]) - (char *)(p[0]), 3);
-    }
-
+    gadget4_readdataset(
+        HDF_FileID, filename, buffer, "ParticleIDs", *p + (*num_p), to_read,
+        (char *)&(p[0][0].id) - (char *)(p[0]), 1, H5T_NATIVE_INT64);
+    gadget4_readdataset(
+        HDF_FileID, filename, buffer, "Coordinates", *p + (*num_p), to_read,
+        (char *)&(p[0][0].pos[0]) - (char *)(p[0]), 3, H5T_NATIVE_FLOAT);
+    gadget4_readdataset(
+        HDF_FileID, filename, buffer, "Velocities", *p + (*num_p), to_read,
+        (char *)&(p[0][0].pos[3]) - (char *)(p[0]), 3, H5T_NATIVE_FLOAT);
 
     H5Fclose(HDF_FileID);
 

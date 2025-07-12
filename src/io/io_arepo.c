@@ -20,8 +20,6 @@
 #include "../config.h"
 #include "../particle.h"
 
-#define AREPO_NTYPES 6
-
 void arepo_read_dataset(hid_t HDF_FileID, char *filename, char *gid,
                         char *dataid, struct particle *p, int64_t to_read,
                         int64_t offset, int64_t stride, hid_t type) {
@@ -123,9 +121,11 @@ void load_particles_arepo(char *filename, struct particle **p, int64_t *num_p) {
     BOX_SIZE  = arepo_readheader_float(HDF_Header, filename, "BoxSize");
     BOX_SIZE *= AREPO_LENGTH_CONVERSION;
 
-    uint32_t npart_low[AREPO_NTYPES], npart_high[AREPO_NTYPES] = {0};
+    uint32_t npart_low[AREPO_NTYPES], npart_high[AREPO_NTYPES];
     int64_t  npart[AREPO_NTYPES];
     float    massTable[AREPO_NTYPES];
+
+    for(int i = 0; i < AREPO_NTYPES; i++) npart_high[i] = 0;
 
     arepo_readheader_array(HDF_Header, filename, "NumPart_ThisFile",
                            H5T_NATIVE_UINT64, npart);
