@@ -73,7 +73,13 @@ GADGET4_ID_BYTES=4
 ```
 In Gadget4 `Config.sh`, you can set `IDS_64BIT` for 8-byte IDs or `IDS_32BIT` for 4-byte IDs. 6-byte ID (`IDS_48BIT`) is not supported.
 
-The code also assumes a single precision (4-byte float) for particle positions. Ensure that `POSITIONS_IN_32BIT` is defined in Gadget4 `Config.sh`.
+Particle positions and velocities are assumed to be written in single precision (4-byte float) by default.
+If `OUTPUT_IN_DOUBLEPRECISION` is set, i.e., positions and velocities are output in double precision (8-byte float), in Gadget-4 `Config.sh`, set the following line in the configuration file.
+```
+GADGET4_DOUBLE_PRECISION=1
+```
+However, even if this option is set, `MPI-rockstar` always internally stores positions and velocities in single precision.
+The positions and velocities of halo catalogues are also written in single precision.
 
 Gadget-2/3 HDF5 format is also supported by passing the file format as `AREPO`.
 This format has a different header structure from Gadget-4 but AREPO HDF5 format has the same structure.
