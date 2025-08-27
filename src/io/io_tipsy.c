@@ -39,7 +39,7 @@ void load_particles_tipsy(char *filename, struct particle **p, int64_t *num_p) {
         assert(header.ndim == 3);
         xdrfmt = 0;
     }
-    SCALE_NOW = header.time;
+    ROCKSTAR_SCALE_NOW = header.time;
 #ifndef TIPSY_READ_GAS_STARS
     check_realloc_s(*p, (*num_p) + header.ndark, sizeof(struct particle));
 #else
@@ -70,9 +70,9 @@ void load_particles_tipsy(char *filename, struct particle **p, int64_t *num_p) {
             else
                 (*p)[i + (*num_p)].id = i;
             (*p)[i + (*num_p)].pos[j] =
-                (gas.pos[j] + 0.5) * TIPSY_LENGTH_CONVERSION;
+                (gas.pos[j] + 0.5) * ROCKSTAR_TIPSY_LENGTH_CONVERSION;
             (*p)[i + (*num_p)].pos[j + 3] =
-                gas.vel[j] * TIPSY_VELOCITY_CONVERSION * SCALE_NOW;
+                gas.vel[j] * ROCKSTAR_TIPSY_VELOCITY_CONVERSION * ROCKSTAR_SCALE_NOW;
         }
     }
     (*num_p) += header.nsph;
@@ -102,20 +102,20 @@ void load_particles_tipsy(char *filename, struct particle **p, int64_t *num_p) {
             (*p)[i + (*num_p)].id = ip;
         for (j = 0; j < 3; j++) {
             (*p)[i + (*num_p)].pos[j] =
-                (dark.pos[j] + 0.5) * TIPSY_LENGTH_CONVERSION;
+                (dark.pos[j] + 0.5) * ROCKSTAR_TIPSY_LENGTH_CONVERSION;
             (*p)[i + (*num_p)].pos[j + 3] =
-                dark.vel[j] * TIPSY_VELOCITY_CONVERSION * SCALE_NOW;
+                dark.vel[j] * ROCKSTAR_TIPSY_VELOCITY_CONVERSION * ROCKSTAR_SCALE_NOW;
             /*
             if (haveiords) (*p)[ip].id = iords[ip];
             else (*p)[ip].id = ip;
-            (*p)[ip].pos[j] = (dark.pos[j] + 0.5) * TIPSY_LENGTH_CONVERSION;
-            (*p)[ip].pos[j+3] = dark.vel[j] * TIPSY_VELOCITY_CONVERSION;
+            (*p)[ip].pos[j] = (dark.pos[j] + 0.5) * ROCKSTAR_TIPSY_LENGTH_CONVERSION;
+            (*p)[ip].pos[j+3] = dark.vel[j] * ROCKSTAR_TIPSY_VELOCITY_CONVERSION;
             */
         }
     }
 
     // printf("Read %d dark matter particles.\n",header.ndark);
-    // TOTAL_PARTICLES += header.ndark;
+    // ROCKSTAR_TOTAL_PARTICLES += header.ndark;
     (*num_p) += header.ndark;
 
 #ifdef TIPSY_READ_GAS_STARS
@@ -131,9 +131,9 @@ void load_particles_tipsy(char *filename, struct particle **p, int64_t *num_p) {
             else
                 (*p)[i + (*num_p)].id = ip;
             (*p)[i + (*num_p)].pos[j] =
-                (star.pos[j] + 0.5) * TIPSY_LENGTH_CONVERSION;
+                (star.pos[j] + 0.5) * ROCKSTAR_TIPSY_LENGTH_CONVERSION;
             (*p)[i + (*num_p)].pos[j + 3] =
-                star.vel[j] * TIPSY_VELOCITY_CONVERSION * SCALE_NOW;
+                star.vel[j] * ROCKSTAR_TIPSY_VELOCITY_CONVERSION * ROCKSTAR_SCALE_NOW;
         }
     }
     (*num_p) += header.nstar;

@@ -18,7 +18,7 @@ void init_time_table(void) {
     double  a;
     int64_t i;
 
-    H_CONV = HUBBLE_TIME_CONVERSION / h0;
+    H_CONV = HUBBLE_TIME_CONVERSION / ROCKSTAR_h0;
 
     for (i = STEPS; i >= 0; --i) {
         a        = MAXA * ((double)i) / ((double)STEPS);
@@ -56,19 +56,19 @@ double scale_to_time(double scale) {
 double scale_to_years(double scale) { return (scale_to_time(scale) * H_CONV); }
 
 double _exact_time_to_scale(double t) {
-    assert((W0 == -1) && (WA == 0));
-    double m = sinh(1.5 * t * sqrt(1 - Om));
-    return pow(Om * m * m / (1.0 - Om), 1.0 / 3.0);
+    assert((ROCKSTAR_W0 == -1) && (ROCKSTAR_WA == 0));
+    double m = sinh(1.5 * t * sqrt(1 - ROCKSTAR_Om));
+    return pow(ROCKSTAR_Om * m * m / (1.0 - ROCKSTAR_Om), 1.0 / 3.0);
 }
 
 /*int main(void) {
   double fact = 10.0;
   double i;
-  h0 = 0.7;
-  Om = 0.7;
-  Ol = 0.3;
-  W0 = -1.0;
-  WA = 0.0;
+  ROCKSTAR_h0 = 0.7;
+  ROCKSTAR_Om = 0.7;
+  ROCKSTAR_Ol = 0.3;
+  ROCKSTAR_W0 = -1.0;
+  ROCKSTAR_WA = 0.0;
   init_time_table();
 
   double exact_t0_conv = -1.0*exact_scale_to_time(0.0);

@@ -33,7 +33,7 @@ void find_parents(int64_t ngroups) {
     struct fast3tree         *halo_tree;
     FAST3TREE_TYPE           *h1, *h2;
 #ifndef NO_PERIODIC_BOUNDARIES
-    float max_dist = BOX_SIZE / 2.01;
+    float max_dist = ROCKSTAR_BOX_SIZE / 2.01;
 #endif /*NO_PERIODIC_BOUNDARIES*/
     float range;
 
@@ -41,7 +41,7 @@ void find_parents(int64_t ngroups) {
                                "Allocating halo order.");
     halo_tree  = fast3tree_init(ngroups, GROUP_LIST);
 #ifndef NO_PERIODIC_BOUNDARIES
-    _fast3tree_set_minmax(halo_tree, 0, BOX_SIZE);
+    _fast3tree_set_minmax(halo_tree, 0, ROCKSTAR_BOX_SIZE);
 #endif /*NO_PERIODIC_BOUNDARIES*/
     for (i = 0; i < ngroups; i++) {
         GROUP_LIST[i].parent = -1;

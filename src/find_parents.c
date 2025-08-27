@@ -16,7 +16,7 @@
 
 #include "read_tree.h"
 
-double BOX_SIZE = 250;
+double ROCKSTAR_BOX_SIZE = 250;
 
 struct halo_list all_halos = {0};
 struct halo_tree halo_tree = {0};
@@ -173,9 +173,9 @@ void read_hlist(char *filename, float *bounds) {
             float rvir = h.rvir / 1.0e3; // in Mpc/h
             for (i = 0; i < 3; i++) {
                 if (((h.pos[i] + rvir < bounds[i]) &&
-                     (h.pos[i] - rvir + BOX_SIZE > bounds[i + 3])) ||
+                     (h.pos[i] - rvir + ROCKSTAR_BOX_SIZE > bounds[i + 3])) ||
                     ((h.pos[i] - rvir > bounds[i + 3]) &&
-                     (h.pos[i] + rvir - BOX_SIZE < bounds[i])))
+                     (h.pos[i] + rvir - ROCKSTAR_BOX_SIZE < bounds[i])))
                     break;
             }
             if (i < 3)
@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
     if (argc > 2)
-        BOX_SIZE = atof(argv[2]);
+        ROCKSTAR_BOX_SIZE = atof(argv[2]);
     if (argc >= 9) {
         for (i = 0; i < 6; i++)
             bounds[i] = atof(argv[3 + i]);

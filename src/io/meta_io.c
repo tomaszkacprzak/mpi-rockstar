@@ -65,36 +65,36 @@ void read_input_names(char *filename, char ***stringnames, int64_t *num_names) {
 }
 
 void get_input_filename(char *buffer, int maxlen, int64_t snap, int64_t block) {
-    int64_t i = 0, out = 0, l = strlen(FILENAME);
-    assert(snap < NUM_SNAPS);
-    snprintf(buffer, maxlen, "%s/", INBASE);
+    int64_t i = 0, out = 0, l = strlen(ROCKSTAR_FILENAME);
+    assert(snap < ROCKSTAR_NUM_SNAPS);
+    snprintf(buffer, maxlen, "%s/", ROCKSTAR_INBASE);
     out = strlen(buffer);
-    if (FILES_PER_SUBDIR_INPUT > 0) {
-        int64_t subdir = block / FILES_PER_SUBDIR_INPUT;
-        snprintf(buffer + out, maxlen - out, "%s%03" PRId64 "/%0*ld/", INBASE2, snap, (int)SUBDIR_DIGITS_INPUT, subdir);
+    if (ROCKSTAR_FILES_PER_SUBDIR_INPUT > 0) {
+        int64_t subdir = block / ROCKSTAR_FILES_PER_SUBDIR_INPUT;
+        snprintf(buffer + out, maxlen - out, "%s%03" PRId64 "/%0*ld/", ROCKSTAR_INBASE2, snap, (int)ROCKSTAR_SUBDIR_DIGITS_INPUT, subdir);
         out = strlen(buffer);
     }
     for (; (i < l) && (out < (maxlen - 1)); i++) {
-        if (FILENAME[i] != '<') {
-            buffer[out]     = FILENAME[i];
+        if (ROCKSTAR_FILENAME[i] != '<') {
+            buffer[out]     = ROCKSTAR_FILENAME[i];
             buffer[out + 1] = 0;
         } else {
-            if (!strncmp(FILENAME + i, "<snap>", 6)) {
+            if (!strncmp(ROCKSTAR_FILENAME + i, "<snap>", 6)) {
                 i += 5;
                 if (snapnames)
                     snprintf(buffer + out, maxlen - out, "%s", snapnames[snap]);
                 else {
-                    if (!strncasecmp(FILE_FORMAT, "GADGET", 6) ||
-                        !strncasecmp(FILE_FORMAT, "LGADGET", 7) ||
-                        !strncasecmp(FILE_FORMAT, "KYF", 3) ||
-                        !strncasecmp(FILE_FORMAT, "AREPO", 5) ||
-                        !strncasecmp(FILE_FORMAT, "GADGET4", 7))
+                    if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "GADGET", 6) ||
+                        !strncasecmp(ROCKSTAR_FILE_FORMAT, "LGADGET", 7) ||
+                        !strncasecmp(ROCKSTAR_FILE_FORMAT, "KYF", 3) ||
+                        !strncasecmp(ROCKSTAR_FILE_FORMAT, "AREPO", 5) ||
+                        !strncasecmp(ROCKSTAR_FILE_FORMAT, "GADGET4", 7))
                         snprintf(buffer + out, maxlen - out, "%03" PRId64,
                                  snap);
                     else
                         snprintf(buffer + out, maxlen - out, "%" PRId64, snap);
                 }
-            } else if (!strncmp(FILENAME + i, "<block>", 7)) {
+            } else if (!strncmp(ROCKSTAR_FILENAME + i, "<block>", 7)) {
                 i += 6;
                 if (blocknames)
                     snprintf(buffer + out, maxlen - out, "%s",
@@ -102,7 +102,7 @@ void get_input_filename(char *buffer, int maxlen, int64_t snap, int64_t block) {
                 else
                     snprintf(buffer + out, maxlen - out, "%" PRId64, block);
             } else
-                buffer[out] = FILENAME[i];
+                buffer[out] = ROCKSTAR_FILENAME[i];
         }
         out = strlen(buffer);
     }
@@ -112,16 +112,16 @@ void get_input_filename(char *buffer, int maxlen, int64_t snap, int64_t block) {
 int64_t get_output_dirname(char *buffer, int maxlen, int64_t snap,
                            int64_t chunk) {
     int64_t out = 0;
-    snprintf(buffer, maxlen, "%s/", OUTBASE);
+    snprintf(buffer, maxlen, "%s/", ROCKSTAR_OUTBASE);
     out = strlen(buffer);
-    if (OUTPUT_SUBDIR) {
-        snprintf(buffer + out, maxlen - out, "%0*ld/", (int)SNAPSHOT_SUBDIR_DIGITS,
+    if (ROCKSTAR_OUTPUT_SUBDIR) {
+        snprintf(buffer + out, maxlen - out, "%0*ld/", (int)ROCKSTAR_SNAPSHOT_SUBDIR_DIGITS,
                  snap);
         out = strlen(buffer);
     }
-    if (FILES_PER_SUBDIR_OUTPUT > 0) {
-        int64_t subdir = chunk / FILES_PER_SUBDIR_OUTPUT;
-        snprintf(buffer + out, maxlen - out, "%0*ld/", (int)SUBDIR_DIGITS_OUTPUT,
+    if (ROCKSTAR_FILES_PER_SUBDIR_OUTPUT > 0) {
+        int64_t subdir = chunk / ROCKSTAR_FILES_PER_SUBDIR_OUTPUT;
+        snprintf(buffer + out, maxlen - out, "%0*ld/", (int)ROCKSTAR_SUBDIR_DIGITS_OUTPUT,
                  subdir);
         out = strlen(buffer);
         mkdir(buffer, 0777);
@@ -145,9 +145,9 @@ void read_particles(char *filename) {
     int64_t p_start = num_p;
     float   dx, ds, z, a, vel_mul;
     double *origin, origin_offset[3] = {0};
-    if (!strcasecmp(FILE_FORMAT, "ASCII"))
+    if (!strcasecmp(ROCKSTAR_FILE_FORMAT, "ASCII"))
         load_particles(filename, &p, &num_p);
-    else if (!strncasecmp(FILE_FORMAT, "GADGET4", 7)) {
+    else if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "GADGET4", 7)) {
 #ifdef ENABLE_HDF5
         load_particles_gadget4(filename, &p, &num_p);
         gadget = 1;
@@ -156,22 +156,22 @@ void read_particles(char *filename) {
                         "using \"make with_hdf5\".\n");
         exit(1);
 #endif
-    } else if (!strncasecmp(FILE_FORMAT, "GADGET", 6) ||
-             !strncasecmp(FILE_FORMAT, "LGADGET", 7)) {
+    } else if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "GADGET", 6) ||
+             !strncasecmp(ROCKSTAR_FILE_FORMAT, "LGADGET", 7)) {
         load_particles_gadget2(filename, &p, &num_p);
         gadget = 1;
-    } else if (!strncasecmp(FILE_FORMAT, "ART", 3))
+    } else if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "ART", 3))
         load_particles_art(filename, &p, &num_p);
-    else if (!strncasecmp(FILE_FORMAT, "INTERNAL", 8)) {
+    else if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "INTERNAL", 8)) {
         load_particles_internal(filename, &p, &num_p);
-    } else if (!strncasecmp(FILE_FORMAT, "GENERIC", 7)) {
+    } else if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "GENERIC", 7)) {
         assert(load_particles_generic != NULL);
         load_particles_generic(filename, &p, &num_p);
-    } else if (!strncasecmp(FILE_FORMAT, "TIPSY", 5)) {
+    } else if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "TIPSY", 5)) {
         load_particles_tipsy(filename, &p, &num_p);
-    } else if (!strncasecmp(FILE_FORMAT, "KYF", 3)) { // Added by TI 20160909
+    } else if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "KYF", 3)) { // Added by TI 20160909
         load_particles_kyf(filename, &p, &num_p);
-    } else if (!strncasecmp(FILE_FORMAT, "AREPO", 5)) {
+    } else if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "AREPO", 5)) {
 #ifdef ENABLE_HDF5
         load_particles_arepo(filename, &p, &num_p);
 #else
@@ -180,32 +180,32 @@ void read_particles(char *filename) {
         exit(1);
 #endif
     } else {
-        fprintf(stderr, "[Error] Unknown filetype %s!\n", FILE_FORMAT);
+        fprintf(stderr, "[Error] Unknown filetype %s!\n", ROCKSTAR_FILE_FORMAT);
         exit(1);
     }
 
-    if (PERIODIC) {
+    if (ROCKSTAR_PERIODIC) {
         for (i = p_start; i < num_p; i++) {
             for (j = 0; j < 3; j++) {
-                if (p[i].pos[j] > BOX_SIZE)
-                    p[i].pos[j] -= BOX_SIZE;
+                if (p[i].pos[j] > ROCKSTAR_BOX_SIZE)
+                    p[i].pos[j] -= ROCKSTAR_BOX_SIZE;
                 else if (p[i].pos[j] < 0)
-                    p[i].pos[j] += BOX_SIZE;
+                    p[i].pos[j] += ROCKSTAR_BOX_SIZE;
             }
         }
     }
 
-    if (NON_COSMOLOGICAL) {
-        SCALE_NOW = 1;
+    if (ROCKSTAR_NON_COSMOLOGICAL) {
+        ROCKSTAR_SCALE_NOW = 1;
     }
 
-    if (LIMIT_RADIUS) {
+    if (ROCKSTAR_LIMIT_RADIUS) {
         for (i = p_start; i < num_p; i++) {
             for (j = 0, ds = 0; j < 3; j++) {
-                dx = p[i].pos[j] - LIMIT_CENTER[j];
+                dx = p[i].pos[j] - ROCKSTAR_LIMIT_CENTER[j];
                 ds += dx * dx;
             }
-            if (ds > LIMIT_RADIUS * LIMIT_RADIUS) {
+            if (ds > ROCKSTAR_LIMIT_RADIUS * ROCKSTAR_LIMIT_RADIUS) {
                 num_p--;
                 p[i] = p[num_p];
                 i--;
@@ -213,27 +213,27 @@ void read_particles(char *filename) {
         }
     }
 
-    if (LIGHTCONE) {
+    if (ROCKSTAR_LIGHTCONE) {
         init_cosmology();
-        if (strlen(LIGHTCONE_ALT_SNAPS)) {
+        if (strlen(ROCKSTAR_LIGHTCONE_ALT_SNAPS)) {
             for (i = 0; i < 3; i++)
-                if (LIGHTCONE_ORIGIN[i] || LIGHTCONE_ALT_ORIGIN[i])
+                if (ROCKSTAR_LIGHTCONE_ORIGIN[i] || ROCKSTAR_LIGHTCONE_ALT_ORIGIN[i])
                     break;
             if (i < 3) { // Same box coordinates, different intended locations
-                if (LIGHTCONE == 1) {
+                if (ROCKSTAR_LIGHTCONE == 1) {
                     for (i = 0; i < 3; i++)
                         origin_offset[i] =
-                            LIGHTCONE_ORIGIN[i] - LIGHTCONE_ALT_ORIGIN[i];
+                            ROCKSTAR_LIGHTCONE_ORIGIN[i] - ROCKSTAR_LIGHTCONE_ALT_ORIGIN[i];
                 }
             } else { // Offset everything
                 for (i = 0; i < 3; i++)
-                    origin_offset[i] = -BOX_SIZE;
+                    origin_offset[i] = -ROCKSTAR_BOX_SIZE;
             }
-            BOX_SIZE *= 2.0;
+            ROCKSTAR_BOX_SIZE *= 2.0;
         }
-        origin = (LIGHTCONE == 2) ? LIGHTCONE_ALT_ORIGIN : LIGHTCONE_ORIGIN;
+        origin = (ROCKSTAR_LIGHTCONE == 2) ? ROCKSTAR_LIGHTCONE_ALT_ORIGIN : ROCKSTAR_LIGHTCONE_ORIGIN;
         for (i = p_start; i < num_p; i++) {
-            if (LIGHTCONE == 2)
+            if (ROCKSTAR_LIGHTCONE == 2)
                 p[i].id = -p[i].id; // Make ids different
             for (j = 0, dx = 0; j < 3; j++) {
                 ds = p[i].pos[j] - origin[j];
@@ -267,33 +267,33 @@ int _should_print(struct halo *h, float *bounds) {
         return 0;
     if (h->flags & ALWAYS_PRINT_FLAG)
         return 1;
-    if ((h->num_p < MIN_HALO_OUTPUT_SIZE) ||
-        (h->m * UNBOUND_THRESHOLD >= h->mgrav) ||
-        ((h->mgrav < 1.5 * PARTICLE_MASS) && UNBOUND_THRESHOLD > 0))
+    if ((h->num_p < ROCKSTAR_MIN_HALO_OUTPUT_SIZE) ||
+        (h->m * ROCKSTAR_UNBOUND_THRESHOLD >= h->mgrav) ||
+        ((h->mgrav < 1.5 * ROCKSTAR_PARTICLE_MASS) && ROCKSTAR_UNBOUND_THRESHOLD > 0))
         return 0;
     return 1;
 }
 
 int64_t print_ascii_header_info(FILE *output, float *bounds, int64_t np) {
     int64_t chars = 0;
-    chars += fprintf(output, "#a = %f\n", SCALE_NOW);
+    chars += fprintf(output, "#a = %f\n", ROCKSTAR_SCALE_NOW);
     if (bounds)
         chars +=
             fprintf(output, "#Bounds: (%f, %f, %f) - (%f, %f, %f)\n", bounds[0],
                     bounds[1], bounds[2], bounds[3], bounds[4], bounds[5]);
-    chars += fprintf(output, "#Om = %f; Ol = %f; h = %f\n", Om, Ol, h0);
-    chars += fprintf(output, "#FOF linking length: %f\n", FOF_LINKING_LENGTH);
+    chars += fprintf(output, "#ROCKSTAR_Om = %f; ROCKSTAR_Ol = %f; h = %f\n", ROCKSTAR_Om, ROCKSTAR_Ol, ROCKSTAR_h0);
+    chars += fprintf(output, "#FOF linking length: %f\n", ROCKSTAR_FOF_LINKING_LENGTH);
     chars += fprintf(output,
                      "#Unbound Threshold: %f; FOF Refinement Threshold: %f\n",
-                     UNBOUND_THRESHOLD, FOF_FRACTION);
-    chars += fprintf(output, "#Particle mass: %.5e Msun/h\n", PARTICLE_MASS);
-    chars += fprintf(output, "#Box size: %f Mpc/h\n", BOX_SIZE);
+                     ROCKSTAR_UNBOUND_THRESHOLD, ROCKSTAR_FOF_FRACTION);
+    chars += fprintf(output, "#Particle mass: %.5e Msun/h\n", ROCKSTAR_PARTICLE_MASS);
+    chars += fprintf(output, "#Box size: %f Mpc/h\n", ROCKSTAR_BOX_SIZE);
     if (np)
         chars +=
             fprintf(output, "#Total particles processed: %" PRId64 "\n", np);
     chars +=
-        fprintf(output, "#Force resolution assumed: %g Mpc/h\n", FORCE_RES);
-    if (STRICT_SO_MASSES && !np)
+        fprintf(output, "#Force resolution assumed: %g Mpc/h\n", ROCKSTAR_FORCE_RES);
+    if (ROCKSTAR_STRICT_SO_MASSES && !np)
         chars +=
             fprintf(output, "#Using Strict Spherical Overdensity Masses\n");
     chars += fprintf(
@@ -331,10 +331,10 @@ void output_ascii(int64_t id_offset, int64_t snap, int64_t chunk,
             "c_to_a A[x] A[y] A[z] b_to_a(%s) c_to_a(%s) A[x](%s) A[y](%s) "
             "A[z](%s) Rs Rs_Klypin T/|U| M_pe_Behroozi M_pe_Diemer "
             "Halfmass_Radius idx i_so i_ph num_cp mmetric\n",
-            MASS_DEFINITION, MASS_DEFINITION, MASS_DEFINITION, MASS_DEFINITION2,
-            MASS_DEFINITION3, MASS_DEFINITION4, MASS_DEFINITION5,
-            MASS_DEFINITION4, MASS_DEFINITION4, MASS_DEFINITION4,
-            MASS_DEFINITION4, MASS_DEFINITION4);
+            ROCKSTAR_MASS_DEFINITION, ROCKSTAR_MASS_DEFINITION, ROCKSTAR_MASS_DEFINITION, ROCKSTAR_MASS_DEFINITION2,
+            ROCKSTAR_MASS_DEFINITION3, ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION5,
+            ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4,
+            ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4);
     print_ascii_header_info(output, bounds, num_p);
 
     for (i = 0; i < num_halos; i++) {
@@ -370,8 +370,8 @@ void print_child_particles(FILE *output, int64_t i, int64_t pid, int64_t eid) {
     struct particle *p2;
     for (j = 0; j < halos[i].num_p; j++) {
         p2 = p + halos[i].p_start + j;
-        if (OUTPUT_EVERY_N_PARTICLES <= 1 ||
-            !(p2->id % OUTPUT_EVERY_N_PARTICLES))
+        if (ROCKSTAR_OUTPUT_EVERY_N_PARTICLES <= 1 ||
+            !(p2->id % ROCKSTAR_OUTPUT_EVERY_N_PARTICLES))
             fprintf(output,
                     "%f %f %f %f %f %f %" PRId64 " %" PRId64 " %" PRId64
                     " %" PRId64 "\n",
@@ -392,7 +392,7 @@ void output_full_particles(int64_t id_offset, int64_t snap, int64_t chunk,
     int64_t      i, id = 0;
     struct halo *th;
 
-    if (chunk >= FULL_PARTICLE_CHUNKS)
+    if (chunk >= ROCKSTAR_FULL_PARTICLE_CHUNKS)
         return;
     get_output_filename(buffer, 1024, snap, chunk, "particles");
     output = check_fopen(buffer, "w");
@@ -401,16 +401,16 @@ void output_full_particles(int64_t id_offset, int64_t snap, int64_t chunk,
     fprintf(output,
             "#id internal_id num_p m%s mbound_%s r%s vmax rvmax vrms x y z vx "
             "vy vz Jx Jy Jz energy spin\n",
-            MASS_DEFINITION, MASS_DEFINITION, MASS_DEFINITION);
+            ROCKSTAR_MASS_DEFINITION, ROCKSTAR_MASS_DEFINITION, ROCKSTAR_MASS_DEFINITION);
     fprintf(output, "#Particle table:\n");
     fprintf(output, "#x y z vx vy vz particle_id assigned_internal_haloid "
                     "internal_haloid external_haloid\n");
 
-    if (OUTPUT_EVERY_N_PARTICLES > 1) {
+    if (ROCKSTAR_OUTPUT_EVERY_N_PARTICLES > 1) {
         fprintf(output,
                 "#Notes: Only particles with IDs divisible by %" PRId64
                 " are printed.\n",
-                OUTPUT_EVERY_N_PARTICLES);
+                ROCKSTAR_OUTPUT_EVERY_N_PARTICLES);
     }
 
     fprintf(output,
@@ -432,7 +432,7 @@ void output_full_particles(int64_t id_offset, int64_t snap, int64_t chunk,
             id++;
         } else {
             th->id = -1;
-            if (!UNFILTERED_HALO_OUTPUT)
+            if (!ROCKSTAR_UNFILTERED_HALO_OUTPUT)
                 continue;
         }
 
@@ -447,7 +447,7 @@ void output_full_particles(int64_t id_offset, int64_t snap, int64_t chunk,
 
     fprintf(output, "#Particle table begins here:\n");
     for (i = 0; i < num_halos; i++)
-        if (UNFILTERED_HALO_OUTPUT || halos[i].id > -1)
+        if (ROCKSTAR_UNFILTERED_HALO_OUTPUT || halos[i].id > -1)
             print_child_particles(output, i, i, halos[i].id);
     fclose(output);
     get_output_filename(buffer, 1024, snap, chunk, "particles");
@@ -478,23 +478,23 @@ int64_t count_particles_to_print(float *bounds) {
 
 void output_halos(int64_t id_offset, int64_t snap, int64_t chunk,
                   float *bounds) {
-    if (!strcasecmp(OUTPUT_FORMAT, "BOTH") ||
-        !strcasecmp(OUTPUT_FORMAT, "ASCII"))
+    if (!strcasecmp(ROCKSTAR_OUTPUT_FORMAT, "BOTH") ||
+        !strcasecmp(ROCKSTAR_OUTPUT_FORMAT, "ASCII"))
         output_ascii(id_offset, snap, chunk, bounds);
-    if (!strcasecmp(OUTPUT_FORMAT, "BOTH") ||
-        !strcasecmp(OUTPUT_FORMAT, "BINARY") ||
-        (TEMPORAL_HALO_FINDING && !LIGHTCONE))
+    if (!strcasecmp(ROCKSTAR_OUTPUT_FORMAT, "BOTH") ||
+        !strcasecmp(ROCKSTAR_OUTPUT_FORMAT, "BINARY") ||
+        (ROCKSTAR_TEMPORAL_HALO_FINDING && !ROCKSTAR_LIGHTCONE))
         output_binary(id_offset, snap, chunk, bounds, 1);
 
-    if (chunk < FULL_PARTICLE_CHUNKS)
+    if (chunk < ROCKSTAR_FULL_PARTICLE_CHUNKS)
         output_full_particles(id_offset, snap, chunk, bounds);
 
-    if (DUMP_PARTICLES[0] &&
-        (chunk >= DUMP_PARTICLES[1] && chunk <= DUMP_PARTICLES[2]))
+    if (ROCKSTAR_DUMP_PARTICLES[0] &&
+        (chunk >= ROCKSTAR_DUMP_PARTICLES[1] && chunk <= ROCKSTAR_DUMP_PARTICLES[2]))
         output_particles_internal(snap, chunk, 1);
 
-    if (WEAK_LENSING_FRACTION > 0)
-        output_particles_internal(snap, chunk, WEAK_LENSING_FRACTION);
+    if (ROCKSTAR_WEAK_LENSING_FRACTION > 0)
+        output_particles_internal(snap, chunk, ROCKSTAR_WEAK_LENSING_FRACTION);
 }
 
 void get_outlist_filename(char *buffer, int maxlen, int64_t snap,
@@ -502,12 +502,12 @@ void get_outlist_filename(char *buffer, int maxlen, int64_t snap,
     int64_t out = get_output_dirname(buffer, maxlen, snap, chunk);
     snprintf(buffer + out, maxlen - out, "out_%" PRId64 ".list", snap);
     out = strlen(buffer);
-    if (OUTLIST_PARALLEL) {
+    if (ROCKSTAR_OUTLIST_PARALLEL) {
         snprintf(buffer + out, maxlen - out, "-%" PRId64, chunk);
         out = strlen(buffer);
     }
     else{
-      snprintf(buffer, maxlen, "%s/out_%" PRId64 ".list", OUTBASE, snap);
+      snprintf(buffer, maxlen, "%s/out_%" PRId64 ".list", ROCKSTAR_OUTBASE, snap);
       out = strlen(buffer);
     }
 
@@ -524,7 +524,7 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
     double       m;
     struct halo *th;
 
-    if (OUTLIST_PARALLEL || chunk == 0) {
+    if (ROCKSTAR_OUTLIST_PARALLEL || chunk == 0) {
         char buffer[1024];
         get_outlist_filename(buffer, 1024, snap, chunk);
         output = check_fopen(buffer, "w");
@@ -547,15 +547,15 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
 	    " Ixx Iyy Izz Ixy Iyz Izx Ixx(%s) Iyy(%s) Izz(%s) Ixy(%s) Iyz(%s) Izx(%s)"
 #endif
 	    "\n",
-            MASS_DEFINITION, MASS_DEFINITION, MASS_DEFINITION, MASS_DEFINITION2,
-            MASS_DEFINITION3, MASS_DEFINITION4, MASS_DEFINITION5,
-            MASS_DEFINITION4, MASS_DEFINITION4, MASS_DEFINITION4,
-            MASS_DEFINITION4, MASS_DEFINITION4
+            ROCKSTAR_MASS_DEFINITION, ROCKSTAR_MASS_DEFINITION, ROCKSTAR_MASS_DEFINITION, ROCKSTAR_MASS_DEFINITION2,
+            ROCKSTAR_MASS_DEFINITION3, ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION5,
+            ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4,
+            ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4
 #ifdef OUTPUT_INTERMEDIATE_AXIS
-	    ,MASS_DEFINITION4, MASS_DEFINITION4, MASS_DEFINITION4
+	    ,ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4
 #endif
 #ifdef OUTPUT_INERTIA_TENSOR
-	    ,MASS_DEFINITION4, MASS_DEFINITION4, MASS_DEFINITION4, MASS_DEFINITION4, MASS_DEFINITION4, MASS_DEFINITION4
+	    ,ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4, ROCKSTAR_MASS_DEFINITION4
 #endif
 			  );
         hchars += print_ascii_header_info(output, NULL, 0);
@@ -569,10 +569,10 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
         }
         cur_pos = cat + chars;
         th      = halos + i;
-        if (LIGHTCONE)
+        if (ROCKSTAR_LIGHTCONE)
             for (j = 0; j < 3; j++)
-                th->pos[j] -= LIGHTCONE_ORIGIN[j];
-        m = (BOUND_PROPS) ? th->mgrav : th->m;
+                th->pos[j] -= ROCKSTAR_LIGHTCONE_ORIGIN[j];
+        m = (ROCKSTAR_BOUND_PROPS) ? th->mgrav : th->m;
         chars += snprintf(
             cur_pos, 1024,
             "%" PRId64 " %" PRId64 " %.4e %.2f %.2f %.3f %.3f %" PRId64 " %.5f "
@@ -636,7 +636,7 @@ void output_merger_catalog(int64_t snap, int64_t chunk, int64_t location,
   char buffer[1024];
   get_outlist_filename(buffer, 1024, snap, chunk);
 
-  if (OUTLIST_PARALLEL) {
+  if (ROCKSTAR_OUTLIST_PARALLEL) {
     FILE *output;
     char  buffer[1024];
     get_outlist_filename(buffer, 1024, snap, chunk);

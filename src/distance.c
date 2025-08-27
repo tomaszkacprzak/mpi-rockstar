@@ -6,7 +6,7 @@
 #define MAX_Z      300.0
 #define Z_BINS     1000.0
 #define TOTAL_BINS (((int)MAX_Z) * ((int)Z_BINS))
-#define h          h0
+#define h          ROCKSTAR_h0
 double Dh;
 double _Dc[TOTAL_BINS];
 
