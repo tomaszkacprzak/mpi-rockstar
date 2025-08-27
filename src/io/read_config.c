@@ -187,7 +187,7 @@ void load_config(struct configfile *c, char *filename) {
         add_to_string_array(&(c->keys), key_start, key_end - key_start + 1,
                             c->num_entries);
 
-	if( !strncasecmp( c->keys[c->num_entries], "TOTAL_PARTICLES", 15)){
+	if( !strncasecmp( c->keys[c->num_entries], "ROCKSTAR_TOTAL_PARTICLES", 15)){
 	  totaln_config = 1;
 	}
 
@@ -195,7 +195,7 @@ void load_config(struct configfile *c, char *filename) {
                             c->num_entries);
         add_to_int_array(&(c->touched), c->num_entries, 0);
 
-	if( !strncasecmp( c->keys[c->num_entries], "FILE_FORMAT", 11)){
+	if( !strncasecmp( c->keys[c->num_entries], "ROCKSTAR_FILE_FORMAT", 11)){
 	  file_format = c->values[c->num_entries];
 	}
 
@@ -204,7 +204,7 @@ void load_config(struct configfile *c, char *filename) {
     fclose(input);
 
     if( !strncasecmp(file_format, "KYF", 3) && !totaln_config){
-      fprintf(stderr, "[Error] TOTAL_PARTICLES is not set\n");
+      fprintf(stderr, "[Error] ROCKSTAR_TOTAL_PARTICLES is not set\n");
       exit(1);
     }
 

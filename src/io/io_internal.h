@@ -15,7 +15,7 @@
 struct binary_output_header {
     uint64_t magic;
     int64_t  snap, chunk;
-    float    scale, Om, Ol, h0;
+    float    scale, ROCKSTAR_Om, ROCKSTAR_Ol, ROCKSTAR_h0;
     float    bounds[6];
     int64_t  num_halos, num_particles;
     float    box_size, particle_mass;

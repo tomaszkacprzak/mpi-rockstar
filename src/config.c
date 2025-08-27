@@ -15,25 +15,25 @@
 
 
 void setup_config(void) {
-    if (!NUM_READERS)
-        NUM_READERS = NUM_BLOCKS;
+    if (!ROCKSTAR_NUM_READERS)
+        ROCKSTAR_NUM_READERS = ROCKSTAR_NUM_BLOCKS;
 
-    if (!PARTICLE_MASS)
-        PARTICLE_MASS = CRITICAL_DENSITY * BOX_SIZE * BOX_SIZE * BOX_SIZE * Om /
-                        TOTAL_PARTICLES;
-    if (!AVG_PARTICLE_SPACING)
-        AVG_PARTICLE_SPACING = cbrt(PARTICLE_MASS / (Om * CRITICAL_DENSITY));
+    if (!ROCKSTAR_PARTICLE_MASS)
+        ROCKSTAR_PARTICLE_MASS = CRITICAL_DENSITY * ROCKSTAR_BOX_SIZE * ROCKSTAR_BOX_SIZE * ROCKSTAR_BOX_SIZE * ROCKSTAR_Om /
+                        ROCKSTAR_TOTAL_PARTICLES;
+    if (!ROCKSTAR_AVG_PARTICLE_SPACING)
+        ROCKSTAR_AVG_PARTICLE_SPACING = cbrt(ROCKSTAR_PARTICLE_MASS / (ROCKSTAR_Om * CRITICAL_DENSITY));
 
-    if (LIGHTCONE || !PARALLEL_IO) {
-        PERIODIC              = 0;
-        TEMPORAL_HALO_FINDING = 0;
+    if (ROCKSTAR_LIGHTCONE || !ROCKSTAR_PARALLEL_IO) {
+        ROCKSTAR_PERIODIC              = 0;
+        ROCKSTAR_TEMPORAL_HALO_FINDING = 0;
     }
 
-    if (IGNORE_PARTICLE_IDS)
-        TEMPORAL_HALO_FINDING = 0;
+    if (ROCKSTAR_IGNORE_PARTICLE_IDS)
+        ROCKSTAR_TEMPORAL_HALO_FINDING = 0;
 
-    if (!FORCE_RES_PHYS_MAX)
-        FORCE_RES_PHYS_MAX = FORCE_RES;
+    if (!ROCKSTAR_FORCE_RES_PHYS_MAX)
+        ROCKSTAR_FORCE_RES_PHYS_MAX = ROCKSTAR_FORCE_RES;
 
     struct rlimit rlp;
     getrlimit(RLIMIT_NOFILE, &rlp);
@@ -42,24 +42,24 @@ void setup_config(void) {
     getrlimit(RLIMIT_CORE, &rlp);
     rlp.rlim_cur = rlp.rlim_max;
     setrlimit(RLIMIT_CORE, &rlp);
-    if (NUM_WRITERS < FORK_PROCESSORS_PER_MACHINE)
-        NUM_WRITERS = FORK_PROCESSORS_PER_MACHINE;
+    if (ROCKSTAR_NUM_WRITERS < ROCKSTAR_FORK_PROCESSORS_PER_MACHINE)
+        ROCKSTAR_NUM_WRITERS = ROCKSTAR_FORK_PROCESSORS_PER_MACHINE;
 
-    if (STARTING_SNAP >= NUM_SNAPS) {
-        fprintf(stderr, "[Warning] No work will be done unless NUM_SNAPS > "
-                        "STARTING_SNAP in config file!\n");
+    if (ROCKSTAR_STARTING_SNAP >= ROCKSTAR_NUM_SNAPS) {
+        fprintf(stderr, "[Warning] No work will be done unless ROCKSTAR_NUM_SNAPS > "
+                        "ROCKSTAR_STARTING_SNAP in config file!\n");
     }
 
-    if (NUM_READERS > NUM_BLOCKS) {
+    if (ROCKSTAR_NUM_READERS > ROCKSTAR_NUM_BLOCKS) {
         fprintf(stderr,
-                "[Error] NUM_READERS must be <= NUM_BLOCKS in config file.\n");
+                "[Error] ROCKSTAR_NUM_READERS must be <= ROCKSTAR_NUM_BLOCKS in config file.\n");
         exit(1);
     }
 
-    if ((strncmp(OUTPUT_FORMAT, "ASCII", 5) == 0) && STRICT_SO_MASSES) {
-        fprintf(stderr, "[Warning] STRICT_SO_MASSES requires binary outputs; "
-                        "setting OUTPUT_FORMAT=BOTH.\n");
-        OUTPUT_FORMAT = "BOTH";
+    if ((strncmp(ROCKSTAR_OUTPUT_FORMAT, "ASCII", 5) == 0) && ROCKSTAR_STRICT_SO_MASSES) {
+        fprintf(stderr, "[Warning] ROCKSTAR_STRICT_SO_MASSES requires binary outputs; "
+                        "setting ROCKSTAR_OUTPUT_FORMAT=BOTH.\n");
+        ROCKSTAR_OUTPUT_FORMAT = "BOTH";
     }
 }
 
@@ -120,7 +120,7 @@ void output_config(const char *filename) {
     FILE *output;
     if (!filename)
         filename = "rockstar.cfg";
-    snprintf(buffer, 1024, "%s/%s", OUTBASE, filename);
+    snprintf(buffer, 1024, "%s/%s", ROCKSTAR_OUTBASE, filename);
     output = check_fopen(buffer, "w");
 
 #define string(a, b) fprintf(output, "%s = \"%s\"\n", #a, a);

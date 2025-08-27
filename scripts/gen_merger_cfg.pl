@@ -9,24 +9,24 @@ for (@ARGV) {
     last;
 }
 die "Usage: perl $0 -c rockstar.cfg\n" unless ($config);
-$config->set_defaults(OUTBASE => ".", STARTING_SNAP => 0, PERIODIC => 1,
-		      MASS_DEFINITION => "vir",
-		      MASS_DEFINITION2 => "200b", MASS_DEFINITION3 => "200c",
-		      MASS_DEFINITION4 => "500c", MASS_DEFINITION5 => "2500c");
+$config->set_defaults(ROCKSTAR_OUTBASE => ".", ROCKSTAR_STARTING_SNAP => 0, ROCKSTAR_PERIODIC => 1,
+		      ROCKSTAR_MASS_DEFINITION => "vir",
+		      ROCKSTAR_MASS_DEFINITION2 => "200b", ROCKSTAR_MASS_DEFINITION3 => "200c",
+		      ROCKSTAR_MASS_DEFINITION4 => "500c", ROCKSTAR_MASS_DEFINITION5 => "2500c");
 
-my $outbase = $config->{OUTBASE};
+my $outbase = $config->{ROCKSTAR_OUTBASE};
 if ($outbase !~ m!^/!) {
     $outbase = $ENV{PWD}."/$outbase";
 }
-my $first_fn = "$outbase/out_$config->{STARTING_SNAP}.list";
+my $first_fn = "$outbase/out_$config->{ROCKSTAR_STARTING_SNAP}.list";
 open OUT, "<", $first_fn or
     die "Couldn't open first halo output catalog $first_fn!\n";
 while (<OUT>) {
     last unless (/^\#/);
-    if (/Om/) {
-	our $Om = (/Om\s*=\s*([\d.e+-]+)/)[0];
-	our $Ol = (/Ol\s*=\s*([\d.e+-]+)/)[0];
-	our $h0 = (/h\s*=\s*([\d.e+-]+)/)[0];
+    if (/ROCKSTAR_Om/) {
+	our $ROCKSTAR_Om = (/ROCKSTAR_Om\s*=\s*([\d.e+-]+)/)[0];
+	our $ROCKSTAR_Ol = (/ROCKSTAR_Ol\s*=\s*([\d.e+-]+)/)[0];
+	our $ROCKSTAR_h0 = (/h\s*=\s*([\d.e+-]+)/)[0];
 	next;
     }
     if (/Box size/) {
@@ -39,21 +39,21 @@ while (<OUT>) {
 close OUT;
 
 our $num_snaps = 0;
-if ($config->{SNAPSHOT_NAMES}) {
-    open INPUT, "<", $config->{SNAPSHOT_NAMES} or
-	die "Couldn't open snapshot names file $config->{SNAPSHOT_NAMES}!\n";
+if ($config->{ROCKSTAR_SNAPSHOT_NAMES}) {
+    open INPUT, "<", $config->{ROCKSTAR_SNAPSHOT_NAMES} or
+	die "Couldn't open snapshot names file $config->{ROCKSTAR_SNAPSHOT_NAMES}!\n";
     while (<INPUT>) {
 	chomp;
 	$num_snaps++ if (length());
     }
 }
-elsif ($config->{NUM_SNAPS}) {
-    $num_snaps = $config->{NUM_SNAPS};
+elsif ($config->{ROCKSTAR_NUM_SNAPS}) {
+    $num_snaps = $config->{ROCKSTAR_NUM_SNAPS};
 }
 
 my @scales;
 my $size = 0;
-for my $num ($config->{STARTING_SNAP}..($num_snaps-1)) {
+for my $num ($config->{ROCKSTAR_STARTING_SNAP}..($num_snaps-1)) {
     open INPUT, "<", "$outbase/out_$num.list" or
 	die ("Couldn't open merger tree file $outbase/out_$num.list");
     my $scale;
@@ -85,7 +85,7 @@ our $max_phantoms_small = int($timesteps/2);
 $max_phantoms_small = 1 if ($max_phantoms_small < 1);
 our $mass_res_ok = sprintf("%g", $part_mass*1000);
 
-my (@m) = map { $config->{$_} } qw(MASS_DEFINITION MASS_DEFINITION2 MASS_DEFINITION3 MASS_DEFINITION4 MASS_DEFINITION5);
+my (@m) = map { $config->{$_} } qw(ROCKSTAR_MASS_DEFINITION ROCKSTAR_MASS_DEFINITION2 ROCKSTAR_MASS_DEFINITION3 ROCKSTAR_MASS_DEFINITION4 ROCKSTAR_MASS_DEFINITION5);
 
 for ("$outbase/outputs", "$outbase/trees", "$outbase/hlists") {
     unless (-d $_) {
@@ -103,20 +103,20 @@ close SCALES;
 open CONFIG, ">$outbase/outputs/merger_tree.cfg" or
     die "Couldn't output to merger tree config file $outbase/outputs/merger_tree.cfg!\n";
 print CONFIG << "EOL"
-Om=$Om #Omega_Matter
-Ol=$Ol #Omega_Lambda
-h0=$h0 #h0
+ROCKSTAR_Om=$ROCKSTAR_Om #Omega_Matter
+ROCKSTAR_Ol=$ROCKSTAR_Ol #Omega_Lambda
+ROCKSTAR_h0=$ROCKSTAR_h0 #ROCKSTAR_h0
 
 SCALEFILE = "$outbase/outputs/scales.txt"
-INBASE = "$outbase"
-OUTBASE = "$outbase/outputs"
+ROCKSTAR_INBASE = "$outbase"
+ROCKSTAR_OUTBASE = "$outbase/outputs"
 TREE_OUTBASE = "$outbase/trees"
 HLIST_OUTBASE = "$outbase/hlists"
 
 BOX_DIVISIONS=$box_divisions
 BOX_WIDTH=$box_size
 
-MASS_DEFINITION = $m[0]
+ROCKSTAR_MASS_DEFINITION = $m[0]
 
 MIN_TIMESTEPS_TRACKED = $timesteps
 MIN_TIMESTEPS_SUB_TRACKED = $sub_timesteps
@@ -157,7 +157,7 @@ close CONFIG;
 print "Merger tree config file generated in $outbase/outputs/merger_tree.cfg\n";
 print "\nTo generate a merger tree, change to the consistent_trees directory and run\n";
 print "    make\n";
-if ($config->{PERIODIC}==0) {
+if ($config->{ROCKSTAR_PERIODIC}==0) {
     print "    perl do_merger_tree_np.pl $outbase/outputs/merger_tree.cfg\n";
 } else {
     print "    perl do_merger_tree.pl $outbase/outputs/merger_tree.cfg\n";

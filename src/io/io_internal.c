@@ -18,12 +18,12 @@ void fill_binary_header(struct binary_output_header *bh, int64_t snap,
     bh->magic         = ROCKSTAR_MAGIC;
     bh->snap          = snap;
     bh->chunk         = chunk;
-    bh->scale         = SCALE_NOW;
-    bh->Om            = Om;
-    bh->Ol            = Ol;
-    bh->h0            = h0;
-    bh->box_size      = BOX_SIZE;
-    bh->particle_mass = PARTICLE_MASS;
+    bh->scale         = ROCKSTAR_SCALE_NOW;
+    bh->ROCKSTAR_Om            = ROCKSTAR_Om;
+    bh->ROCKSTAR_Ol            = ROCKSTAR_Ol;
+    bh->ROCKSTAR_h0            = ROCKSTAR_h0;
+    bh->box_size      = ROCKSTAR_BOX_SIZE;
+    bh->particle_mass = ROCKSTAR_PARTICLE_MASS;
     snprintf(bh->rockstar_version, VERSION_MAX_SIZE, "%s", ROCKSTAR_VERSION);
     bh->format_revision = HALO_FORMAT_REVISION;
 
@@ -41,12 +41,12 @@ void fill_binary_header(struct binary_output_header *bh, int64_t snap,
   }
 
 void read_binary_header_config(struct binary_output_header *bh) {
-    SCALE_NOW     = bh->scale;
-    Om            = bh->Om;
-    Ol            = bh->Ol;
-    h0            = bh->h0;
-    BOX_SIZE      = bh->box_size;
-    PARTICLE_MASS = bh->particle_mass;
+    ROCKSTAR_SCALE_NOW     = bh->scale;
+    ROCKSTAR_Om            = bh->ROCKSTAR_Om;
+    ROCKSTAR_Ol            = bh->ROCKSTAR_Ol;
+    ROCKSTAR_h0            = bh->ROCKSTAR_h0;
+    ROCKSTAR_BOX_SIZE      = bh->box_size;
+    ROCKSTAR_PARTICLE_MASS = bh->particle_mass;
 }
 
 void output_particles_internal(int64_t snap, int64_t chunk, double fraction) {

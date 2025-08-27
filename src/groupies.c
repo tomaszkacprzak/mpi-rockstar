@@ -95,17 +95,17 @@ void free_haloinfo(struct HaloInfo *haloinfo) {
 }
 
 double vir_density(double a) {
-    double x = (Om / pow(a, 3)) / pow(hubble_scaling(1.0 / a - 1.0), 2.0) - 1.0;
+    double x = (ROCKSTAR_Om / pow(a, 3)) / pow(hubble_scaling(1.0 / a - 1.0), 2.0) - 1.0;
     return ((18 * M_PI * M_PI + 82.0 * x - 39 * x * x) / (1.0 + x));
 }
 
 float _calc_mass_definition(char **md) {
-    float   scale_now       = LIGHTCONE ? scale_dx : SCALE_NOW;
+    float   scale_now       = ROCKSTAR_LIGHTCONE ? scale_dx : ROCKSTAR_SCALE_NOW;
     int64_t length          = strlen(*md);
     char    last_char       = (length) ? md[0][length - 1] : 0;
-    float   matter_fraction = (Om / pow(scale_now, 3)) /
+    float   matter_fraction = (ROCKSTAR_Om / pow(scale_now, 3)) /
                             pow(hubble_scaling(1.0 / scale_now - 1.0), 2.0);
-    float cons = Om * CRITICAL_DENSITY / PARTICLE_MASS; // background density
+    float cons = ROCKSTAR_Om * CRITICAL_DENSITY / ROCKSTAR_PARTICLE_MASS; // background density
     char *mass = *md;
     float thresh_dens;
     if (mass[0] == 'm' || mass[0] == 'M')
@@ -127,14 +127,14 @@ float _calc_mass_definition(char **md) {
 void calc_mass_definition(void) {
     char   *vir = "vir";
     int64_t i;
-    particle_thresh_dens[0] = _calc_mass_definition(&MASS_DEFINITION);
-    particle_thresh_dens[1] = _calc_mass_definition(&MASS_DEFINITION2);
-    particle_thresh_dens[2] = _calc_mass_definition(&MASS_DEFINITION3);
-    particle_thresh_dens[3] = _calc_mass_definition(&MASS_DEFINITION4);
-    particle_thresh_dens[4] = _calc_mass_definition(&MASS_DEFINITION5);
+    particle_thresh_dens[0] = _calc_mass_definition(&ROCKSTAR_MASS_DEFINITION);
+    particle_thresh_dens[1] = _calc_mass_definition(&ROCKSTAR_MASS_DEFINITION2);
+    particle_thresh_dens[2] = _calc_mass_definition(&ROCKSTAR_MASS_DEFINITION3);
+    particle_thresh_dens[3] = _calc_mass_definition(&ROCKSTAR_MASS_DEFINITION4);
+    particle_thresh_dens[4] = _calc_mass_definition(&ROCKSTAR_MASS_DEFINITION5);
     particle_rvir_dens      = _calc_mass_definition(&vir);
     dynamical_time = 1.0 / sqrt((4.0 * M_PI * Gc / 3.0) * particle_rvir_dens *
-                                PARTICLE_MASS);
+                                ROCKSTAR_PARTICLE_MASS);
     min_dens_index = 0;
     for (i = 1; i < 5; i++)
         if (particle_thresh_dens[i] < particle_thresh_dens[min_dens_index])
@@ -145,14 +145,14 @@ void lightcone_set_scale(float *pos) {
     int64_t i;
     float   ds = 0, dx = 0, z;
     for (i = 0; i < 3; i++) {
-        ds = pos[i] - LIGHTCONE_ORIGIN[i];
+        ds = pos[i] - ROCKSTAR_LIGHTCONE_ORIGIN[i];
         dx += ds * ds;
     }
     z         = comoving_distance_h_to_redshift(sqrt(dx));
 
 #if 0
-    // SCALE_NOW is a global variable that is not thread-private.
-    SCALE_NOW = scale_factor(z);
+    // ROCKSTAR_SCALE_NOW is a global variable that is not thread-private.
+    ROCKSTAR_SCALE_NOW = scale_factor(z);
 #else
     // scale_dx is a global variable that is not thread-private.
     scale_dx = scale_factor(z);
@@ -261,7 +261,7 @@ int64_t calc_particle_radii(struct halo *base_h, struct halo *h, float *cen,
     parent = haloinfo->extra_info[h - haloinfo->halos].sub_of;
     if ((h == base_h) && (parent > -1) &&
         (haloinfo->halos[parent].num_child_particles *
-             INCLUDE_HOST_POTENTIAL_RATIO <
+             ROCKSTAR_INCLUDE_HOST_POTENTIAL_RATIO <
          h->num_child_particles)) {
         total_p = calc_particle_radii(base_h, haloinfo->halos + parent, cen,
                                       total_p, level + 1, 1, haloinfo);
@@ -288,7 +288,7 @@ void _find_subfofs_better2(struct fof *f, float thresh,
                            struct FOFInfo *fofinfo) {
     int64_t i, j, num_test = MAX_PARTICLES_TO_SAMPLE;
     float   target_r = 0;
-    if (EXACT_LL_CALC)
+    if (ROCKSTAR_EXACT_LL_CALC)
         num_test = f->num_p;
     norm_sd(f, thresh);
     fast3tree_rebuild(phasetree, f->num_p, f->particles);
@@ -352,7 +352,7 @@ int could_be_poisson_or_force_res(struct halo *h1, struct halo *h2,
     r = sqrt(r);
     v = sqrt(v);
     if ((h1->r + h2->r > r) && (1.5 * (h1->vrms + h2->vrms)) > v &&
-        (r < 1.5 * FORCE_RES)) {
+        (r < 1.5 * ROCKSTAR_FORCE_RES)) {
         *is_force_res = 1;
         return 1;
     }
@@ -378,7 +378,7 @@ int64_t _find_biggest_parent(int64_t h_start, int64_t use_temporal_info,
     }
 
     max_vmax = haloinfo->halos[max_i].vmax;
-    if (use_temporal_info && TEMPORAL_HALO_FINDING && PARALLEL_IO) {
+    if (use_temporal_info && ROCKSTAR_TEMPORAL_HALO_FINDING && ROCKSTAR_PARALLEL_IO) {
         for (i = h_start; i < haloinfo->num_halos; i++) {
             if (i == max_i)
                 continue;
@@ -434,7 +434,7 @@ void _fix_parents(int64_t h_start, const struct HaloInfo *haloinfo) {
             haloinfo->extra_info[i].sub_of = -1;
     }
 
-    if (TEMPORAL_HALO_FINDING && PARALLEL_IO) {
+    if (ROCKSTAR_TEMPORAL_HALO_FINDING && ROCKSTAR_PARALLEL_IO) {
         for (i = h_start; i < haloinfo->num_halos; i++) {
             sub_of = haloinfo->extra_info[i].sub_of;
             if (sub_of == i)
@@ -488,7 +488,7 @@ void output_level(int64_t p_start, int64_t p_end, int64_t h_start,
                   int64_t level, const struct HaloInfo *haloinfo) {
     int64_t i;
     char    buffer[1024];
-    snprintf(buffer, 1024, "%s/levels_%f", OUTBASE, SCALE_NOW);
+    snprintf(buffer, 1024, "%s/levels_%f", ROCKSTAR_OUTBASE, ROCKSTAR_SCALE_NOW);
     FILE *output = check_fopen(buffer, "a");
     for (i = p_start; i < p_end; i++) {
         fprintf(output,
@@ -499,7 +499,7 @@ void output_level(int64_t p_start, int64_t p_end, int64_t h_start,
     }
     fclose(output);
 
-    snprintf(buffer, 1024, "%s/halos_%f.levels", OUTBASE, SCALE_NOW);
+    snprintf(buffer, 1024, "%s/halos_%f.levels", ROCKSTAR_OUTBASE, ROCKSTAR_SCALE_NOW);
     output = check_fopen(buffer, "a");
     for (i = h_start; i < haloinfo->num_halos; i++) {
         fprintf(output,
@@ -526,14 +526,14 @@ void _find_subs(struct fof *f, int64_t level, struct FOFInfo *fofinfo,
     p_start      = f->particles - copies;
     f_index      = f - subfofs;
     int64_t f_np = f->num_p;
-    _find_subfofs_better2(f, FOF_FRACTION, fofinfo);
+    _find_subfofs_better2(f, ROCKSTAR_FOF_FRACTION, fofinfo);
     f_start = num_subfofs;
     copy_fullfofs(&subfofs, &num_subfofs, &num_alloced_subfofs, fofinfo);
     f_end = num_subfofs;
 
     h_start = haloinfo->num_halos;
     for (i = f_start; i < f_end; i++)
-        if (subfofs[i].num_p > MIN_HALO_PARTICLES && subfofs[i].num_p < f_np)
+        if (subfofs[i].num_p > ROCKSTAR_MIN_HALO_PARTICLES && subfofs[i].num_p < f_np)
             _find_subs(subfofs + i, level + 1, fofinfo, haloinfo);
 
     // Convert particle positions back to normal
@@ -608,7 +608,7 @@ void _find_subs(struct fof *f, int64_t level, struct FOFInfo *fofinfo,
         }
     }
 
-    if (TEMPORAL_HALO_FINDING && PARALLEL_IO) {
+    if (ROCKSTAR_TEMPORAL_HALO_FINDING && ROCKSTAR_PARALLEL_IO) {
         for (i = h_start; i < haloinfo->num_halos; i++) {
             if (haloinfo->extra_info[i].ph < 0 ||
                 haloinfo->extra_info[i].sub_of < 0)
@@ -640,7 +640,7 @@ void _find_subs(struct fof *f, int64_t level, struct FOFInfo *fofinfo,
     calc_num_child_particles(h_start, haloinfo);
     for (i = 0; i < num_growing_halos; i++)
         calc_basic_halo_props(growing_halos[i], haloinfo);
-    if (OUTPUT_LEVELS)
+    if (ROCKSTAR_OUTPUT_LEVELS)
         output_level(p_start, p_start + f->num_p, h_start, level, haloinfo);
 
     num_subfofs = f_start;
@@ -688,7 +688,7 @@ void find_subs(struct fof *f, struct FOFInfo *fofinfo,
     cf.particles = copies;
     num_copies   = f->num_p;
 
-    if (LIGHTCONE)
+    if (ROCKSTAR_LIGHTCONE)
         lightcone_set_scale(f->particles->pos);
 
     num_subfofs = 0;
@@ -709,7 +709,7 @@ void find_subs(struct fof *f, struct FOFInfo *fofinfo,
 
 void alloc_particle_copies(int64_t total_copies) {
     int64_t max_particle_r = MAX_PARTICLES_TO_SAMPLE;
-    if (EXACT_LL_CALC)
+    if (ROCKSTAR_EXACT_LL_CALC)
         max_particle_r = total_copies;
     if (total_copies - num_alloc_pc < 1000)
         total_copies = num_alloc_pc + 1000;
@@ -819,8 +819,8 @@ void norm_sd(struct fof *f, float thresh) {
 
     calc_deviations(corr, &sig_x, &sig_v);
     if (f->num_p == num_copies)
-        sig_x *= INITIAL_METRIC_SCALING;
-    // else sig_x *= CONTINUED_METRIC_SCALING;
+        sig_x *= ROCKSTAR_INITIAL_METRIC_SCALING;
+    // else sig_x *= ROCKSTAR_CONTINUED_METRIC_SCALING;
 
     if (!sig_x || !sig_v)
         return;

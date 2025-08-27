@@ -188,14 +188,14 @@ void build_bgroup_links(void) {
         }
     }
 
-    float r = AVG_PARTICLE_SPACING * FOF_LINKING_LENGTH;
-    if (PERIODIC)
-        _fast3tree_set_minmax(bp_tree, 0, BOX_SIZE);
+    float r = ROCKSTAR_AVG_PARTICLE_SPACING * ROCKSTAR_FOF_LINKING_LENGTH;
+    if (ROCKSTAR_PERIODIC)
+        _fast3tree_set_minmax(bp_tree, 0, ROCKSTAR_BOX_SIZE);
     for (i = 0; i < (num_bp - num_new_bp); i++) {
         int64_t gid1 = find_bgroup(bp + i);
-        fast3tree_find_sphere_marked(bp_tree, bp_res, bp[i].pos, r, PERIODIC,
+        fast3tree_find_sphere_marked(bp_tree, bp_res, bp[i].pos, r, ROCKSTAR_PERIODIC,
                                      1);
-        // if (!PERIODIC) fast3tree_find_sphere(bp_tree, bp_res, bp[i].pos, r);
+        // if (!ROCKSTAR_PERIODIC) fast3tree_find_sphere(bp_tree, bp_res, bp[i].pos, r);
         // else fast3tree_find_sphere_periodic(bp_tree, bp_res, bp[i].pos, r);
 
         for (j = 0; j < bp_res->num_points; j++) {
@@ -384,7 +384,7 @@ void bgroups_to_setlist(void) {
     for (i = 0; i < num_bg; i++) {
         if (bg[i].head != i)
             continue;
-        if (bg[i].next == -1 && bg[i].num_p < MIN_HALO_PARTICLES) {
+        if (bg[i].next == -1 && bg[i].num_p < ROCKSTAR_MIN_HALO_PARTICLES) {
             total_num_groups--;
             continue;
         }
@@ -411,7 +411,7 @@ void bgroups_to_setlist(void) {
     for (i = 0; i < num_bg; i++) {
         if (bg[i].head != i)
             continue;
-        if (bg[i].next == -1 && bg[i].num_p < MIN_HALO_PARTICLES)
+        if (bg[i].next == -1 && bg[i].num_p < ROCKSTAR_MIN_HALO_PARTICLES)
             continue;
         if (bg[i].chunk < our_chunk)
             continue;
@@ -435,7 +435,7 @@ int64_t prune_setlist(void) {
         num_p_in_set = 0;
         for (; j < loc + bg_set_sizes[i]; j++)
             num_p_in_set += final_bg[j].num_p;
-        if (num_p_in_set < MIN_HALO_PARTICLES)
+        if (num_p_in_set < ROCKSTAR_MIN_HALO_PARTICLES)
             continue;
         bg_set_sizes[set_num] = bg_set_sizes[i];
         set_num++;
@@ -449,18 +449,18 @@ int64_t prune_setlist(void) {
 int64_t calc_next_bgroup_chunk(void) {
     int64_t i, total_bg = 0, max_chunk = 0, total_num_p = 0;
     if (!num_new_groups)
-        num_new_groups = check_realloc(NULL, sizeof(int64_t) * NUM_WRITERS,
+        num_new_groups = check_realloc(NULL, sizeof(int64_t) * ROCKSTAR_NUM_WRITERS,
                                        "Allocating new group counts.");
-    memset(num_new_groups, 0, sizeof(int64_t) * NUM_WRITERS);
+    memset(num_new_groups, 0, sizeof(int64_t) * ROCKSTAR_NUM_WRITERS);
     for (i = 0; i < num_bg_sets; i++)
         total_bg += bg_set_sizes[i];
     for (i = 0; i < total_bg; i++) {
-        assert(final_bg[i].chunk >= 0 && final_bg[i].chunk < NUM_WRITERS);
+        assert(final_bg[i].chunk >= 0 && final_bg[i].chunk < ROCKSTAR_NUM_WRITERS);
         total_num_p += final_bg[i].num_p;
         if (!final_bg[i].num_p)
             num_new_groups[final_bg[i].chunk]++;
     }
-    for (i = 1; i < NUM_WRITERS; i++)
+    for (i = 1; i < ROCKSTAR_NUM_WRITERS; i++)
         if (num_new_groups[i] > num_new_groups[max_chunk])
             max_chunk = i;
     if (num_new_groups[max_chunk])

@@ -30,8 +30,8 @@ double _distance2(float *p1, float *p2) {
 
 double inv_distance(float *p1, float *p2) {
     double r = sqrt(_distance2(p1, p2));
-    if (r < FORCE_RES)
-        r = FORCE_RES;
+    if (r < ROCKSTAR_FORCE_RES)
+        r = ROCKSTAR_FORCE_RES;
     return (1.0 / r);
 }
 
@@ -40,7 +40,7 @@ void _compute_direct_potential(struct potential *po, int64_t num_po) {
     double  dpo;
     for (i = 0; i < num_po; i++)
         for (j = i + 1; j < num_po; j++) {
-            dpo = PARTICLE_MASS * inv_distance(po[i].pos, po[j].pos);
+            dpo = ROCKSTAR_PARTICLE_MASS * inv_distance(po[i].pos, po[j].pos);
             po[i].pe += dpo;
             po[j].pe += dpo;
         }
@@ -51,7 +51,7 @@ void _compute_indirect_potential(struct potential *po, int64_t num_po,
     int64_t i, j;
     for (i = 0; i < num_po; i++)
         for (j = 0; j < num_po2; j++)
-            po[i].pe += PARTICLE_MASS * inv_distance(po[i].pos, po2[j].pos);
+            po[i].pe += ROCKSTAR_PARTICLE_MASS * inv_distance(po[i].pos, po2[j].pos);
 }
 
 #define POINTS_PER_LEAF  10
@@ -99,7 +99,7 @@ void _compute_mass_centers(struct tree3_node *n) {
     int64_t i, j;
     double  pos[3] = {0};
     if (n->div_dim < 0) { // Leaf node
-        n->m = PARTICLE_MASS * n->num_points;
+        n->m = ROCKSTAR_PARTICLE_MASS * n->num_points;
         for (i = 0; i < n->num_points; i++)
             for (j = 0; j < 3; j++)
                 pos[j] += n->points[i].pos[j];
