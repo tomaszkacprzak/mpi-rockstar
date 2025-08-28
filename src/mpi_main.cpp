@@ -172,7 +172,7 @@ void check_num_writers(void) {
         int factors[3] = {0};
         //MPI_Dims_create(ROCKSTAR_NUM_WRITERS, 3, factors);
 	createDivision( ROCKSTAR_NUM_WRITERS, factors);
-        if ((factors[0] < 2) || (factors[1] < 2) || (factors[2] < 2)) {
+        if (((factors[0] < 2) || (factors[1] < 2) || (factors[2] < 2)) && (ROCKSTAR_PERIODIC)) {
             fprintf(stderr,
                     "[Error] ROCKSTAR_NUM_WRITERS should be the product of at least "
                     "three factors larger than 1 for periodic boundary "
