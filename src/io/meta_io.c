@@ -71,8 +71,12 @@ void get_input_filename(char *buffer, int maxlen, int64_t snap, int64_t block) {
     snprintf(buffer, maxlen, "%s/", ROCKSTAR_INBASE);
     out = strlen(buffer);
     if (ROCKSTAR_FILES_PER_SUBDIR_INPUT > 0) {
-        int64_t subdir = block / ROCKSTAR_FILES_PER_SUBDIR_INPUT;
-        snprintf(buffer + out, maxlen - out, "%s%03" PRId64 "/%0*ld/", ROCKSTAR_INBASE2, snap, (int)ROCKSTAR_SUBDIR_DIGITS_INPUT, subdir);
+        int64_t subdir      = block / ROCKSTAR_FILES_PER_SUBDIR_INPUT;
+        int      snap_digits =
+            (!strncasecmp(ROCKSTAR_FILE_FORMAT, "PKDGRAV3LCP", 11)) ? 5 : 3;
+        snprintf(buffer + out, maxlen - out, "%s%0*" PRId64 "/%0*ld/",
+                 ROCKSTAR_INBASE2, snap_digits, snap,
+                 (int)ROCKSTAR_SUBDIR_DIGITS_INPUT, subdir);
         out = strlen(buffer);
     }
     for (; (i < l) && (out < (maxlen - 1)); i++) {
