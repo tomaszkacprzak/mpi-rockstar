@@ -223,6 +223,9 @@ void _reset_potentials(struct halo *base_h, struct halo *h, float *cen,
         po[p_start + j].r2 = r2;
         memcpy(po[p_start + j].pos, copies[h->p_start + j].pos,
                sizeof(float) * 6);
+        po[p_start + j].mass   = copies[h->p_start + j].mass;
+        po[p_start + j].energy = copies[h->p_start + j].energy;
+        po[p_start + j].type   = copies[h->p_start + j].type;
         if (potential_only)
             po[p_start + j].ke = -1;
         if (h == base_h)

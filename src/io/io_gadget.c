@@ -188,6 +188,8 @@ void gadget2_rescale_particles(struct particle *p, int64_t p_start,
             p[p_start + i].pos[j] *= ROCKSTAR_GADGET_LENGTH_CONVERSION;
             p[p_start + i].pos[j + 3] *= vel_rescale;
         }
+        p[p_start + i].mass *= ROCKSTAR_GADGET_MASS_CONVERSION;
+        // p[p_start + i].energy *= ???; //No conversion needed
     }
 }
 
@@ -196,7 +198,8 @@ void load_particles_gadget2(char *filename, struct particle **p,
     FILE                *input;
     char                 tag[10] = {0};
     struct gadget_header header;
-    int64_t              total_particles, skip, skip2, halo_particles, i;
+    int64_t              total_particles, skip, skip2, halo_particles, i, j,
+        massblock_read;
 
     input = check_fopen(filename, "rb");
     gadget2_detect_filetype(input, filename);
@@ -217,16 +220,8 @@ void load_particles_gadget2(char *filename, struct particle **p,
     total_particles = 0;
     for (i = 0; i < 6; i++)
         total_particles += header.num_particles[i];
-
-    if (ROCKSTAR_GADGET_SKIP_NON_HALO_PARTICLES) {
-        for (skip = 0, i = 0; i < GHPT; i++)
-            skip += header.num_particles[i];
-        halo_particles = header.num_particles[GHPT];
-        skip2          = total_particles - skip - halo_particles;
-    } else {
-        skip = skip2   = 0;
-        halo_particles = total_particles;
-    }
+    skip = skip2 = 0;
+    halo_particles = total_particles;
 
     *p = (struct particle *)check_realloc(
         *p, ((*num_p) + halo_particles) * sizeof(struct particle),
@@ -243,9 +238,57 @@ void load_particles_gadget2(char *filename, struct particle **p,
                         filename);
 
     gadget_variant_block("ID");
-    gadget2_read_stride(input, *num_p, halo_particles, 1, ROCKSTAR_GADGET_ID_BYTES, *p,
-                        (char *)&(p[0][0].id) - (char *)(p[0]), skip, skip2,
+    gadget2_read_stride(input, *num_p, halo_particles, 1, ROCKSTAR_GADGET_ID_BYTES,
+                        *p, (char *)&(p[0][0].id) - (char *)(p[0]), skip, skip2,
                         filename);
+
+    skip = 0;
+    massblock_read = 0;
+    for (i = 0; i < 6; i++)
+        if (!header.particle_masses[i])
+            massblock_read += header.num_particles[i];
+
+    if (massblock_read) {
+        gadget_variant_block("MASS");
+        gadget2_read_stride(input, *num_p, massblock_read, 1, sizeof(float), *p,
+                            (char *)&(p[0][0].mass) - (char *)(p[0]), 0, 0,
+                            filename);
+        skip  = massblock_read - 1;
+        skip2 = halo_particles - 1;
+        for (i = 5; i >= 0; i--) {
+            if (header.particle_masses[i]) {
+                skip2 -= header.num_particles[i];
+                continue;
+            }
+            for (j = 0; j < header.num_particles[i]; j++, skip2--, skip--)
+                p[0][*num_p + skip2].mass = p[0][*num_p + skip].mass;
+        }
+    }
+
+    skip = 0;
+    for (i = 0; i < 6; i++) {
+        int32_t type = RTYPE_STAR;
+        if (i == ROCKSTAR_GADGET_HALO_PARTICLE_TYPE || i == 5)
+            type = RTYPE_DM;
+        else if (i == 0)
+            type = RTYPE_GAS;
+        for (j = skip; j < skip + header.num_particles[i]; j++) {
+            if (header.particle_masses[i])
+                p[0][*num_p + j].mass = header.particle_masses[i];
+            p[0][*num_p + j].type = type;
+        }
+        skip += header.num_particles[i];
+    }
+
+    for (j = 0; j < total_particles; j++)
+        p[0][*num_p + j].energy = 0;
+    if (header.num_particles[0]) {
+        gadget_variant_block("U");
+        gadget2_read_stride(input, *num_p, header.num_particles[0], 1,
+                            sizeof(float), *p,
+                            (char *)&(p[0][0].energy) - (char *)(p[0]), 0, 0,
+                            filename);
+    }
 
     gadget2_rescale_particles(*p, *num_p, halo_particles);
 
