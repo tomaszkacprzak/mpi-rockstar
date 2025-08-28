@@ -21,6 +21,7 @@
 #include "io_internal.h"
 #include "io_tipsy.h"
 #include "io_kyf.h" // Added by TI 20160909
+#include "io_pkdgrav3lcp.h"
 #include "meta_io.h"
 #include "../distance.h"
 #include "../version.h"
@@ -90,6 +91,9 @@ void get_input_filename(char *buffer, int maxlen, int64_t snap, int64_t block) {
                         !strncasecmp(ROCKSTAR_FILE_FORMAT, "AREPO", 5) ||
                         !strncasecmp(ROCKSTAR_FILE_FORMAT, "GADGET4", 7))
                         snprintf(buffer + out, maxlen - out, "%03" PRId64,
+                                 snap);
+                    else if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "PKDGRAV3LCP", 11))
+                        snprintf(buffer + out, maxlen - out, "%05" PRId64,
                                  snap);
                     else
                         snprintf(buffer + out, maxlen - out, "%" PRId64, snap);
@@ -171,6 +175,8 @@ void read_particles(char *filename) {
         load_particles_tipsy(filename, &p, &num_p);
     } else if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "KYF", 3)) { // Added by TI 20160909
         load_particles_kyf(filename, &p, &num_p);
+    } else if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "PKDGRAV3LCP", 11)) {
+        load_particles_pkdgrav3lcp(filename, &p, &num_p);
     } else if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "AREPO", 5)) {
 #ifdef ENABLE_HDF5
         load_particles_arepo(filename, &p, &num_p);
