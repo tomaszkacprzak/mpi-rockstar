@@ -5,10 +5,10 @@
 #define POTENTIAL_DONT_CALCULATE_FLAG 1
 
 struct potential {
-    float   pos[6], r2;
+    float   pos[6], r2, mass, energy;
     double  pe;
     float   ke;
-    int32_t flags;
+    int32_t flags, type;
 
     /*The following fields are not included for the main halo finder. */
 #ifdef POTENTIAL_COMPARISON

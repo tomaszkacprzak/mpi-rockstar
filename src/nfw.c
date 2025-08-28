@@ -132,13 +132,17 @@ void calc_scale_radius(struct halo *h, float mvir, float rvir, float vmax,
                        int64_t total_p, int64_t bound) {
     float   bin_r[MAX_SCALE_BINS + 1] = {0};
     float   weights[MAX_SCALE_BINS]   = {0};
-    int64_t i, j, num_bins = 0, analyze_p = 0, ppbin = 0;
+    int64_t i, num_bins = 0, analyze_p = 0, ppbin = 0;
     float   rs = h->klypin_rs =
         estimate_scale_radius(mvir, rvir, vmax, rvmax, scale);
+    double  total_mass = 0, mass, mpbin = 0, max_mass = 0;
     for (i = 0; i < total_p - 1; i++) {
         if (bound && (po[i].pe < po[i].ke))
             continue;
         analyze_p++;
+        total_mass += po[i].mass;
+        if (po[i].mass > max_mass)
+            max_mass = po[i].mass;
     }
     if (analyze_p < MIN_SCALE_PART) {
         h->rs = rs;
@@ -147,15 +151,29 @@ void calc_scale_radius(struct halo *h, float mvir, float rvir, float vmax,
     ppbin = ceil(((double)analyze_p / (double)MAX_SCALE_BINS));
     if (ppbin < MIN_PART_PER_BIN)
         ppbin = (analyze_p) / ((int64_t)(analyze_p / MIN_PART_PER_BIN));
+    num_bins = analyze_p / ppbin;
+    if (num_bins > MAX_SCALE_BINS)
+        num_bins = MAX_SCALE_BINS;
+    mpbin = (double)total_mass / ((double)num_bins);
+    if (mpbin < max_mass)
+        mpbin = max_mass;
+    num_bins = 0;
     bin_r[0] = 0;
-    for (i = 0, j = 0; i < total_p - 1; i++) {
+    mass = 0;
+    for (i = 0; i < total_p - 1; i++) {
         if (bound && (po[i].pe < po[i].ke))
             continue;
-        if (++j == ppbin) {
+        mass += po[i].mass;
+        if (mass >= mpbin) {
             num_bins++;
-            bin_r[num_bins] = 1e3 * 0.5 * (sqrt(po[i].r2) + sqrt(po[i + 1].r2));
+            float r1 = sqrt(po[i].r2), r2 = sqrt(po[i + 1].r2);
+            bin_r[num_bins] = 1e3 * 0.5 * (r1 + r2);
+            mass -= mpbin;
+            assert(po[i].mass > 0);
+            float diff = mass / po[i].mass;
+            if (i > 0)
+                bin_r[num_bins] -= diff * (r1 - sqrt(po[i - 1].r2));
             weights[num_bins - 1] = 1;
-            j                     = 0;
         }
     }
 

@@ -326,10 +326,10 @@ float find_previous_mass(struct halo *h, struct particle *hp,
 #if DEBUG_FUN_TIMES
     if (best_ph && best_ph->m > 1e13 && best_particles > max_particles * 0.1) {
         fprintf(stderr,
-                "Hnow: %f %f %f (#%" PRId64 "; %" PRId64
-                "; %e); Phalo: %f %f %f (%e); %" PRId64 "\n",
-                h->pos[0], h->pos[1], h->pos[2], (int64_t)(h - haloinfo->halos),
-                h->num_p, h->num_p * ROCKSTAR_PARTICLE_MASS, best_ph->pos[0],
+                 "Hnow: %f %f %f (#%" PRId64 "; %" PRId64
+                 "; %e); Phalo: %f %f %f (%e); %" PRId64 "\n",
+                 h->pos[0], h->pos[1], h->pos[2], (int64_t)(h - haloinfo->halos),
+                 h->num_p, h->m * ROCKSTAR_PARTICLE_MASS, best_ph->pos[0],
                 best_ph->pos[1], best_ph->pos[2], best_ph->m, best_particles);
     }
 #endif /* DEBUG_FUN_TIMES */

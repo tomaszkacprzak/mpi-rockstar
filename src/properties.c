@@ -9,7 +9,7 @@ float max_halo_radius(struct halo *h) {
     return (cbrt((3.0 / (4.0 * M_PI)) * m / thresh_dens) * 1e3);
 }
 
-void _populate_mass_bins(struct halo *h, struct halo *cur_h, int64_t *bins,
+void _populate_mass_bins(struct halo *h, struct halo *cur_h, double *bins,
                          int64_t num_bins, float r_scale, int64_t children,
                          const struct HaloInfo *haloinfo) {
     int64_t i, j, child, first_child, bin;
@@ -22,7 +22,7 @@ void _populate_mass_bins(struct halo *h, struct halo *cur_h, int64_t *bins,
         bin = sqrt(ds) * r_scale;
         if (bin >= num_bins)
             continue;
-        bins[bin]++;
+        bins[bin] += copies[cur_h->p_start + i].mass;
     }
 
     if (!children)
@@ -36,8 +36,9 @@ void _populate_mass_bins(struct halo *h, struct halo *cur_h, int64_t *bins,
     }
 }
 
-float _estimate_vmax(int64_t *bins, int64_t num_bins, float r_scale) {
-    int64_t i, tp = 0;
+float _estimate_vmax(double *bins, int64_t num_bins, float r_scale) {
+    int64_t i;
+    double  tp = 0;
     float   vmax = 0, vcirc, r;
     for (i = 0; i < num_bins; i++) {
         r = (i + 1.0) / r_scale;
@@ -51,11 +52,11 @@ float _estimate_vmax(int64_t *bins, int64_t num_bins, float r_scale) {
 
     float scale_now = ROCKSTAR_LIGHTCONE ? scale_dx : ROCKSTAR_SCALE_NOW;
 
-    return sqrt(Gc * vmax * ROCKSTAR_PARTICLE_MASS / scale_now);
+    return sqrt(Gc * vmax / scale_now);
 }
 
 void estimate_vmax(struct halo *h, const struct HaloInfo *haloinfo) {
-    int64_t bins[VMAX_BINS] = {0};
+    double bins[VMAX_BINS] = {0};
     h->vmax = h->vmax_r = 0;
     if (!(h->child_r > 0))
         return;
@@ -72,26 +73,35 @@ void calc_basic_halo_props(struct halo *h, const struct HaloInfo *haloinfo) {
     int64_t j, k;
     double  pos[6] = {0}, pos2[6] = {0}, x;
     double  pos_err, vel_err;
+    double  total_mass = 0;
     h->r = h->vrms = 0;
-    for (j = 0; j < h->num_p; j++)
+    for (j = 0; j < h->num_p; j++) {
+        total_mass += copies[h->p_start + j].mass;
         for (k = 0; k < 6; k++)
-            pos[k] += copies[h->p_start + j].pos[k];
+            pos[k] += copies[h->p_start + j].pos[k] *
+                      copies[h->p_start + j].mass;
+    }
 
+    if (!(total_mass > 0))
+        return;
     for (k = 0; k < 6; k++)
-        pos[k] /= (double)h->num_p;
+        pos[k] /= total_mass;
 
     for (j = 0; j < h->num_p; j++)
         for (k = 0; k < 6; k++) {
             x = copies[h->p_start + j].pos[k] - pos[k];
-            pos2[k] += x * x;
+            pos2[k] += x * x * copies[h->p_start + j].mass;
         }
 
     for (k = 0; k < 6; k++) {
         if (k < 3)
-            h->r += pos2[k] / (double)h->num_p;
+            h->r += pos2[k];
         else
-            h->vrms += pos2[k] / (double)h->num_p;
+            h->vrms += pos2[k];
     }
+
+    h->r /= total_mass;
+    h->vrms /= total_mass;
 
     pos_err = h->r / (double)h->num_p;
     vel_err = h->vrms / (double)h->num_p;
@@ -111,11 +121,11 @@ void calc_basic_halo_props(struct halo *h, const struct HaloInfo *haloinfo) {
     for (k = 3; k < 6; k++)
         h->bulkvel[k - 3] = pos[k];
 
-    h->m = h->num_p;
+    h->m = total_mass / ROCKSTAR_PARTICLE_MASS;
     if (!h->num_child_particles)
         h->num_child_particles = h->num_p;
 
-    h->r       = cbrt(h->num_p / ((4.0 * M_PI / 3.0) * particle_rvir_dens));
+    h->r       = cbrt(h->m / ((4.0 * M_PI / 3.0) * particle_rvir_dens));
     h->child_r = cbrt(h->num_child_particles /
                       ((4.0 * M_PI / 3.0) * particle_rvir_dens));
     estimate_vmax(h, haloinfo);
@@ -124,9 +134,9 @@ void calc_basic_halo_props(struct halo *h, const struct HaloInfo *haloinfo) {
     h->vrms = sqrt(h->vrms);
 }
 
-void add_ang_mom(double L[3], float c[6], float pos[6]) {
+void add_ang_mom(double L[3], float c[6], float pos[6], float w) {
     // L = r x p;
-#define cross(a, x, y, s) L[a] s(pos[x] - c[x]) * (pos[y + 3] - c[y + 3])
+#define cross(a, x, y, s) L[a] s w * (pos[x] - c[x]) * (pos[y + 3] - c[y + 3])
     cross(0, 1, 2, +=);
     cross(0, 2, 1, -=);
     cross(1, 2, 0, +=);
@@ -256,7 +266,9 @@ void calc_shape(struct halo *h, int64_t total_p, int64_t bound) {
                 r = min_r;
             if (!(r > 0 && r <= 1))
                 continue;
-            double tw = (ROCKSTAR_WEIGHTED_SHAPES) ? 1.0 / r : 1.0;
+            double tw = (ROCKSTAR_WEIGHTED_SHAPES) ?
+                             po[j].mass / r :
+                             po[j].mass;
             weight += tw;
             for (k = 0; k < 3; k++) {
                 dr = po[j].pos[k] - h->pos[k];
@@ -328,14 +340,18 @@ void calc_shape(struct halo *h, int64_t total_p, int64_t bound) {
 float estimate_total_energy(int64_t total_p, float *energy_ratio) {
     int64_t i;
     double  phi = 0, total_phi = 0, ke = 0, r;
+    double  total_mass = 0;
+    for (i = 0; i < total_p; i++)
+        total_mass += po[i].mass;
     for (i = total_p - 1; i >= 0; i--) {
+        total_mass -= po[i].mass;
         if (po[i].pe > po[i].ke) {
-            ke += po[i].ke;
+            ke += po[i].ke * po[i].mass;
             r = sqrt(po[i].r2);
             if (r < ROCKSTAR_FORCE_RES)
                 r = ROCKSTAR_FORCE_RES;
-            total_phi += ROCKSTAR_PARTICLE_MASS * i / r + phi;
-            phi += ROCKSTAR_PARTICLE_MASS / r;
+            total_phi += po[i].mass * (total_mass / r + phi);
+            phi += po[i].mass / r;
         }
     }
     total_phi /= 2.0; // U = sum pe/2
@@ -345,87 +361,94 @@ float estimate_total_energy(int64_t total_p, float *energy_ratio) {
 
     float scale_now = ROCKSTAR_LIGHTCONE ? scale_dx : ROCKSTAR_SCALE_NOW;
 
-    return ((ke - total_phi) * ROCKSTAR_PARTICLE_MASS * Gc / scale_now);
+    return ((ke - total_phi) * Gc / scale_now);
 }
 
 void _calc_pseudo_evolution_masses(struct halo *h, int64_t total_p,
                                    int64_t bound) {
-    int64_t j, num_part = 0, num_part_pe_d = 0;
-    double  r, r32, max_pe_b               = 0;
+    int64_t j;
+    double  mass = 0, mass_pe_d = 0;
+    double  r, r32, max_pe_b = 0;
 
     // Typical: R_s*4.0; Minimum thresh: R_halo/5.0
     double r_pe_d = h->rs * 4.0;
-    // double r_pe_b = 0;
     if (r_pe_d < h->r / 5.0)
         r_pe_d = h->r / 5.0;
     r_pe_d *= 1e-3;
     for (j = 0; j < total_p; j++) {
         if (bound && (po[j].pe < po[j].ke))
             continue;
-        num_part++;
+        mass += po[j].mass;
         r = sqrt(po[j].r2);
 
         r32 = sqrt(r);
         r32 = r32 * r32 * r32; // r^(3/2)
-        if ((double)(num_part * num_part) / r32 > max_pe_b) {
-            max_pe_b = (double)(num_part * num_part) / r32;
-            // r_pe_b = r;
+        if ((double)(mass * mass) / r32 > max_pe_b) {
+            max_pe_b = (double)(mass * mass) / r32;
         }
 
         if (r < r_pe_d)
-            num_part_pe_d = num_part;
+            mass_pe_d = mass;
     }
-    //  if (h->m > 1e13) fprintf(stderr, "%f %f\n", r_pe_b*1e3, h->rs);
-    h->m_pe_d = num_part_pe_d * ROCKSTAR_PARTICLE_MASS;
-    h->m_pe_b = ROCKSTAR_PARTICLE_MASS * pow(max_pe_b, 2.0 / 3.0) /
-                cbrt(4.0 * M_PI * particle_rvir_dens_z0 / 3.0);
+    h->m_pe_d = mass_pe_d;
+    h->m_pe_b = pow(max_pe_b, 2.0 / 3.0) /
+                cbrt(4.0 * M_PI * particle_rvir_dens_z0 * ROCKSTAR_PARTICLE_MASS /
+                      3.0);
 }
 
 void _calc_additional_halo_props(struct halo *h, int64_t total_p,
                                  int64_t bound) {
-    int64_t j, k, part_mdelta = 0, num_part = 0, np_alt[4] = {0}, np_vir = 0,
-                  dens_tot = 0, parts_avgd = 0, num_part_half = 0;
+    int64_t j, k, dens_tot = 0, parts_avgd = 0, np_alt = 0;
+    double  mass_mdelta = 0, mass_alt[4] = {0}, mass_vir = 0;
 
     float scale_now = ROCKSTAR_LIGHTCONE ? scale_dx : ROCKSTAR_SCALE_NOW;
 
-    double dens_thresh = particle_thresh_dens[0] * (4.0 * M_PI / 3.0);
-    double d1          = particle_thresh_dens[1] * (4.0 * M_PI / 3.0);
-    double d2          = particle_thresh_dens[2] * (4.0 * M_PI / 3.0);
-    double d3          = particle_thresh_dens[3] * (4.0 * M_PI / 3.0);
-    double d4          = particle_thresh_dens[4] * (4.0 * M_PI / 3.0);
-    double rvir_thresh = particle_rvir_dens * (4.0 * M_PI / 3.0);
-    double vmax_conv   = ROCKSTAR_PARTICLE_MASS / scale_now;
+    double dens_thresh =
+        particle_thresh_dens[0] * (4.0 * M_PI / 3.0) * ROCKSTAR_PARTICLE_MASS;
+    double d1 = particle_thresh_dens[1] * (4.0 * M_PI / 3.0) *
+                ROCKSTAR_PARTICLE_MASS;
+    double d2 = particle_thresh_dens[2] * (4.0 * M_PI / 3.0) *
+                ROCKSTAR_PARTICLE_MASS;
+    double d3 = particle_thresh_dens[3] * (4.0 * M_PI / 3.0) *
+                ROCKSTAR_PARTICLE_MASS;
+    double d4 = particle_thresh_dens[4] * (4.0 * M_PI / 3.0) *
+                ROCKSTAR_PARTICLE_MASS;
+    double rvir_thresh =
+        particle_rvir_dens * (4.0 * M_PI / 3.0) * ROCKSTAR_PARTICLE_MASS;
+    double vmax_conv = 1.0 / scale_now;
     double r, circ_v, vmax = 0, rvmax = 0, L[3] = {0}, Jh, m = 0, ds;
-    double vrms[3] = {0}, xavg[3] = {0}, vavg[3] = {0}, mdiff;
-    double cur_dens, rvir, mvir;
+    double vrms[3] = {0}, xavg[3] = {0}, vavg[3] = {0};
+    double rvir, mvir;
+    double total_mass = 0;
 
     for (j = 0; j < total_p; j++) {
         if (bound && (po[j].pe < po[j].ke))
             continue;
-        num_part++;
+        total_mass += po[j].mass;
         r = sqrt(po[j].r2);
         if (r < ROCKSTAR_FORCE_RES)
             r = ROCKSTAR_FORCE_RES;
-        cur_dens = ((double)num_part / (r * r * r));
+        double cur_dens = ((double)total_mass / (r * r * r));
 
         if (cur_dens > dens_thresh) {
-            part_mdelta = num_part;
+            mass_mdelta = total_mass;
             dens_tot    = j;
         }
-
         if (cur_dens > d1)
-            np_alt[0] = num_part;
+            mass_alt[0] = total_mass;
         if (cur_dens > d2)
-            np_alt[1] = num_part;
-        if (cur_dens > d3)
-            np_alt[2] = num_part;
+            mass_alt[1] = total_mass;
+        if (cur_dens > d3) {
+            mass_alt[2] = total_mass;
+            np_alt      = j;
+        }
         if (cur_dens > d4)
-            np_alt[3] = num_part;
+            mass_alt[3] = total_mass;
 
         if (cur_dens > rvir_thresh) {
-            circ_v = (double)num_part / r;
-            np_vir = num_part;
-            if (part_mdelta && circ_v > vmax) {
+            circ_v   = (double)total_mass / r;
+            mass_vir = total_mass;
+            if (mass_mdelta && circ_v > vmax) {
                 vmax  = circ_v;
                 rvmax = r;
             }
@@ -435,26 +458,37 @@ void _calc_additional_halo_props(struct halo *h, int64_t total_p,
     for (j = 0; j < dens_tot; j++) {
         if (bound && (po[j].pe < po[j].ke))
             continue;
-        add_ang_mom(L, h->pos, po[j].pos);
+        add_ang_mom(L, h->pos, po[j].pos, po[j].mass);
         parts_avgd++;
-        if (parts_avgd * 2 >= part_mdelta && !num_part_half)
-            num_part_half = j;
-        for (k = 0; k < 3; k++) { // Calculate velocity and position averages
-            xavg[k] += (po[j].pos[k] - xavg[k]) / ((double)parts_avgd);
-            mdiff = po[j].pos[k + 3] - vavg[k];
-            vavg[k] += mdiff / (double)parts_avgd;
-            vrms[k] += mdiff * (po[j].pos[k + 3] - vavg[k]);
+        for (k = 0; k < 3; k++) {
+            xavg[k] += po[j].pos[k] * po[j].mass;
+            vavg[k] += po[j].pos[k + 3] * po[j].mass;
         }
     }
 
-    m = part_mdelta * ROCKSTAR_PARTICLE_MASS;
+    if (mass_mdelta)
+        for (k = 0; k < 3; k++) {
+            xavg[k] /= mass_mdelta;
+            vavg[k] /= mass_mdelta;
+        }
+
+    for (j = 0; j < dens_tot; j++) {
+        if (bound && (po[j].pe < po[j].ke))
+            continue;
+        for (k = 0; k < 3; k++) {
+            double dx = (po[j].pos[k + 3] - vavg[k]);
+            vrms[k] += po[j].mass * dx * dx;
+        }
+    }
+
+    m = mass_mdelta;
     if (!bound)
         h->m = m;
     else
         h->mgrav = m;
     for (k = 0; k < 3; k++)
-        vrms[k] = (parts_avgd > 0) ? (vrms[k] / parts_avgd) : 0;
-    if ((!bound) == (!ROCKSTAR_BOUND_PROPS)) { // Works even if ROCKSTAR_BOUND_PROPS > 1
+        vrms[k] = (vrms[k] > 0) ? (vrms[k] / m) : 0;
+    if ((!bound) == (!ROCKSTAR_BOUND_PROPS)) {
         h->Xoff = h->Voff = 0;
         for (k = 0; k < 3; k++) {
             ds = xavg[k] - h->pos[k];
@@ -462,49 +496,52 @@ void _calc_additional_halo_props(struct halo *h, int64_t total_p,
             ds = vavg[k] - h->pos[k + 3];
             h->Voff += ds * ds;
         }
-        h->alt_m[0]        = np_alt[0] * ROCKSTAR_PARTICLE_MASS;
-        h->alt_m[1]        = np_alt[1] * ROCKSTAR_PARTICLE_MASS;
-        h->alt_m[2]        = np_alt[2] * ROCKSTAR_PARTICLE_MASS;
-        h->alt_m[3]        = np_alt[3] * ROCKSTAR_PARTICLE_MASS;
-        h->Xoff            = sqrt(h->Xoff) * 1e3;
-        h->Voff            = sqrt(h->Voff);
-        h->vrms            = sqrt(vrms[0] + vrms[1] + vrms[2]);
-        h->vmax            = VMAX_CONST * sqrt(vmax * vmax_conv);
-        h->rvmax           = rvmax * 1e3;
-        h->halfmass_radius = sqrt(po[num_part_half].r2) * 1e3;
-        h->r =
-            cbrt((3.0 / (4.0 * M_PI)) * np_alt[2] / particle_thresh_dens[3]) *
-            1e3;
-        calc_shape(h, np_alt[2], bound);
+        h->alt_m[0] = mass_alt[0];
+        h->alt_m[1] = mass_alt[1];
+        h->alt_m[2] = mass_alt[2];
+        h->alt_m[3] = mass_alt[3];
+        h->Xoff     = sqrt(h->Xoff) * 1e3;
+        h->Voff     = sqrt(h->Voff);
+        h->vrms     = sqrt(vrms[0] + vrms[1] + vrms[2]);
+        h->vmax     = VMAX_CONST * sqrt(vmax * vmax_conv);
+        h->rvmax    = rvmax * 1e3;
+        h->halfmass_radius =
+            (dens_tot > 0) ? sqrt(po[dens_tot / 2].r2) * 1e3 : 0;
+        h->r = cbrt((3.0 / (4.0 * M_PI)) * mass_alt[2] /
+                     (particle_thresh_dens[3] * ROCKSTAR_PARTICLE_MASS)) *
+               1e3;
+        calc_shape(h, np_alt, bound);
         h->b_to_a2 = h->b_to_a;
         h->c_to_a2 = h->c_to_a;
         memcpy(h->A2, h->A, sizeof(float) * 3);
 #ifdef OUTPUT_INERTIA_TENSOR
-	memcpy(h->inertia_tensor2, h->inertia_tensor, sizeof(float)*6);
+        memcpy(h->inertia_tensor2, h->inertia_tensor, sizeof(float) * 6);
 #endif
 #ifdef OUTPUT_INTERMEDIATE_AXIS
-	memcpy(h->A2_I, h->A_I, sizeof(float)*3);
+        memcpy(h->A2_I, h->A_I, sizeof(float) * 3);
 #endif
-        h->r =
-            cbrt((3.0 / (4.0 * M_PI)) * part_mdelta / particle_thresh_dens[0]) *
-            1e3;
+        h->r = cbrt((3.0 / (4.0 * M_PI)) * mass_mdelta /
+                     (particle_thresh_dens[0] * ROCKSTAR_PARTICLE_MASS)) *
+               1e3;
         calc_shape(h, dens_tot, bound);
 
-        rvir = cbrt((3.0 / (4.0 * M_PI)) * np_vir / particle_rvir_dens) * 1e3;
-        mvir = np_vir * ROCKSTAR_PARTICLE_MASS;
+        rvir = cbrt((3.0 / (4.0 * M_PI)) * mass_vir /
+                    (particle_rvir_dens * ROCKSTAR_PARTICLE_MASS)) *
+               1e3;
+        mvir = mass_vir;
         calc_scale_radius(h, m, h->r, h->vmax, h->rvmax, scale_now, po,
                           dens_tot, bound);
         for (j = 0; j < 3; j++)
-            h->J[j] = ROCKSTAR_PARTICLE_MASS * scale_now * L[j];
+            h->J[j] = scale_now * L[j];
         h->energy = estimate_total_energy(dens_tot, &(h->kin_to_pot));
-        Jh        = ROCKSTAR_PARTICLE_MASS * scale_now *
-             sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+        Jh = scale_now * sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
         h->spin =
             (m > 0) ? (Jh * sqrt(fabs(h->energy)) / (Gc * pow(m, 2.5))) : 0;
-        h->bullock_spin =
-            (m > 0)
-                ? (Jh / (mvir * sqrt(2.0 * Gc * mvir * rvir * scale_now / 1e3)))
-                : 0;
+        h->bullock_spin = (m > 0)
+                              ? (Jh /
+                                 (mvir * sqrt(2.0 * Gc * mvir * rvir * scale_now /
+                                               1e3)))
+                              : 0;
         _calc_pseudo_evolution_masses(h, total_p, bound);
     }
 }
