@@ -40,9 +40,9 @@ void _compute_direct_potential(struct potential *po, int64_t num_po) {
     double  dpo;
     for (i = 0; i < num_po; i++)
         for (j = i + 1; j < num_po; j++) {
-            dpo = ROCKSTAR_PARTICLE_MASS * inv_distance(po[i].pos, po[j].pos);
-            po[i].pe += dpo;
-            po[j].pe += dpo;
+            dpo = inv_distance(po[i].pos, po[j].pos);
+            po[i].pe += dpo * po[j].mass;
+            po[j].pe += dpo * po[i].mass;
         }
 }
 
@@ -51,7 +51,7 @@ void _compute_indirect_potential(struct potential *po, int64_t num_po,
     int64_t i, j;
     for (i = 0; i < num_po; i++)
         for (j = 0; j < num_po2; j++)
-            po[i].pe += ROCKSTAR_PARTICLE_MASS * inv_distance(po[i].pos, po2[j].pos);
+            po[i].pe += po2[j].mass * inv_distance(po[i].pos, po2[j].pos);
 }
 
 #define POINTS_PER_LEAF  10
@@ -99,12 +99,14 @@ void _compute_mass_centers(struct tree3_node *n) {
     int64_t i, j;
     double  pos[3] = {0};
     if (n->div_dim < 0) { // Leaf node
-        n->m = ROCKSTAR_PARTICLE_MASS * n->num_points;
-        for (i = 0; i < n->num_points; i++)
+        n->m = 0;
+        for (i = 0; i < n->num_points; i++) {
+            n->m += n->points[i].mass;
             for (j = 0; j < 3; j++)
-                pos[j] += n->points[i].pos[j];
+                pos[j] += n->points[i].pos[j] * n->points[i].mass;
+        }
         for (j = 0; j < 3; j++)
-            n->mass_center[j] = pos[j] ? pos[j] / (double)n->num_points : 0;
+            n->mass_center[j] = n->m ? pos[j] / n->m : 0;
         _compute_dmin(n);
         n->num_unbound = n->num_points;
 #if POTENTIAL_HALT_AFTER_BOUND
@@ -206,6 +208,7 @@ void compute_kinetic_energy(struct potential *po, int64_t num_po,
                  hubble * scale_now * (po[i].pos[j] - pos_cen[j]);
             po[i].ke += dv * dv;
         }
+        po[i].ke += po[i].energy;
         po[i].ke *= conv_const;
     }
 }

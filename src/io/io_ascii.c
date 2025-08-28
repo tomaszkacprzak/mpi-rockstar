@@ -23,12 +23,13 @@ void load_particles(char *filename, struct particle **p, int64_t *num_p) {
     int64_t         n;
     struct particle d = {0};
     SHORT_PARSETYPE;
-#define NUM_INPUTS 7
-    enum short_parsetype stypes[NUM_INPUTS] = {F, F, F, F, F, F, D64};
-    enum parsetype       types[NUM_INPUTS];
+#define NUM_INPUTS 10
+    enum short_parsetype stypes[NUM_INPUTS] =
+        {F, F, F, F, F, F, F, F, D64, D};
+    enum parsetype types[NUM_INPUTS];
     void *data[NUM_INPUTS] = {&(d.pos[0]), &(d.pos[1]), &(d.pos[2]),
                               &(d.pos[3]), &(d.pos[4]), &(d.pos[5]),
-                              &(d.id)};
+                              &(d.mass), &(d.energy), &(d.id), &(d.type)};
 
     for (n = 0; n < NUM_INPUTS; n++)
         types[n] = (enum parsetype)stypes[n];
