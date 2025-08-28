@@ -400,6 +400,18 @@ void align_domain_particles(int      axis, const float (*all_samples)[3],
         return;
     }
 
+    if (num_particles < chunks[axis]) {
+        int my_rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+        if (my_rank == 0) {
+            fprintf(stderr,
+                    "[Error] Only %" PRId64
+                    " sample particles available for %d chunks along axis %d.\n",
+                    num_particles, chunks[axis], axis);
+        }
+        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+    }
+
     std::sort(particle_indices, particle_indices + num_particles,
               [all_samples = all_samples, axis = axis](int64_t a, int64_t b) {
                   return all_samples[a][axis] < all_samples[b][axis];
@@ -487,6 +499,19 @@ void decide_chunks_for_memory_balance(const int chunks[],
                   MPI_COMM_WORLD);
     auto num_all_samples =
         calc_displs(recv_counts, ROCKSTAR_NUM_WRITERS, recv_displs) / 3;
+
+    if (num_all_samples < ROCKSTAR_NUM_WRITERS) {
+        if (my_rank == 0) {
+            fprintf(stderr,
+                    "[Error] Only %" PRId64
+                    " sample particles available for %" PRId64
+                    " writers; at least %" PRId64
+                    " samples are required to compute domain bounds.\n",
+                    num_all_samples, ROCKSTAR_NUM_WRITERS,
+                    (int64_t)ROCKSTAR_NUM_WRITERS);
+        }
+        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+    }
     auto all_samples = allocate<float[3]>(num_all_samples);
 
     MPI_Allgatherv(local_samples, num_to_send, MPI_FLOAT, all_samples,
