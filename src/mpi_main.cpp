@@ -36,6 +36,8 @@ extern "C" {
 #include "version.h"
 }
 
+#include "mpi_rockstar.h"
+
 #define CLIENT_DEBUG 0
 FILE  *profile_out = NULL;
 double time_start;
@@ -1907,7 +1909,7 @@ void check_config( const int my_rank){
 
 
 
-void mpi_main(int argc, char *argv[]) {
+extern "C" void mpi_main(int argc, char *argv[]) {
 
     char    buffer[1024];
     int64_t reload_parts = 0;
@@ -1920,12 +1922,14 @@ void mpi_main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
+    #ifndef MPI_ROCKSTAR_LIBRARY
     if (my_rank==0 && argc < 2) {
         printf("MPI-Rockstar Halo Finder, Version %s\n", ROCKSTAR_VERSION);
         printf("(C) See the README file for redistribution details.\n");
         printf("Usage: %s [-c config]\n", argv[0]);
         exit(1);
     }
+    #endif
 
     ROCKSTAR_NUM_WRITERS = num_procs;
     ROCKSTAR_NUM_READERS = (ROCKSTAR_NUM_BLOCKS > num_procs) ? num_procs : ROCKSTAR_NUM_BLOCKS;
@@ -2022,7 +2026,7 @@ void mpi_main(int argc, char *argv[]) {
 
 
 
-
+#ifndef MPI_ROCKSTAR_LIBRARY
 int main(int argc, char **argv) {
 
     int64_t i, snap = -1, did_config = 0;
@@ -2055,3 +2059,4 @@ int main(int argc, char **argv) {
     return 0;
 
 }
+#endif /* MPI_ROCKSTAR_LIBRARY */
