@@ -61,7 +61,7 @@ libmpi_rockstar_hdf5:
 
 .PHONY: _libmpi_rockstar_hdf5
 _libmpi_rockstar_hdf5: $(MPI_ROCKSTAR_LIB_HDF5)
-	ar rcs ../libmpi_rockstar_hdf5.a $^ $(HDF5_LIB)
+	ar rcs ../libmpi_rockstar_hdf5.a $^ 
 
 .PHONY: mpi-rockstar
 mpi-rockstar: $(MPI_ROCKSTAR)
