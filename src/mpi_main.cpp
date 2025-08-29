@@ -38,6 +38,8 @@ extern "C" {
 
 #include "mpi_rockstar.h"
 
+#include "mpi_rockstar.h"
+
 #define CLIENT_DEBUG 1
 FILE  *profile_out = NULL;
 double time_start;
@@ -1918,7 +1920,38 @@ void check_config( const int my_rank){
 
 
 
+void read_config_and_input(int argc, char **argv) {
+
+    int64_t i, snap = -1, did_config = 0;
+
+    srand(1);
+
+    for (i = 1; i < argc - 1; i++) {
+        if (!strcmp("-c", argv[i])) {
+            do_config(argv[i + 1]);
+            i++;
+            did_config = 1;
+        }
+    }
+    if (!did_config)
+        do_config(NULL);
+    if (strlen(ROCKSTAR_SNAPSHOT_NAMES))
+        read_input_names(ROCKSTAR_SNAPSHOT_NAMES, &snapnames, &ROCKSTAR_NUM_SNAPS);
+    if (strlen(ROCKSTAR_BLOCK_NAMES))
+        read_input_names(ROCKSTAR_BLOCK_NAMES, &blocknames, &ROCKSTAR_NUM_BLOCKS);
+
+    if (snap > -1) {
+      ROCKSTAR_STARTING_SNAP = snap;
+      ROCKSTAR_SINGLE_SNAP   = 1;
+    }
+
+}
+
+
+
 extern "C" void mpi_main(int argc, char *argv[]) {
+
+    read_config_and_input(argc, argv);
 
     char    buffer[1024];
     int64_t reload_parts = 0;
@@ -1939,6 +1972,10 @@ extern "C" void mpi_main(int argc, char *argv[]) {
         exit(1);
     }
     #endif
+
+    fprintf(stderr, "mpi_main: my_rank: %d, ROCKSTAR_PERIODIC: %d\n", my_rank, ROCKSTAR_PERIODIC);
+    fprintf(stderr, "mpi_main: my_rank: %d, ROCKSTAR_LIGHTCONE: %d\n", my_rank, ROCKSTAR_LIGHTCONE);
+    fprintf(stderr, "mpi_main: my_rank: %d, ROCKSTAR_FILENAME: %s\n", my_rank, ROCKSTAR_FILENAME);
 
     ROCKSTAR_NUM_WRITERS = num_procs;
     ROCKSTAR_NUM_READERS = (ROCKSTAR_NUM_BLOCKS > num_procs) ? num_procs : ROCKSTAR_NUM_BLOCKS;
@@ -2030,42 +2067,27 @@ extern "C" void mpi_main(int argc, char *argv[]) {
     writer_bounds = reallocate(writer_bounds, 0);
 
     timed_output("[Finished]\n");
-    MPI_Finalize();
+    
 }
+
 
 
 
 #ifndef MPI_ROCKSTAR_LIBRARY
 int main(int argc, char **argv) {
 
-    int64_t i, snap = -1, did_config = 0;
 
-    srand(1);
 #ifdef DO_CONFIG_MPI
     init_mpi( argc, argv);
 #endif
-
-    for (i = 1; i < argc - 1; i++) {
-        if (!strcmp("-c", argv[i])) {
-            do_config(argv[i + 1]);
-            i++;
-            did_config = 1;
-        }
-    }
-    if (!did_config)
-        do_config(NULL);
-    if (strlen(ROCKSTAR_SNAPSHOT_NAMES))
-        read_input_names(ROCKSTAR_SNAPSHOT_NAMES, &snapnames, &ROCKSTAR_NUM_SNAPS);
-    if (strlen(ROCKSTAR_BLOCK_NAMES))
-        read_input_names(ROCKSTAR_BLOCK_NAMES, &blocknames, &ROCKSTAR_NUM_BLOCKS);
-
-    if (snap > -1) {
-      ROCKSTAR_STARTING_SNAP = snap;
-      ROCKSTAR_SINGLE_SNAP   = 1;
-    }
+    
     mpi_main(argc, argv);
 
     return 0;
+
+#ifdef DO_CONFIG_MPI
+    MPI_Finalize();
+#endif
 
 }
 #endif /* MPI_ROCKSTAR_LIBRARY */
