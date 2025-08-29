@@ -38,7 +38,7 @@ extern "C" {
 
 #include "mpi_rockstar.h"
 
-#define CLIENT_DEBUG 0
+#define CLIENT_DEBUG 1
 FILE  *profile_out = NULL;
 double time_start;
 
@@ -1560,9 +1560,18 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
         int64_t time_middle = time(NULL);
         set_bp_chunk(my_rank);
         int64_t time_end = time(NULL);
-        if (CLIENT_DEBUG)
+        if (CLIENT_DEBUG){
             fprintf(stderr, "Found %" PRId64 " fofs in chunk %" PRId64 "\n",
                     num_all_fofs, my_rank);
+            
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " PARTICLE_MASS: %f\n", my_rank, ROCKSTAR_PARTICLE_MASS);
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " BOX_SIZE: %f\n", my_rank, ROCKSTAR_BOX_SIZE);
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " AVG_PARTICLE_SPACING: %f\n", my_rank, ROCKSTAR_AVG_PARTICLE_SPACING);
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " num_p: %" PRId64 "\n", my_rank, num_p);
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " num_all_fofs: %" PRId64 "\n", my_rank, num_all_fofs);
+        }
+
+
         if (profile_out) {
             fprintf(profile_out,
                     "[Prof] S%" PRId64 ",C%" PRId64 " %" PRId64 "s: %" PRId64
