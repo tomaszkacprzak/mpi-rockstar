@@ -41,6 +41,27 @@ In the original Rockstar, `PID` is the parent halo's ID and can be added by `fin
 make find_parents -C src
 ```
 
+### Building as a Library ###
+
+You can build a static library for linking with other MPI applications:
+```
+make libmpi_rockstar -C src
+```
+The host application must initialize MPI and load a configuration before calling `mpi_main`.  An example program is available in `examples/library_example.c`:
+```
+#include <mpi.h>
+#include "config.h"
+#include "mpi_rockstar.h"
+
+int main(int argc, char **argv) {
+    MPI_Init(&argc, &argv);
+    do_config("parallel_256.cfg");
+    mpi_main(0, NULL);
+    MPI_Finalize();
+    return 0;
+}
+```
+
 In some environments, due to a compatibility issue, you may encounter this or something similar error.
 ```
 /usr/include/tirpc/rpc/xdr.h:111:52: error: unknown type name 'u_int'
