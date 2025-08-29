@@ -1,6 +1,6 @@
 CC=mpicxx
-CFLAGS=-I../src
-LDFLAGS=../libmpi_rockstar.a -lm -ltirpc
+CFLAGS=-I../src -fopenmp
+LDFLAGS=../libmpi_rockstar.a -lm -ltirpc -fopenmp
 
 example: example.o ../libmpi_rockstar.a
 	$(CC) -o $@ example.o $(LDFLAGS)
