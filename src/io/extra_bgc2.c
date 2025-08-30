@@ -47,15 +47,15 @@ void calc_bgc2_parents(int64_t snap) {
     int64_t            *first_ids = NULL;
     GROUP_DATA_RMPVMAX  key, *first_group;
 
-    hdrs      = check_realloc(hdrs, BGC2_HEADER_SIZE * ROCKSTAR_NUM_WRITERS,
+    hdrs      = check_realloc(hdrs, BGC2_HEADER_SIZE * NUM_WRITERS,
                               "Allocating BGC2 headers.");
-    first_ids = check_realloc(first_ids, sizeof(int64_t) * ROCKSTAR_NUM_WRITERS,
+    first_ids = check_realloc(first_ids, sizeof(int64_t) * NUM_WRITERS,
                               "Allocating IDs.");
 
-    for (i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+    for (i = 0; i < NUM_WRITERS; i++) {
         get_output_filename(buffer, 1024, snap, i, "bgc2");
         load_bgc2_groups(buffer, hdrs + i, &gd, &num_groups);
-        ROCKSTAR_BOX_SIZE     = hdrs[i].box_size;
+        BOX_SIZE     = hdrs[i].box_size;
         first_ids[i] = -1;
         if (hdrs[i].ngroups) {
             first_ids[i] = gd[num_groups - hdrs[i].ngroups].id;
@@ -68,7 +68,7 @@ void calc_bgc2_parents(int64_t snap) {
             hdrs[0].max_npart_total = hdrs[i].max_npart;
     }
 
-    for (i = 1; i < ROCKSTAR_NUM_WRITERS; i++) {
+    for (i = 1; i < NUM_WRITERS; i++) {
         hdrs[i].npart_total     = hdrs[0].npart_total;
         hdrs[i].ngroups_total   = hdrs[0].ngroups_total;
         hdrs[i].max_npart_total = hdrs[0].max_npart_total;
@@ -77,7 +77,7 @@ void calc_bgc2_parents(int64_t snap) {
     find_parents(num_groups);
     qsort(gd, num_groups, sizeof(GROUP_DATA_RMPVMAX), sort_by_id);
 
-    for (i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+    for (i = 0; i < NUM_WRITERS; i++) {
         if (hdrs[i].ngroups) {
             assert(first_ids[i] != -1);
             key.id      = first_ids[i];

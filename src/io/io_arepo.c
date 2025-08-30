@@ -88,7 +88,7 @@ void arepo_readheader_array(hid_t HDF_GroupID, char *filename, char *objName,
     assert(ndims == 1);
     hsize_t dimsize = 0;
     check_H5Sget_simple_extent_dims(HDF_DataspaceID, &dimsize);
-    assert(dimsize == ROCKSTAR_AREPO_NTYPES);
+    assert(dimsize == AREPO_NTYPES);
 
     check_H5Aread(HDF_AttrID, type, data, objName, gid, filename);
 
@@ -98,13 +98,13 @@ void arepo_readheader_array(hid_t HDF_GroupID, char *filename, char *objName,
 
 void arepo_rescale_particles(struct particle *p, int64_t p_start,
                              int64_t nelems) {
-    double vel_rescale = sqrt(ROCKSTAR_SCALE_NOW);
-    if (ROCKSTAR_LIGHTCONE)
+    double vel_rescale = sqrt(SCALE_NOW);
+    if (LIGHTCONE)
         vel_rescale = 1;
 
     for (int64_t i = 0; i < nelems; i++) {
         for (int64_t j = 0; j < 3; j++) {
-            p[p_start + i].pos[j] *= ROCKSTAR_AREPO_LENGTH_CONVERSION;
+            p[p_start + i].pos[j] *= AREPO_LENGTH_CONVERSION;
             p[p_start + i].pos[j + 3] *= vel_rescale;
         }
     }
@@ -114,18 +114,18 @@ void load_particles_arepo(char *filename, struct particle **p, int64_t *num_p) {
     hid_t HDF_FileID = check_H5Fopen(filename, H5F_ACC_RDONLY);
     hid_t HDF_Header = check_H5Gopen(HDF_FileID, "Header", filename);
 
-    ROCKSTAR_Ol        = arepo_readheader_float(HDF_Header, filename, "OmegaLambda");
-    ROCKSTAR_Om        = arepo_readheader_float(HDF_Header, filename, "Omega0");
-    ROCKSTAR_h0        = arepo_readheader_float(HDF_Header, filename, "HubbleParam");
-    ROCKSTAR_SCALE_NOW = arepo_readheader_float(HDF_Header, filename, "Time");
-    ROCKSTAR_BOX_SIZE  = arepo_readheader_float(HDF_Header, filename, "BoxSize");
-    ROCKSTAR_BOX_SIZE *= ROCKSTAR_AREPO_LENGTH_CONVERSION;
+    Ol        = arepo_readheader_float(HDF_Header, filename, "OmegaLambda");
+    Om        = arepo_readheader_float(HDF_Header, filename, "Omega0");
+    h0        = arepo_readheader_float(HDF_Header, filename, "HubbleParam");
+    SCALE_NOW = arepo_readheader_float(HDF_Header, filename, "Time");
+    BOX_SIZE  = arepo_readheader_float(HDF_Header, filename, "BoxSize");
+    BOX_SIZE *= AREPO_LENGTH_CONVERSION;
 
-    uint32_t npart_low[ROCKSTAR_AREPO_NTYPES], npart_high[ROCKSTAR_AREPO_NTYPES];
-    int64_t  npart[ROCKSTAR_AREPO_NTYPES];
-    float    massTable[ROCKSTAR_AREPO_NTYPES];
+    uint32_t npart_low[AREPO_NTYPES], npart_high[AREPO_NTYPES];
+    int64_t  npart[AREPO_NTYPES];
+    float    massTable[AREPO_NTYPES];
 
-    for(int i = 0; i < ROCKSTAR_AREPO_NTYPES; i++) npart_high[i] = 0;
+    for(int i = 0; i < AREPO_NTYPES; i++) npart_high[i] = 0;
 
     arepo_readheader_array(HDF_Header, filename, "NumPart_ThisFile",
                            H5T_NATIVE_UINT64, npart);
@@ -136,44 +136,44 @@ void load_particles_arepo(char *filename, struct particle **p, int64_t *num_p) {
     arepo_readheader_array(HDF_Header, filename, "MassTable", H5T_NATIVE_FLOAT,
                            massTable);
 
-    ROCKSTAR_TOTAL_PARTICLES = (((int64_t)npart_high[ROCKSTAR_AREPO_DM_PARTTYPE]) << 32) +
-                      (int64_t)npart_low[ROCKSTAR_AREPO_DM_PARTTYPE];
+    TOTAL_PARTICLES = (((int64_t)npart_high[AREPO_DM_PARTTYPE]) << 32) +
+                      (int64_t)npart_low[AREPO_DM_PARTTYPE];
 
     H5Gclose(HDF_Header);
 
-    if (massTable[ROCKSTAR_AREPO_DM_PARTTYPE] || !ROCKSTAR_PARTICLE_MASS ||
-        ROCKSTAR_RESCALE_PARTICLE_MASS) {
-        if (!ROCKSTAR_RESCALE_PARTICLE_MASS)
-            ROCKSTAR_PARTICLE_MASS =
-                massTable[ROCKSTAR_AREPO_DM_PARTTYPE] * ROCKSTAR_AREPO_MASS_CONVERSION;
+    if (massTable[AREPO_DM_PARTTYPE] || !PARTICLE_MASS ||
+        RESCALE_PARTICLE_MASS) {
+        if (!RESCALE_PARTICLE_MASS)
+            PARTICLE_MASS =
+                massTable[AREPO_DM_PARTTYPE] * AREPO_MASS_CONVERSION;
         else
-            ROCKSTAR_PARTICLE_MASS =
-                ROCKSTAR_Om * CRITICAL_DENSITY * pow(ROCKSTAR_BOX_SIZE, 3) / ROCKSTAR_TOTAL_PARTICLES;
+            PARTICLE_MASS =
+                Om * CRITICAL_DENSITY * pow(BOX_SIZE, 3) / TOTAL_PARTICLES;
     }
 
-    ROCKSTAR_AVG_PARTICLE_SPACING = cbrt(ROCKSTAR_PARTICLE_MASS / (ROCKSTAR_Om * CRITICAL_DENSITY));
+    AVG_PARTICLE_SPACING = cbrt(PARTICLE_MASS / (Om * CRITICAL_DENSITY));
 
     printf("AREPO: filename:       %s\n", filename);
-    printf("AREPO: box size:       %g Mpc/h\n", ROCKSTAR_BOX_SIZE);
-    printf("AREPO: ROCKSTAR_h0:             %g\n", ROCKSTAR_h0);
-    printf("AREPO: scale factor:   %g\n", ROCKSTAR_SCALE_NOW);
-    printf("AREPO: Total DM Part:  %" PRIu64 "\n", ROCKSTAR_TOTAL_PARTICLES);
-    printf("AREPO: ThisFile DM Part: %" PRIu64 "\n", npart[ROCKSTAR_AREPO_DM_PARTTYPE]);
-    printf("AREPO: DM Part Mass:   %g Msun/h\n", ROCKSTAR_PARTICLE_MASS);
-    printf("AREPO: avgPartSpacing: %g Mpc/h\n\n", ROCKSTAR_AVG_PARTICLE_SPACING);
+    printf("AREPO: box size:       %g Mpc/h\n", BOX_SIZE);
+    printf("AREPO: h0:             %g\n", h0);
+    printf("AREPO: scale factor:   %g\n", SCALE_NOW);
+    printf("AREPO: Total DM Part:  %" PRIu64 "\n", TOTAL_PARTICLES);
+    printf("AREPO: ThisFile DM Part: %" PRIu64 "\n", npart[AREPO_DM_PARTTYPE]);
+    printf("AREPO: DM Part Mass:   %g Msun/h\n", PARTICLE_MASS);
+    printf("AREPO: avgPartSpacing: %g Mpc/h\n\n", AVG_PARTICLE_SPACING);
 
-    if (!npart[ROCKSTAR_AREPO_DM_PARTTYPE]) {
+    if (!npart[AREPO_DM_PARTTYPE]) {
         H5Fclose(HDF_FileID);
         printf("   SKIPPING FILE, PARTICLE COUNT ZERO.\n");
         return;
     }
 
-    int64_t to_read = npart[ROCKSTAR_AREPO_DM_PARTTYPE];
+    int64_t to_read = npart[AREPO_DM_PARTTYPE];
     check_realloc_s(*p, ((*num_p) + to_read), sizeof(struct particle));
 
     // read IDs, pos, vel
     char buffer[100];
-    snprintf(buffer, 100, "PartType%" PRId64, ROCKSTAR_AREPO_DM_PARTTYPE);
+    snprintf(buffer, 100, "PartType%" PRId64, AREPO_DM_PARTTYPE);
     arepo_read_dataset(
         HDF_FileID, filename, buffer, "ParticleIDs", *p + (*num_p), to_read,
         (char *)&(p[0][0].id) - (char *)(p[0]), 1, H5T_NATIVE_LLONG);
@@ -188,7 +188,7 @@ void load_particles_arepo(char *filename, struct particle **p, int64_t *num_p) {
 
     arepo_rescale_particles(*p, *num_p, to_read);
 
-    *num_p += npart[ROCKSTAR_AREPO_DM_PARTTYPE];
+    *num_p += npart[AREPO_DM_PARTTYPE];
 }
 
 #endif /* ENABLE_HDF5 */

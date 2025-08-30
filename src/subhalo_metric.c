@@ -143,7 +143,7 @@ struct halo *alt_find_best_halo(struct particle *part, struct halo *best_halo) {
 
 struct halo *find_best_halo(struct particle *part, struct halo *best_halo) {
     float best_metric = calc_particle_dist(best_halo, part);
-    if (ROCKSTAR_ALT_NFW_METRIC)
+    if (ALT_NFW_METRIC)
         return (alt_find_best_halo(part, best_halo));
     return (_find_best_halo(subtree->root, part, &best_metric, best_halo));
 }

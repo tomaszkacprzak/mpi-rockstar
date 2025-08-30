@@ -24,7 +24,7 @@ void populate_header(struct bgc2_header *hdr, int64_t id_offset, int64_t snap,
     memset(hdr, 0, sizeof(struct bgc2_header));
     hdr->magic             = BGC_MAGIC;
     hdr->version           = 2;
-    hdr->num_files         = (ROCKSTAR_PARALLEL_IO) ? ROCKSTAR_NUM_WRITERS : 1;
+    hdr->num_files         = (PARALLEL_IO) ? NUM_WRITERS : 1;
     hdr->file_id           = chunk;
     hdr->snapshot          = snap;
     hdr->group_type        = GTYPE_SO;
@@ -32,33 +32,33 @@ void populate_header(struct bgc2_header *hdr, int64_t id_offset, int64_t snap,
     hdr->format_group_data = GDATA_FORMAT_RMPVMAX;
     hdr->ngroups           = 0;
     hdr->ngroups_total     = 0;
-    hdr->min_group_part    = ROCKSTAR_MIN_HALO_OUTPUT_SIZE;
+    hdr->min_group_part    = MIN_HALO_OUTPUT_SIZE;
 
     hdr->npart          = 0;
     hdr->npart_total    = 0;
     hdr->npart_orig     = num_p;
-    hdr->valid_part_ids = (!ROCKSTAR_IGNORE_PARTICLE_IDS) ? 1 : 0;
+    hdr->valid_part_ids = (!IGNORE_PARTICLE_IDS) ? 1 : 0;
 
     hdr->max_npart       = 0;
     hdr->max_npart_total = 0;
 
-    hdr->linkinglength = ROCKSTAR_FOF_LINKING_LENGTH;
+    hdr->linkinglength = FOF_LINKING_LENGTH;
     calc_mass_definition();
     hdr->overdensity =
-        particle_thresh_dens[0] * ROCKSTAR_PARTICLE_MASS / (ROCKSTAR_Om * CRITICAL_DENSITY);
-    hdr->time        = ROCKSTAR_SCALE_NOW;
-    hdr->redshift    = (ROCKSTAR_SCALE_NOW > 0) ? (1.0 / (ROCKSTAR_SCALE_NOW)-1.0) : 1e10;
-    hdr->Omega0      = ROCKSTAR_Om;
-    hdr->OmegaLambda = ROCKSTAR_Ol;
-    hdr->box_size    = ROCKSTAR_BOX_SIZE;
+        particle_thresh_dens[0] * PARTICLE_MASS / (Om * CRITICAL_DENSITY);
+    hdr->time        = SCALE_NOW;
+    hdr->redshift    = (SCALE_NOW > 0) ? (1.0 / (SCALE_NOW)-1.0) : 1e10;
+    hdr->Omega0      = Om;
+    hdr->OmegaLambda = Ol;
+    hdr->box_size    = BOX_SIZE;
 
     if (bounds)
         for (int64_t i = 0; i < 6; i++)
             hdr->bounds[i] = bounds[i];
 
-    hdr->Hubble0   = ROCKSTAR_h0;
+    hdr->Hubble0   = h0;
     hdr->GravConst = Gc;
-    hdr->part_mass = ROCKSTAR_PARTICLE_MASS;
+    hdr->part_mass = PARTICLE_MASS;
 }
 
 void convert_to_extended_particles(struct extended_particle *ep) {
@@ -79,8 +79,8 @@ float square_dist_from_center(struct extended_particle *a, float *c) {
     int64_t i;
     for (i = 0; i < 3; i++) {
         dx = fabs(a->pos[i] - c[i]);
-        if (ROCKSTAR_PERIODIC && (dx > (ROCKSTAR_BOX_SIZE / 2.0)))
-            dx = ROCKSTAR_BOX_SIZE - dx;
+        if (PERIODIC && (dx > (BOX_SIZE / 2.0)))
+            dx = BOX_SIZE - dx;
         ds += dx * dx;
     }
     return ds;
@@ -173,10 +173,10 @@ void init_extended_particle_tree(void) {
     ep_tree = fast3tree_init(num_p + num_additional_p, ep);
     ep_res  = fast3tree_results_init();
     ep_res2  = fast3tree_results_init();
-    if (ROCKSTAR_PERIODIC && ROCKSTAR_BOX_SIZE > 0) {
+    if (PERIODIC && BOX_SIZE > 0) {
         memcpy(ep_old_minmax, ep_tree->root->min, 3 * sizeof(float));
         memcpy(ep_old_minmax + 3, ep_tree->root->max, 3 * sizeof(float));
-        _fast3tree_set_minmax(ep_tree, 0, ROCKSTAR_BOX_SIZE);
+        _fast3tree_set_minmax(ep_tree, 0, BOX_SIZE);
     }
 
 #if 0
@@ -196,7 +196,7 @@ void init_extended_particle_tree(void) {
 
 struct extended_particle **do_sphere_request(float cen[3], float r,
                                              int64_t *num_sp) {
-    if (ROCKSTAR_PERIODIC && ROCKSTAR_BOX_SIZE > 0)
+    if (PERIODIC && BOX_SIZE > 0)
         fast3tree_find_sphere_periodic(ep_tree, ep_res, cen, r);
     else
         fast3tree_find_sphere(ep_tree, ep_res, cen, r);
@@ -215,9 +215,9 @@ void free_extended_particle_tree(void) {
 int64_t check_bgc2_snap(int64_t snap) {
     int64_t i;
     if (bgc2_snapnames == NULL) {
-        if (!strlen(ROCKSTAR_BGC2_SNAPNAMES))
+        if (!strlen(BGC2_SNAPNAMES))
             return 0;
-        read_input_names(ROCKSTAR_BGC2_SNAPNAMES, &bgc2_snapnames, &num_bgc2_snaps);
+        read_input_names(BGC2_SNAPNAMES, &bgc2_snapnames, &num_bgc2_snaps);
     }
 
     for (i = 0; i < num_bgc2_snaps; i++)
@@ -269,11 +269,11 @@ void output_bgc2(int64_t id_offset, int64_t snap, int64_t chunk,
 
     for (i = 0; i < 5; i++)
         dens_thresh[i] =
-            particle_thresh_dens[i] * (4.0 * M_PI / 3.0) * ROCKSTAR_PARTICLE_MASS;
+            particle_thresh_dens[i] * (4.0 * M_PI / 3.0) * PARTICLE_MASS;
     if (num_ep2) {
         ep_tree2 = fast3tree_init(num_ep2, ep2);
-        if (ROCKSTAR_BOX_SIZE > 0 && ROCKSTAR_PERIODIC)
-            _fast3tree_set_minmax(ep_tree2, 0, ROCKSTAR_BOX_SIZE);
+        if (BOX_SIZE > 0 && PERIODIC)
+            _fast3tree_set_minmax(ep_tree2, 0, BOX_SIZE);
     }
 
     for (i = 0; i < num_halos; i++) {
@@ -282,10 +282,10 @@ void output_bgc2(int64_t id_offset, int64_t snap, int64_t chunk,
         halos[i].flags |= ALWAYS_PRINT_FLAG;
 
         float r = BGC2_R * halos[i].r;
-        if (ROCKSTAR_STRICT_SO_MASSES)
+        if (STRICT_SO_MASSES)
             r = BGC2_R * max_halo_radius(halos + i);
         if (num_ep2) {
-            if (ROCKSTAR_BOX_SIZE > 0 && ROCKSTAR_PERIODIC)
+            if (BOX_SIZE > 0 && PERIODIC)
                 fast3tree_find_sphere_periodic(ep_tree2, ep_res, halos[i].pos,
                                                r);
             else
@@ -295,7 +295,7 @@ void output_bgc2(int64_t id_offset, int64_t snap, int64_t chunk,
 
 	//_fast3tree_find_sphere(ep_tree->root, ep_res, halos[i].pos, r);
 
-	if (ROCKSTAR_BOX_SIZE > 0 && ROCKSTAR_PERIODIC)
+	if (BOX_SIZE > 0 && PERIODIC)
 	  fast3tree_find_sphere_periodic(ep_tree, ep_res2, halos[i].pos, r);
 	else
 	  fast3tree_find_sphere(ep_tree, ep_res2, halos[i].pos, r);
@@ -346,22 +346,22 @@ void output_bgc2(int64_t id_offset, int64_t snap, int64_t chunk,
         for (j = 0; j < ep_res->num_points; j++) {
             float r =
                 sqrt(square_dist_from_center(ep_res->points[j], halos[i].pos));
-            if (r < ROCKSTAR_FORCE_RES)
-                r = ROCKSTAR_FORCE_RES;
-            total_mass += ROCKSTAR_PARTICLE_MASS;
+            if (r < FORCE_RES)
+                r = FORCE_RES;
+            total_mass += PARTICLE_MASS;
             float cur_dens = total_mass / (r * r * r);
-            if (ROCKSTAR_STRICT_SO_MASSES)
+            if (STRICT_SO_MASSES)
                 for (k = 1; k < 5; k++)
                     if (cur_dens > dens_thresh[k])
                         halos[i].alt_m[k - 1] = total_mass;
             if (cur_dens > dens_thresh[0]) {
-                if (ROCKSTAR_STRICT_SO_MASSES)
+                if (STRICT_SO_MASSES)
                     halos[i].m = total_mass;
                 npart = j;
             }
         }
 
-        if (ROCKSTAR_STRICT_SO_MASSES)
+        if (STRICT_SO_MASSES)
             halos[i].r = cbrt(halos[i].m / dens_thresh[0]) * 1e3;
 
         if (!write_bgc2_file)
@@ -386,7 +386,7 @@ void output_bgc2(int64_t id_offset, int64_t snap, int64_t chunk,
         gd[id].npart     = j + 1;
         gd[id].radius =
             cbrt((3.0 / (4.0 * M_PI)) * (j + 1) / particle_thresh_dens[0]);
-        gd[id].mass  = (j + 1) * ROCKSTAR_PARTICLE_MASS;
+        gd[id].mass  = (j + 1) * PARTICLE_MASS;
         gd[id].vmax  = halos[i].vmax;
         gd[id].rvmax = halos[i].rvmax;
         for (j = 0; j < 3; j++) {
@@ -417,11 +417,11 @@ void output_bgc2(int64_t id_offset, int64_t snap, int64_t chunk,
             pd[j].part_id = ep_res->points[j]->id;
             for (k = 0; k < 3; k++) {
                 pd[j].pos[k] = ep_res->points[j]->pos[k];
-                if (ROCKSTAR_PERIODIC) {
-                    if ((pd[j].pos[k] - halos[i].pos[k]) > ROCKSTAR_BOX_SIZE / 2.0)
-                        pd[j].pos[k] -= ROCKSTAR_BOX_SIZE;
-                    else if ((pd[j].pos[k] - halos[i].pos[k]) < -ROCKSTAR_BOX_SIZE / 2.0)
-                        pd[j].pos[k] += ROCKSTAR_BOX_SIZE;
+                if (PERIODIC) {
+                    if ((pd[j].pos[k] - halos[i].pos[k]) > BOX_SIZE / 2.0)
+                        pd[j].pos[k] -= BOX_SIZE;
+                    else if ((pd[j].pos[k] - halos[i].pos[k]) < -BOX_SIZE / 2.0)
+                        pd[j].pos[k] += BOX_SIZE;
                 }
                 pd[j].vel[k] = ep_res->points[j]->pos[k + 3];
             }
@@ -432,10 +432,10 @@ void output_bgc2(int64_t id_offset, int64_t snap, int64_t chunk,
     }
     check_realloc_s(particle_r, 0, 0);
 
-    if (ROCKSTAR_STRICT_SO_MASSES) {
+    if (STRICT_SO_MASSES) {
         output_binary(id_offset, snap, chunk, bounds, 0);
-        if (!strcasecmp(ROCKSTAR_OUTPUT_FORMAT, "BOTH") ||
-            !strcasecmp(ROCKSTAR_OUTPUT_FORMAT, "ASCII"))
+        if (!strcasecmp(OUTPUT_FORMAT, "BOTH") ||
+            !strcasecmp(OUTPUT_FORMAT, "ASCII"))
             output_ascii(id_offset, snap, chunk, bounds);
     }
 
