@@ -13,24 +13,24 @@
 #include "../particle.h"
 
 #define GADGET_BUFFER_SIZE 100000
-#define GHPT               ROCKSTAR_GADGET_HALO_PARTICLE_TYPE
+#define GHPT               GADGET_HALO_PARTICLE_TYPE
 
 void gadget2_detect_filetype(FILE *input, char *filename) {
     int32_t first_word;
-    ROCKSTAR_SWAP_ENDIANNESS = 0;
+    SWAP_ENDIANNESS = 0;
     check_fread(&first_word, sizeof(int32_t), 1, input);
     check_limited_funread(&first_word, sizeof(int32_t), 1);
     if ((first_word != 4) && (first_word != GADGET_HEADER_SIZE) &&
         (first_word != 8)) {
-        ROCKSTAR_SWAP_ENDIANNESS = 1;
+        SWAP_ENDIANNESS = 1;
         swap_endian_4byte((int8_t *)(&first_word));
     }
     if (first_word == 4)
-        ROCKSTAR_GADGET_VARIANT = 1;
+        GADGET_VARIANT = 1;
     else if (first_word == 8)
-        ROCKSTAR_GADGET_VARIANT = 2;
+        GADGET_VARIANT = 2;
     else if (first_word == GADGET_HEADER_SIZE)
-        ROCKSTAR_GADGET_VARIANT = 0;
+        GADGET_VARIANT = 0;
     else {
         fprintf(stderr, "[Error] Unrecognized GADGET2 file type in %s!\n",
                 filename);
@@ -46,16 +46,16 @@ void gadget2_read_stride(FILE *input, int64_t p_start, int64_t nelems,
     char    *buffer  = NULL;
     uint32_t readsize;
 
-    if (ROCKSTAR_SWAP_ENDIANNESS)
+    if (SWAP_ENDIANNESS)
         fread_swap(&readsize, sizeof(uint32_t), 1, input);
     else
         check_fread(&readsize, sizeof(uint32_t), 1, input);
     if ((stride == 1) && (((char *)p) + offset == (char *)&(p[0].id))) {
         // reading IDs
         if (readsize == (uint32_t)((nelems + skip + skip2) * 4))
-            ROCKSTAR_GADGET_ID_BYTES = width = 4;
+            GADGET_ID_BYTES = width = 4;
         else if (readsize == (uint32_t)((nelems + skip + skip2) * 8))
-            ROCKSTAR_GADGET_ID_BYTES = width = 8;
+            GADGET_ID_BYTES = width = 8;
         else {
             fprintf(stderr,
                     "[Error] Invalid particle ID block size in file %s!\n",
@@ -88,7 +88,7 @@ void gadget2_read_stride(FILE *input, int64_t p_start, int64_t nelems,
         to_read = nelems;
         if (to_read > GADGET_BUFFER_SIZE)
             to_read = GADGET_BUFFER_SIZE;
-        if (!ROCKSTAR_SWAP_ENDIANNESS)
+        if (!SWAP_ENDIANNESS)
             n = check_fread(buffer, width, stride * to_read, input);
         else if (width == 4)
             n = fread_swap(buffer, width, stride * to_read, input);
@@ -121,7 +121,7 @@ void gadget2_read_stride(FILE *input, int64_t p_start, int64_t nelems,
 
 void gadget2_extract_header_info(struct gadget_header *header) {
     int64_t i;
-    if (ROCKSTAR_SWAP_ENDIANNESS) {
+    if (SWAP_ENDIANNESS) {
 #define SWAP8(x)                                                               \
     { swap_4byte_to_8byte((int32_t *)(void *)&(x)); }
         for (i = 0; i < 6; i++)
@@ -144,48 +144,48 @@ void gadget2_extract_header_info(struct gadget_header *header) {
         exit(1);
     }
 
-    ROCKSTAR_Ol = header->omega_lambda;
-    ROCKSTAR_Om = header->omega_0;
-    ROCKSTAR_h0 = header->h_0;
+    Ol = header->omega_lambda;
+    Om = header->omega_0;
+    h0 = header->h_0;
 
-    ROCKSTAR_BOX_SIZE        = header->box_size * ROCKSTAR_GADGET_LENGTH_CONVERSION;
-    ROCKSTAR_TOTAL_PARTICLES = (((int64_t)header->num_total_particles_hw[GHPT]) << 32) +
+    BOX_SIZE        = header->box_size * GADGET_LENGTH_CONVERSION;
+    TOTAL_PARTICLES = (((int64_t)header->num_total_particles_hw[GHPT]) << 32) +
                       (int64_t)header->num_total_particles[GHPT];
     // According to Matt Becker, LGADGET uses the header fields in a different
     // way:
-    if (!strncasecmp(ROCKSTAR_FILE_FORMAT, "LGADGET", 7)) {
-        ROCKSTAR_TOTAL_PARTICLES =
+    if (!strncasecmp(FILE_FORMAT, "LGADGET", 7)) {
+        TOTAL_PARTICLES =
             (((int64_t)header->num_total_particles[GHPT + 1]) << 32) +
             (int64_t)header->num_total_particles[GHPT];
     }
 
-    ROCKSTAR_SCALE_NOW = header->scale_factor;
-    if (header->particle_masses[GHPT] || !ROCKSTAR_PARTICLE_MASS ||
-        ROCKSTAR_RESCALE_PARTICLE_MASS) {
-        if (!ROCKSTAR_RESCALE_PARTICLE_MASS)
-            ROCKSTAR_PARTICLE_MASS =
-                header->particle_masses[GHPT] * ROCKSTAR_GADGET_MASS_CONVERSION;
+    SCALE_NOW = header->scale_factor;
+    if (header->particle_masses[GHPT] || !PARTICLE_MASS ||
+        RESCALE_PARTICLE_MASS) {
+        if (!RESCALE_PARTICLE_MASS)
+            PARTICLE_MASS =
+                header->particle_masses[GHPT] * GADGET_MASS_CONVERSION;
         else
-            ROCKSTAR_PARTICLE_MASS =
-                ROCKSTAR_Om * CRITICAL_DENSITY * pow(ROCKSTAR_BOX_SIZE, 3) / ROCKSTAR_TOTAL_PARTICLES;
+            PARTICLE_MASS =
+                Om * CRITICAL_DENSITY * pow(BOX_SIZE, 3) / TOTAL_PARTICLES;
     }
-    ROCKSTAR_AVG_PARTICLE_SPACING = cbrt(ROCKSTAR_PARTICLE_MASS / (ROCKSTAR_Om * CRITICAL_DENSITY));
+    AVG_PARTICLE_SPACING = cbrt(PARTICLE_MASS / (Om * CRITICAL_DENSITY));
 }
 
 void gadget2_rescale_particles(struct particle *p, int64_t p_start,
                                int64_t nelems) {
     int64_t  i, j;
     uint32_t id;
-    double   vel_rescale = sqrt(ROCKSTAR_SCALE_NOW);
-    if (ROCKSTAR_LIGHTCONE)
+    double   vel_rescale = sqrt(SCALE_NOW);
+    if (LIGHTCONE)
         vel_rescale = 1;
     for (i = 0; i < nelems; i++) {
-        if (ROCKSTAR_GADGET_ID_BYTES == 4) {
+        if (GADGET_ID_BYTES == 4) {
             memcpy(&id, &(p[p_start + i].id), sizeof(uint32_t));
             p[p_start + i].id = id;
         }
         for (j = 0; j < 3; j++) {
-            p[p_start + i].pos[j] *= ROCKSTAR_GADGET_LENGTH_CONVERSION;
+            p[p_start + i].pos[j] *= GADGET_LENGTH_CONVERSION;
             p[p_start + i].pos[j + 3] *= vel_rescale;
         }
     }
@@ -202,23 +202,23 @@ void load_particles_gadget2(char *filename, struct particle **p,
     gadget2_detect_filetype(input, filename);
 
 #define gadget_variant_block(a)                                                \
-    if (ROCKSTAR_GADGET_VARIANT) {                                                      \
-        fread_fortran(tag, sizeof(char) * 4 * ROCKSTAR_GADGET_VARIANT, 1, input,        \
-                      ROCKSTAR_SWAP_ENDIANNESS);                                        \
-        if (ROCKSTAR_SWAP_ENDIANNESS)                                                   \
+    if (GADGET_VARIANT) {                                                      \
+        fread_fortran(tag, sizeof(char) * 4 * GADGET_VARIANT, 1, input,        \
+                      SWAP_ENDIANNESS);                                        \
+        if (SWAP_ENDIANNESS)                                                   \
             swap_endian_4byte((int8_t *)(&tag));                               \
         assert(!strncmp(tag, a, strlen(a)));                                   \
     }
 
     gadget_variant_block("HEAD");
-    fread_fortran(&header, GADGET_HEADER_SIZE, 1, input, ROCKSTAR_SWAP_ENDIANNESS);
+    fread_fortran(&header, GADGET_HEADER_SIZE, 1, input, SWAP_ENDIANNESS);
     gadget2_extract_header_info(&header);
 
     total_particles = 0;
     for (i = 0; i < 6; i++)
         total_particles += header.num_particles[i];
 
-    if (ROCKSTAR_GADGET_SKIP_NON_HALO_PARTICLES) {
+    if (GADGET_SKIP_NON_HALO_PARTICLES) {
         for (skip = 0, i = 0; i < GHPT; i++)
             skip += header.num_particles[i];
         halo_particles = header.num_particles[GHPT];
@@ -243,7 +243,7 @@ void load_particles_gadget2(char *filename, struct particle **p,
                         filename);
 
     gadget_variant_block("ID");
-    gadget2_read_stride(input, *num_p, halo_particles, 1, ROCKSTAR_GADGET_ID_BYTES, *p,
+    gadget2_read_stride(input, *num_p, halo_particles, 1, GADGET_ID_BYTES, *p,
                         (char *)&(p[0][0].id) - (char *)(p[0]), skip, skip2,
                         filename);
 

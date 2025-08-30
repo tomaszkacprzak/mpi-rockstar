@@ -94,8 +94,8 @@ void load_prev_binary_halos(int64_t snap, int64_t chunk, float *bounds,
 
     // Conversion in Comoving Mpc/h / (km/s)
     // Note that the time units are in 1/H = 1/(h*100 km/s/Mpc)
-    v_to_dx = 0.01 * (scale_to_time(ROCKSTAR_SCALE_NOW) - scale_to_time(bh.scale)) /
-              (0.5 * (ROCKSTAR_SCALE_NOW + bh.scale));
+    v_to_dx = 0.01 * (scale_to_time(SCALE_NOW) - scale_to_time(bh.scale)) /
+              (0.5 * (SCALE_NOW + bh.scale));
 
     remaining = bh.num_halos;
     offset    = sizeof(struct binary_output_header);
@@ -123,17 +123,17 @@ void load_previous_halos(int64_t snap, int64_t chunk, float *bounds) {
     if (!phtree) {
         phtree = fast3tree_init(num_prev_halos, ph);
     }
-    if (snap == ROCKSTAR_STARTING_SNAP || ROCKSTAR_LIGHTCONE || !ROCKSTAR_PARALLEL_IO)
+    if (snap == STARTING_SNAP || LIGHTCONE || !PARALLEL_IO)
         return;
     check_realloc_s(prev_halo_buffer, sizeof(struct halo),
                     PREV_HALO_BUFFER_SIZE);
     if (prev_snap != (snap - 1)) {
         if (!p_bounds)
-            check_realloc_s(p_bounds, sizeof(struct prev_bounds), ROCKSTAR_NUM_WRITERS);
+            check_realloc_s(p_bounds, sizeof(struct prev_bounds), NUM_WRITERS);
         prev_snap = snap - 1;
 	
 #if 0
-        for (rchunk = 0; rchunk < ROCKSTAR_NUM_WRITERS; rchunk++) {
+        for (rchunk = 0; rchunk < NUM_WRITERS; rchunk++) {
             load_binary_header(snap - 1, rchunk, &bh);
             memcpy(p_bounds[rchunk].bounds, bh.bounds, sizeof(float) * 6);
         }
@@ -146,7 +146,7 @@ void load_previous_halos(int64_t snap, int64_t chunk, float *bounds) {
 #endif
 #if 0
 	if( chunk == 0){
-	  for (rchunk = 0; rchunk < ROCKSTAR_NUM_WRITERS; rchunk++) {
+	  for (rchunk = 0; rchunk < NUM_WRITERS; rchunk++) {
 	    fprintf( stdout, "%e\t%e\t%e\t%e\t%e\t%e\n", 
 		     p_bounds[rchunk].bounds[0], p_bounds[rchunk].bounds[1], p_bounds[rchunk].bounds[2], 
 		     p_bounds[rchunk].bounds[3], p_bounds[rchunk].bounds[4], p_bounds[rchunk].bounds[5]);
@@ -155,9 +155,9 @@ void load_previous_halos(int64_t snap, int64_t chunk, float *bounds) {
 #endif    
     }
 
-    for (rchunk = 0; rchunk < ROCKSTAR_NUM_WRITERS; rchunk++) {
+    for (rchunk = 0; rchunk < NUM_WRITERS; rchunk++) {
         if (!bounds || bounds_overlap(p_bounds[rchunk].bounds, bounds,
-                                      overlap_region, ROCKSTAR_OVERLAP_LENGTH))
+                                      overlap_region, OVERLAP_LENGTH))
             load_prev_binary_halos(snap - 1, rchunk, bounds, chunk);
     }
     check_realloc_s(prev_halo_buffer, 0, 0);
@@ -329,7 +329,7 @@ float find_previous_mass(struct halo *h, struct particle *hp,
                 "Hnow: %f %f %f (#%" PRId64 "; %" PRId64
                 "; %e); Phalo: %f %f %f (%e); %" PRId64 "\n",
                 h->pos[0], h->pos[1], h->pos[2], (int64_t)(h - haloinfo->halos),
-                h->num_p, h->num_p * ROCKSTAR_PARTICLE_MASS, best_ph->pos[0],
+                h->num_p, h->num_p * PARTICLE_MASS, best_ph->pos[0],
                 best_ph->pos[1], best_ph->pos[2], best_ph->m, best_particles);
     }
 #endif /* DEBUG_FUN_TIMES */

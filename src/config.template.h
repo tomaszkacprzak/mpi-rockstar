@@ -1,145 +1,145 @@
-// string(ROCKSTAR_a,b) real(ROCKSTAR_a,b) integer(ROCKSTAR_a,b)
+// string(a,b) real(a,b) integer(a,b)
 // Sets strings, floats, and integers;
 //      "a" is the variable name;
 //      "b" is the default.
 
-string(ROCKSTAR_FILE_FORMAT, "GADGET2");
-real(ROCKSTAR_PARTICLE_MASS, 0); // Auto-generated or auto-read
+string(FILE_FORMAT, "GADGET2");
+real(PARTICLE_MASS, 0); // Auto-generated or auto-read
 
-string(ROCKSTAR_MASS_DEFINITION, "vir");
-string(ROCKSTAR_MASS_DEFINITION2, "200b");
-string(ROCKSTAR_MASS_DEFINITION3, "200c");
-string(ROCKSTAR_MASS_DEFINITION4, "500c");
-string(ROCKSTAR_MASS_DEFINITION5, "2500c");
-integer(ROCKSTAR_STRICT_SO_MASSES, 0);
-integer(ROCKSTAR_MIN_HALO_OUTPUT_SIZE, 20);
-real(ROCKSTAR_FORCE_RES, 0.003); // In Mpc/h
-real(ROCKSTAR_FORCE_RES_PHYS_MAX, 0);
+string(MASS_DEFINITION, "vir");
+string(MASS_DEFINITION2, "200b");
+string(MASS_DEFINITION3, "200c");
+string(MASS_DEFINITION4, "500c");
+string(MASS_DEFINITION5, "2500c");
+integer(STRICT_SO_MASSES, 0);
+integer(MIN_HALO_OUTPUT_SIZE, 20);
+real(FORCE_RES, 0.003); // In Mpc/h
+real(FORCE_RES_PHYS_MAX, 0);
 
-real(ROCKSTAR_NON_COSMOLOGICAL, 0);
-real(ROCKSTAR_SCALE_NOW, 1.0);
-real(ROCKSTAR_h0, 0.7);
-real(ROCKSTAR_Ol, 0.73);
-real(ROCKSTAR_Om, 0.27);
-real(ROCKSTAR_W0, -1);
-real(ROCKSTAR_WA, 0);
+real(NON_COSMOLOGICAL, 0);
+real(SCALE_NOW, 1.0);
+real(h0, 0.7);
+real(Ol, 0.73);
+real(Om, 0.27);
+real(W0, -1);
+real(WA, 0);
 
-integer(ROCKSTAR_GADGET_ID_BYTES, 4);
-real(ROCKSTAR_GADGET_MASS_CONVERSION, 1e10);
-real(ROCKSTAR_GADGET_LENGTH_CONVERSION, 1.0);
-integer(ROCKSTAR_GADGET_SKIP_NON_HALO_PARTICLES, 1);
-integer(ROCKSTAR_GADGET_HALO_PARTICLE_TYPE, 1);
-integer(ROCKSTAR_RESCALE_PARTICLE_MASS, 0);
+integer(GADGET_ID_BYTES, 4);
+real(GADGET_MASS_CONVERSION, 1e10);
+real(GADGET_LENGTH_CONVERSION, 1.0);
+integer(GADGET_SKIP_NON_HALO_PARTICLES, 1);
+integer(GADGET_HALO_PARTICLE_TYPE, 1);
+integer(RESCALE_PARTICLE_MASS, 0);
 
 #ifdef ENABLE_HDF5
-integer(ROCKSTAR_AREPO_NTYPES, 6);
-real(ROCKSTAR_AREPO_MASS_CONVERSION, 1e10);
-real(ROCKSTAR_AREPO_LENGTH_CONVERSION, 1e-3);
-integer(ROCKSTAR_AREPO_DM_PARTTYPE, 1);
+integer(AREPO_NTYPES, 6);
+real(AREPO_MASS_CONVERSION, 1e10);
+real(AREPO_LENGTH_CONVERSION, 1e-3);
+integer(AREPO_DM_PARTTYPE, 1);
 
-integer(ROCKSTAR_GADGET4_NTYPES, 6);
-real(ROCKSTAR_GADGET4_MASS_CONVERSION, 1e10);
-real(ROCKSTAR_GADGET4_LENGTH_CONVERSION, 1.0);
-integer(ROCKSTAR_GADGET4_DM_PARTTYPE, 1);
+integer(GADGET4_NTYPES, 6);
+real(GADGET4_MASS_CONVERSION, 1e10);
+real(GADGET4_LENGTH_CONVERSION, 1.0);
+integer(GADGET4_DM_PARTTYPE, 1);
 #endif /* ENABLE_HDF5 */
 
-real(ROCKSTAR_TIPSY_LENGTH_CONVERSION, 1.0);
-real(ROCKSTAR_TIPSY_VELOCITY_CONVERSION, 1.0);
+real(TIPSY_LENGTH_CONVERSION, 1.0);
+real(TIPSY_VELOCITY_CONVERSION, 1.0);
 
 // Conversion parameters for PKDGRAV3 lightcone particle format
 real(PKDGRAV3LCP_POS_SCALE, 1);
 real(PKDGRAV3LCP_POS_SHIFT, 0);
 real(PKDGRAV3LCP_VEL_SCALE, 1);
 
-integer(ROCKSTAR_PARALLEL_IO, 1);
-string(ROCKSTAR_PARALLEL_IO_SERVER_ADDRESS, "auto");
-string(ROCKSTAR_PARALLEL_IO_SERVER_PORT, "auto");
-integer(ROCKSTAR_PARALLEL_IO_WRITER_PORT, 32001);
-string(ROCKSTAR_PARALLEL_IO_SERVER_INTERFACE, "");
-integer(ROCKSTAR_PARALLEL_IO_CATALOGS, 0);
-string(ROCKSTAR_RUN_ON_SUCCESS, "");
-string(ROCKSTAR_RUN_PARALLEL_ON_SUCCESS, "");
-string(ROCKSTAR_LOAD_BALANCE_SCRIPT, "");
+integer(PARALLEL_IO, 1);
+string(PARALLEL_IO_SERVER_ADDRESS, "auto");
+string(PARALLEL_IO_SERVER_PORT, "auto");
+integer(PARALLEL_IO_WRITER_PORT, 32001);
+string(PARALLEL_IO_SERVER_INTERFACE, "");
+integer(PARALLEL_IO_CATALOGS, 0);
+string(RUN_ON_SUCCESS, "");
+string(RUN_PARALLEL_ON_SUCCESS, "");
+string(LOAD_BALANCE_SCRIPT, "");
 
-string(ROCKSTAR_INBASE, ".");
-string(ROCKSTAR_FILENAME, "tests/halo_nfw");
-integer(ROCKSTAR_STARTING_SNAP, 0);
-integer(ROCKSTAR_RESTART_SNAP, 0);
-integer(ROCKSTAR_NUM_SNAPS, 1);
-integer(ROCKSTAR_NUM_BLOCKS, 1);
-integer(ROCKSTAR_NUM_READERS, 0);
-integer(ROCKSTAR_PRELOAD_PARTICLES, 0);
-string(ROCKSTAR_SNAPSHOT_NAMES, "");
-string(ROCKSTAR_LIGHTCONE_ALT_SNAPS, "");
-string(ROCKSTAR_BLOCK_NAMES, "");
+string(INBASE, ".");
+string(FILENAME, "tests/halo_nfw");
+integer(STARTING_SNAP, 0);
+integer(RESTART_SNAP, 0);
+integer(NUM_SNAPS, 1);
+integer(NUM_BLOCKS, 1);
+integer(NUM_READERS, 0);
+integer(PRELOAD_PARTICLES, 0);
+string(SNAPSHOT_NAMES, "");
+string(LIGHTCONE_ALT_SNAPS, "");
+string(BLOCK_NAMES, "");
 
-string(ROCKSTAR_OUTBASE, ".");
-real(ROCKSTAR_OVERLAP_LENGTH, 3.0);
-integer(ROCKSTAR_NUM_WRITERS, 1);
-integer(ROCKSTAR_FORK_READERS_FROM_WRITERS, 0);
-integer(ROCKSTAR_FORK_PROCESSORS_PER_MACHINE, 1);
+string(OUTBASE, ".");
+real(OVERLAP_LENGTH, 3.0);
+integer(NUM_WRITERS, 1);
+integer(FORK_READERS_FROM_WRITERS, 0);
+integer(FORK_PROCESSORS_PER_MACHINE, 1);
 
-string(ROCKSTAR_OUTPUT_FORMAT, "BOTH");
-integer(ROCKSTAR_DELETE_BINARY_OUTPUT_AFTER_FINISHED, 0);
-integer(ROCKSTAR_FULL_PARTICLE_CHUNKS, 0);
-integer(ROCKSTAR_OUTPUT_EVERY_N_PARTICLES, 1);
-integer(ROCKSTAR_UNFILTERED_HALO_OUTPUT, 0);
-string(ROCKSTAR_BGC2_SNAPNAMES, "");
-real(ROCKSTAR_WEAK_LENSING_FRACTION, 0);
+string(OUTPUT_FORMAT, "BOTH");
+integer(DELETE_BINARY_OUTPUT_AFTER_FINISHED, 0);
+integer(FULL_PARTICLE_CHUNKS, 0);
+integer(OUTPUT_EVERY_N_PARTICLES, 1);
+integer(UNFILTERED_HALO_OUTPUT, 0);
+string(BGC2_SNAPNAMES, "");
+real(WEAK_LENSING_FRACTION, 0);
 
-integer(ROCKSTAR_SHAPE_ITERATIONS, 10);
-integer(ROCKSTAR_WEIGHTED_SHAPES, 1);
-integer(ROCKSTAR_BOUND_PROPS, 1);
-integer(ROCKSTAR_BOUND_OUT_TO_HALO_EDGE, 0);
-integer(ROCKSTAR_DO_MERGER_TREE_ONLY, 0);
-integer(ROCKSTAR_IGNORE_PARTICLE_IDS, 0);
-integer(ROCKSTAR_EXACT_LL_CALC, 0);
-real(ROCKSTAR_TRIM_OVERLAP, 0);
-real(ROCKSTAR_ROUND_AFTER_TRIM, 1);
-integer(ROCKSTAR_LIGHTCONE, 0);
-integer(ROCKSTAR_PERIODIC, 1);
+integer(SHAPE_ITERATIONS, 10);
+integer(WEIGHTED_SHAPES, 1);
+integer(BOUND_PROPS, 1);
+integer(BOUND_OUT_TO_HALO_EDGE, 0);
+integer(DO_MERGER_TREE_ONLY, 0);
+integer(IGNORE_PARTICLE_IDS, 0);
+integer(EXACT_LL_CALC, 0);
+real(TRIM_OVERLAP, 0);
+real(ROUND_AFTER_TRIM, 1);
+integer(LIGHTCONE, 0);
+integer(PERIODIC, 1);
 
-real3(ROCKSTAR_LIGHTCONE_ORIGIN, "0 0 0");
-real3(ROCKSTAR_LIGHTCONE_ALT_ORIGIN, "0 0 0");
+real3(LIGHTCONE_ORIGIN, "0 0 0");
+real3(LIGHTCONE_ALT_ORIGIN, "0 0 0");
 
-real3(ROCKSTAR_LIMIT_CENTER, "0 0 0");
-real(ROCKSTAR_LIMIT_RADIUS, 0);
+real3(LIMIT_CENTER, "0 0 0");
+real(LIMIT_RADIUS, 0);
 
-integer(ROCKSTAR_SWAP_ENDIANNESS, 0);
-integer(ROCKSTAR_GADGET_VARIANT, 0);
-integer(ROCKSTAR_ART_VARIANT, 0);
+integer(SWAP_ENDIANNESS, 0);
+integer(GADGET_VARIANT, 0);
+integer(ART_VARIANT, 0);
 
-real(ROCKSTAR_FOF_FRACTION, 0.7);
-real(ROCKSTAR_FOF_LINKING_LENGTH, 0.28);
-real(ROCKSTAR_INITIAL_METRIC_SCALING, 1);
-// real(ROCKSTAR_CONTINUED_METRIC_SCALING, 1);
-real(ROCKSTAR_INCLUDE_HOST_POTENTIAL_RATIO, 0.3);
-integer(ROCKSTAR_TEMPORAL_HALO_FINDING, 1);
-integer(ROCKSTAR_MIN_HALO_PARTICLES, 10);
-real(ROCKSTAR_UNBOUND_THRESHOLD, 0.5);
-integer(ROCKSTAR_ALT_NFW_METRIC, 0);
-integer(ROCKSTAR_EXTRA_PROFILING, 1);
+real(FOF_FRACTION, 0.7);
+real(FOF_LINKING_LENGTH, 0.28);
+real(INITIAL_METRIC_SCALING, 1);
+// real(CONTINUED_METRIC_SCALING, 1);
+real(INCLUDE_HOST_POTENTIAL_RATIO, 0.3);
+integer(TEMPORAL_HALO_FINDING, 1);
+integer(MIN_HALO_PARTICLES, 10);
+real(UNBOUND_THRESHOLD, 0.5);
+integer(ALT_NFW_METRIC, 0);
+integer(EXTRA_PROFILING, 1);
 
-integer(ROCKSTAR_TOTAL_PARTICLES, 8589934592);
-real(ROCKSTAR_BOX_SIZE, 250); // In Mpc/h
-integer(ROCKSTAR_OUTPUT_LEVELS, 0);
-real3(ROCKSTAR_DUMP_PARTICLES, "0 0 0");
+integer(TOTAL_PARTICLES, 8589934592);
+real(BOX_SIZE, 250); // In Mpc/h
+integer(OUTPUT_LEVELS, 0);
+real3(DUMP_PARTICLES, "0 0 0");
 
-string(ROCKSTAR_CONFIG_FILENAME, "");
-real(ROCKSTAR_AVG_PARTICLE_SPACING, 0); // Auto-generated
-integer(ROCKSTAR_SINGLE_SNAP, 0);
+string(CONFIG_FILENAME, "");
+real(AVG_PARTICLE_SPACING, 0); // Auto-generated
+integer(SINGLE_SNAP, 0);
 
 // Additional parameters for MPI Rockstar for input
-integer(ROCKSTAR_FILES_PER_SUBDIR_INPUT, 0); // The number of files in each subdir
-integer(ROCKSTAR_SUBDIR_DIGITS_INPUT, 4);    // and the length of subdir names
-string(ROCKSTAR_INBASE2, "snapdir_");
+integer(FILES_PER_SUBDIR_INPUT, 0); // The number of files in each subdir
+integer(SUBDIR_DIGITS_INPUT, 4);    // and the length of subdir names
+string(INBASE2, "snapdir_");
 
 // Additional parameters for MPI Rockstar for output
-integer(ROCKSTAR_OUTLIST_PARALLEL, 0); // Output 'outlist' files in parallel
-integer(ROCKSTAR_OUTPUT_SUBDIR, 0);    // Organize output files by snapshot
-integer(ROCKSTAR_SNAPSHOT_SUBDIR_DIGITS, 3);  // The length of snapshot subdir numbers 
-integer(ROCKSTAR_FILES_PER_SUBDIR_OUTPUT, 0); // The number of files in each subdir (or sub-sub-dir)
-integer(ROCKSTAR_SUBDIR_DIGITS_OUTPUT, 4);    // and the length of subdir names (or sub-sub-dir)
+integer(OUTLIST_PARALLEL, 0); // Output 'outlist' files in parallel
+integer(OUTPUT_SUBDIR, 0);    // Organize output files by snapshot
+integer(SNAPSHOT_SUBDIR_DIGITS, 3);  // The length of snapshot subdir numbers 
+integer(FILES_PER_SUBDIR_OUTPUT, 0); // The number of files in each subdir (or sub-sub-dir)
+integer(SUBDIR_DIGITS_OUTPUT, 4);    // and the length of subdir names (or sub-sub-dir)
 
 // Additional parameters for MPI Rockstar for memory saving transfer
-integer(ROCKSTAR_MEMORY_SAVING_TRANSFER, 0); // Flag for using memory saving transfer
+integer(MEMORY_SAVING_TRANSFER, 0); // Flag for using memory saving transfer

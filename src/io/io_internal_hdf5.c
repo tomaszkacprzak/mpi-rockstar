@@ -147,12 +147,12 @@ void read_hdf5_halos(hid_t HDF_FileID, struct halo *halos,
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].bulkvel[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
 
-    sprintf(dataid, "M%s", ROCKSTAR_MASS_DEFINITION);
+    sprintf(dataid, "M%s", MASS_DEFINITION);
     read_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].m) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    sprintf(dataid, "R%s", ROCKSTAR_MASS_DEFINITION);
+    sprintf(dataid, "R%s", MASS_DEFINITION);
     read_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].r) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
@@ -207,22 +207,22 @@ void read_hdf5_halos(hid_t HDF_FileID, struct halo *halos,
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].spin) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    sprintf(dataid, "M%s", ROCKSTAR_MASS_DEFINITION2);
+    sprintf(dataid, "M%s", MASS_DEFINITION2);
     read_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].alt_m[0]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    sprintf(dataid, "M%s", ROCKSTAR_MASS_DEFINITION3);
+    sprintf(dataid, "M%s", MASS_DEFINITION3);
     read_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].alt_m[1]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    sprintf(dataid, "M%s", ROCKSTAR_MASS_DEFINITION4);
+    sprintf(dataid, "M%s", MASS_DEFINITION4);
     read_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].alt_m[2]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-    sprintf(dataid, "M%s", ROCKSTAR_MASS_DEFINITION5);
+    sprintf(dataid, "M%s", MASS_DEFINITION5);
     read_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].alt_m[3]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
@@ -385,21 +385,21 @@ void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh,
     // Omega_m
     attrspace_id = check_H5Screate(H5S_SCALAR);
     attr_id = check_H5Acreate(group_id, "Omega_m", H5T_NATIVE_FLOAT, attrspace_id);
-    check_H5Awrite(attr_id, H5T_NATIVE_FLOAT, &bh->ROCKSTAR_Om);
+    check_H5Awrite(attr_id, H5T_NATIVE_FLOAT, &bh->Om);
     check_H5Aclose(attr_id);
     check_H5Sclose(attrspace_id);
 
     // Omega_L
     attrspace_id = check_H5Screate(H5S_SCALAR);
     attr_id = check_H5Acreate(group_id, "Omega_L", H5T_NATIVE_FLOAT, attrspace_id);
-    check_H5Awrite(attr_id, H5T_NATIVE_FLOAT, &bh->ROCKSTAR_Ol);
+    check_H5Awrite(attr_id, H5T_NATIVE_FLOAT, &bh->Ol);
     check_H5Aclose(attr_id);
     check_H5Sclose(attrspace_id);
 
     // H0
     attrspace_id = check_H5Screate(H5S_SCALAR);
     attr_id = check_H5Acreate(group_id, "h", H5T_NATIVE_FLOAT, attrspace_id);
-    check_H5Awrite(attr_id, H5T_NATIVE_FLOAT, &bh->ROCKSTAR_h0);
+    check_H5Awrite(attr_id, H5T_NATIVE_FLOAT, &bh->h0);
     check_H5Aclose(attr_id);
     check_H5Sclose(attrspace_id);
 
@@ -467,7 +467,7 @@ void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh,
     /* Items below are not stored in binary_header. */
     // ForceResolution
     attrspace_id = check_H5Screate(H5S_SCALAR);
-    buffer = ROCKSTAR_FORCE_RES;
+    buffer = FORCE_RES;
     attr_id = check_H5Acreate(group_id, "ForceResolution", H5T_NATIVE_FLOAT, attrspace_id);
     check_H5Awrite(attr_id, H5T_NATIVE_FLOAT, &buffer);
     check_H5Aclose(attr_id);
@@ -475,7 +475,7 @@ void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh,
 
     // FOFLinkingLength
     attrspace_id = check_H5Screate(H5S_SCALAR);
-    buffer = ROCKSTAR_FOF_LINKING_LENGTH;
+    buffer = FOF_LINKING_LENGTH;
     attr_id = check_H5Acreate(group_id, "FOFLinkingLength", H5T_NATIVE_FLOAT, attrspace_id);
     check_H5Awrite(attr_id, H5T_NATIVE_FLOAT, &buffer);
     check_H5Aclose(attr_id);
@@ -483,7 +483,7 @@ void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh,
 
     // UnboundThreshold
     attrspace_id = check_H5Screate(H5S_SCALAR);
-    buffer = ROCKSTAR_UNBOUND_THRESHOLD;
+    buffer = UNBOUND_THRESHOLD;
     attr_id = check_H5Acreate(group_id, "UnboundThreshold", H5T_NATIVE_FLOAT, attrspace_id);
     check_H5Awrite(attr_id, H5T_NATIVE_FLOAT, &buffer);
     check_H5Aclose(attr_id);
@@ -491,7 +491,7 @@ void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh,
 
     // FOFFraction
     attrspace_id = check_H5Screate(H5S_SCALAR);
-    buffer = ROCKSTAR_FOF_FRACTION;
+    buffer = FOF_FRACTION;
     attr_id = check_H5Acreate(group_id, "FOFFraction", H5T_NATIVE_FLOAT, attrspace_id);
     check_H5Awrite(attr_id, H5T_NATIVE_FLOAT, &buffer);
     check_H5Aclose(attr_id);
@@ -502,7 +502,7 @@ void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh,
     check_H5Tset_size(attrtype_id, 4);
     attrspace_id = check_H5Screate(H5S_SCALAR);
     attr_id = check_H5Acreate(group_id, "StrictSOMasses", attrtype_id, attrspace_id);
-    if (ROCKSTAR_STRICT_SO_MASSES)
+    if (STRICT_SO_MASSES)
         check_H5Awrite(attr_id, attrtype_id, "Yes");
     else
         check_H5Awrite(attr_id, attrtype_id, "No");
@@ -521,7 +521,7 @@ void write_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh,
     // TotalChunks
     attrspace_id = check_H5Screate(H5S_SCALAR);
     attr_id = check_H5Acreate(group_id, "TotalChunks", H5T_NATIVE_LLONG, attrspace_id);
-    ibuffer = ROCKSTAR_NUM_WRITERS;
+    ibuffer = NUM_WRITERS;
     check_H5Awrite(attr_id, H5T_NATIVE_LLONG, &ibuffer);
     check_H5Aclose(attr_id);
     check_H5Sclose(attrspace_id);
@@ -580,7 +580,7 @@ void read_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh, char *f
     attr_id = check_H5Aopen(group_id, "Omega_m", filename);
     attrspace_id = check_H5Aget_space(attr_id);
     check_H5Sselect_all(attrspace_id);
-    check_H5Aread2(attr_id, H5T_NATIVE_FLOAT, &bh->ROCKSTAR_Om);
+    check_H5Aread2(attr_id, H5T_NATIVE_FLOAT, &bh->Om);
     check_H5Sclose(attrspace_id);
     check_H5Aclose(attr_id);
 
@@ -588,7 +588,7 @@ void read_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh, char *f
     attr_id = check_H5Aopen(group_id, "Omega_L", filename);
     attrspace_id = check_H5Aget_space(attr_id);
     check_H5Sselect_all(attrspace_id);
-    check_H5Aread2(attr_id, H5T_NATIVE_FLOAT, &bh->ROCKSTAR_Ol);
+    check_H5Aread2(attr_id, H5T_NATIVE_FLOAT, &bh->Ol);
     check_H5Sclose(attrspace_id);
     check_H5Aclose(attr_id);
 
@@ -596,7 +596,7 @@ void read_hdf5_header(hid_t HDF_FileID, struct binary_output_header *bh, char *f
     attr_id = check_H5Aopen(group_id, "h", filename);
     attrspace_id = check_H5Aget_space(attr_id);
     check_H5Sselect_all(attrspace_id);
-    check_H5Aread2(attr_id, H5T_NATIVE_FLOAT, &bh->ROCKSTAR_h0);
+    check_H5Aread2(attr_id, H5T_NATIVE_FLOAT, &bh->h0);
     check_H5Sclose(attrspace_id);
     check_H5Aclose(attr_id);
 
@@ -779,15 +779,15 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
     add_hdf5_attribute(HDF_GroupID, "BulkVelocity", "km/s (physical, peculiar)",
                        "Bulk velocity");
 
-    sprintf(dataid, "M%s", ROCKSTAR_MASS_DEFINITION);
-    sprintf(description, "Halo mass (%s)", ROCKSTAR_MASS_DEFINITION);
+    sprintf(dataid, "M%s", MASS_DEFINITION);
+    sprintf(description, "Halo mass (%s)", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].m) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
     add_hdf5_attribute(HDF_GroupID, dataid, "Msun/h",
                        description);
 
-    sprintf(dataid, "R%s", ROCKSTAR_MASS_DEFINITION);
-    sprintf(description, "Halo radius (%s)", ROCKSTAR_MASS_DEFINITION);
+    sprintf(dataid, "R%s", MASS_DEFINITION);
+    sprintf(description, "Halo radius (%s)", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].r) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
     add_hdf5_attribute(HDF_GroupID, dataid, "kpc / h (comoving)",
@@ -855,29 +855,29 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
     add_hdf5_attribute(HDF_GroupID, "Spin", "Dimensionless",
                        "Halo spin parameter (Peebles)");
 
-    sprintf(dataid, "M%s", ROCKSTAR_MASS_DEFINITION2);
-    sprintf(description, "Halo mass (%s)", ROCKSTAR_MASS_DEFINITION2);
+    sprintf(dataid, "M%s", MASS_DEFINITION2);
+    sprintf(description, "Halo mass (%s)", MASS_DEFINITION2);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].alt_m[0]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
     add_hdf5_attribute(HDF_GroupID, dataid, "Msun/h",
                        description);
 
-    sprintf(dataid, "M%s", ROCKSTAR_MASS_DEFINITION3);
-    sprintf(description, "Halo mass (%s)", ROCKSTAR_MASS_DEFINITION3);
+    sprintf(dataid, "M%s", MASS_DEFINITION3);
+    sprintf(description, "Halo mass (%s)", MASS_DEFINITION3);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].alt_m[1]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
     add_hdf5_attribute(HDF_GroupID, dataid, "Msun/h",
                        description);
 
-    sprintf(dataid, "M%s", ROCKSTAR_MASS_DEFINITION4);
-    sprintf(description, "Halo mass (%s)", ROCKSTAR_MASS_DEFINITION4);
+    sprintf(dataid, "M%s", MASS_DEFINITION4);
+    sprintf(description, "Halo mass (%s)", MASS_DEFINITION4);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].alt_m[2]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
     add_hdf5_attribute(HDF_GroupID, dataid, "Msun/h",
                        description);
 
-    sprintf(dataid, "M%s", ROCKSTAR_MASS_DEFINITION5);
-    sprintf(description, "Halo mass (%s)", ROCKSTAR_MASS_DEFINITION5);
+    sprintf(dataid, "M%s", MASS_DEFINITION5);
+    sprintf(description, "Halo mass (%s)", MASS_DEFINITION5);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].alt_m[3]) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, dataid, H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
     add_hdf5_attribute(HDF_GroupID, dataid, "Msun/h",
@@ -947,50 +947,50 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
 
     HDF_GroupID = check_H5Gcreate(HDF_FileID, "/Shape");
 
-    sprintf(description, "Intermediate to major axis ratio (mass definition: %s): b/a", ROCKSTAR_MASS_DEFINITION);
+    sprintf(description, "Intermediate to major axis ratio (mass definition: %s): b/a", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].b_to_a) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, "IntermediateToMajorAxisRatio", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
     add_hdf5_attribute(HDF_GroupID, "IntermediateToMajorAxisRatio", "Dimensionless",
                        description);
 
-    sprintf(description, "Minor to major axis ratio (mass definition: %s): c/a", ROCKSTAR_MASS_DEFINITION);
+    sprintf(description, "Minor to major axis ratio (mass definition: %s): c/a", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].c_to_a) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, "MinorToMajorAxisRatio", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
     add_hdf5_attribute(HDF_GroupID, "MinorToMajorAxisRatio", "Dimensionless",
                        description);
 
-    sprintf(description, "Intermediate to major axis ratio (mass definition: %s): b/a", ROCKSTAR_MASS_DEFINITION4);
+    sprintf(description, "Intermediate to major axis ratio (mass definition: %s): b/a", MASS_DEFINITION4);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].b_to_a2) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, "IntermediateToMajorAxisRatio2", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
     add_hdf5_attribute(HDF_GroupID, "IntermediateToMajorAxisRatio2", "Dimensionless",
                        description);
 
-    sprintf(description, "Minor to major axis ratio (mass definition: %s): c/a", ROCKSTAR_MASS_DEFINITION4);
+    sprintf(description, "Minor to major axis ratio (mass definition: %s): c/a", MASS_DEFINITION4);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].c_to_a2) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, "MinorToMajorAxisRatio2", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
     add_hdf5_attribute(HDF_GroupID, "MinorToMajorAxisRatio2", "Dimensionless",
                        description);
 
-    sprintf(description, "Major axis direction (mass definition: %s)", ROCKSTAR_MASS_DEFINITION);
+    sprintf(description, "Major axis direction (mass definition: %s)", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].A[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, "MajorAxis", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
     add_hdf5_attribute(HDF_GroupID, "MajorAxis", "Normalized",
                        description);
 
-    sprintf(description, "Major axis direction (mass definition: %s)", ROCKSTAR_MASS_DEFINITION4);
+    sprintf(description, "Major axis direction (mass definition: %s)", MASS_DEFINITION4);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].A2[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, "MajorAxis2", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
     add_hdf5_attribute(HDF_GroupID, "MajorAxis2", "Normalized",
                        description);
 
 #ifdef OUTPUT_INTERMEDIATE_AXIS
-    sprintf(description, "Intermediate axis direction (mass definition: %s)", ROCKSTAR_MASS_DEFINITION);
+    sprintf(description, "Intermediate axis direction (mass definition: %s)", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].A_I[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, "IntermediateAxis", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
     add_hdf5_attribute(HDF_GroupID, "IntermediateAxis", "Normalized",
                        description);
 
-    sprintf(description, "Intermediate axis direction (mass definition: %s)", ROCKSTAR_MASS_DEFINITION4);
+    sprintf(description, "Intermediate axis direction (mass definition: %s)", MASS_DEFINITION4);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].A2_I[0]) - (char *) (halos), 3, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, "IntermediateAxis2", H5T_NATIVE_FLOAT, 2, dims3, buffer_float);
     add_hdf5_attribute(HDF_GroupID, "IntermediateAxis2", "Normalized",
@@ -998,13 +998,13 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
 #endif
 
 #ifdef OUTPUT_INERTIA_TENSOR
-    sprintf(description, "Inertia tensor (mass definition: %s): (Ixx, Iyy, Izz, Ixy, Iyz, Izx)", ROCKSTAR_MASS_DEFINITION);
+    sprintf(description, "Inertia tensor (mass definition: %s): (Ixx, Iyy, Izz, Ixy, Iyz, Izx)", MASS_DEFINITION);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].inertia_tensor[0]) - (char *) (halos), 6, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, "InertiaTensor", H5T_NATIVE_FLOAT, 2, dims6, buffer_float);
     add_hdf5_attribute(HDF_GroupID, "InertiaTensor", "Msun/h * (kpc/h)^2 (comoving)",
                        description);
 
-    sprintf(description, "Inertia tensor (mass definition: %s): (Ixx, Iyy, Izz, Ixy, Iyz, Izx)", ROCKSTAR_MASS_DEFINITION4);
+    sprintf(description, "Inertia tensor (mass definition: %s): (Ixx, Iyy, Izz, Ixy, Iyz, Izx)", MASS_DEFINITION4);
     set_buffer(buffer_float, to_write, (char *) &(halos[0].inertia_tensor2[0]) - (char *) (halos), 6, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, "InertiaTensor2", H5T_NATIVE_FLOAT, 2, dims6, buffer_float);
     add_hdf5_attribute(HDF_GroupID, "InertiaTensor2", "Msun/h * (kpc/h)^2 (comoving)",

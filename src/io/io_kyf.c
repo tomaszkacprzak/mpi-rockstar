@@ -202,25 +202,25 @@ void load_particles_kyf(char *filename, struct particle **p, int64_t *num_p) {
     }
 #endif
 
-    ROCKSTAR_Ol = lambda0;
-    ROCKSTAR_Om = omega0;
+    Ol = lambda0;
+    Om = omega0;
     ;
-    ROCKSTAR_h0            = hubble;
-    ROCKSTAR_BOX_SIZE      = lunit * hubble;
-    ROCKSTAR_SCALE_NOW     = anow;
-    ROCKSTAR_PARTICLE_MASS = ROCKSTAR_Om * CRITICAL_DENSITY * pow(ROCKSTAR_BOX_SIZE, 3) / ROCKSTAR_TOTAL_PARTICLES;
-    ROCKSTAR_AVG_PARTICLE_SPACING = cbrt(ROCKSTAR_PARTICLE_MASS / (ROCKSTAR_Om * CRITICAL_DENSITY));
+    h0            = hubble;
+    BOX_SIZE      = lunit * hubble;
+    SCALE_NOW     = anow;
+    PARTICLE_MASS = Om * CRITICAL_DENSITY * pow(BOX_SIZE, 3) / TOTAL_PARTICLES;
+    AVG_PARTICLE_SPACING = cbrt(PARTICLE_MASS / (Om * CRITICAL_DENSITY));
 
 #if 0
   fprintf( stderr, "-npart= %d\n", npart);
-  fprintf( stderr, "-ROCKSTAR_Ol= %e\n", ROCKSTAR_Ol);
-  fprintf( stderr, "-ROCKSTAR_Om= %e\n", ROCKSTAR_Om);
-  fprintf( stderr, "-ROCKSTAR_h0= %e\n", ROCKSTAR_h0);
-  fprintf( stderr, "-ROCKSTAR_BOX_SIZE= %e\n", ROCKSTAR_BOX_SIZE);
-  fprintf( stderr, "-ROCKSTAR_SCALE_NOW= %e\n", ROCKSTAR_SCALE_NOW);
-  fprintf( stderr, "-ROCKSTAR_PARTICLE_MASS= %e\n", ROCKSTAR_PARTICLE_MASS);
-  fprintf( stderr, "-ROCKSTAR_TOTAL_PARTICLES= %lld\n", ROCKSTAR_TOTAL_PARTICLES);
-  fprintf( stderr, "-ROCKSTAR_AVG_PARTICLE_SPACING= %e\n", ROCKSTAR_AVG_PARTICLE_SPACING);
+  fprintf( stderr, "-Ol= %e\n", Ol);
+  fprintf( stderr, "-Om= %e\n", Om);
+  fprintf( stderr, "-h0= %e\n", h0);
+  fprintf( stderr, "-BOX_SIZE= %e\n", BOX_SIZE);
+  fprintf( stderr, "-SCALE_NOW= %e\n", SCALE_NOW);
+  fprintf( stderr, "-PARTICLE_MASS= %e\n", PARTICLE_MASS);
+  fprintf( stderr, "-TOTAL_PARTICLES= %lld\n", TOTAL_PARTICLES);
+  fprintf( stderr, "-AVG_PARTICLE_SPACING= %e\n", AVG_PARTICLE_SPACING);
 #endif
 
     double lunit_gadget = lunit * hubble;

@@ -237,7 +237,7 @@ void build_fullfofs(struct FOFInfo *fofinfo) {
                 fofinfo->fofs[f].num_p =
                     (fofinfo->root_p + i) - fofinfo->fofs[f].particles;
             }
-            if ((f < 0) || (fofinfo->fofs[f].num_p >= ROCKSTAR_MIN_HALO_PARTICLES) ||
+            if ((f < 0) || (fofinfo->fofs[f].num_p >= MIN_HALO_PARTICLES) ||
                 last_sf >= fofinfo->num_smallfofs - fofinfo->num_boundary_fofs)
                 f = add_new_fof(fofinfo);
             fofinfo->fofs[f].particles = fofinfo->root_p + i;
@@ -247,7 +247,7 @@ void build_fullfofs(struct FOFInfo *fofinfo) {
     if (f > -1) {
         fofinfo->fofs[f].num_p =
             (fofinfo->root_p + i) - fofinfo->fofs[f].particles;
-        if (fofinfo->fofs[f].num_p < ROCKSTAR_MIN_HALO_PARTICLES &&
+        if (fofinfo->fofs[f].num_p < MIN_HALO_PARTICLES &&
             (sf < fofinfo->num_smallfofs - fofinfo->num_boundary_fofs))
             fofinfo->num_fofs--;
     }

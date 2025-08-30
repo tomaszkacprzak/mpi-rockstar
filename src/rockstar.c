@@ -56,9 +56,9 @@ void rockstar(float *bounds, int64_t manual_subs) {
     float   bounds2[6];
 
     calc_mass_definition();
-    r = ROCKSTAR_AVG_PARTICLE_SPACING * ROCKSTAR_FOF_LINKING_LENGTH;
-    if (ROCKSTAR_FORCE_RES * ROCKSTAR_SCALE_NOW > ROCKSTAR_FORCE_RES_PHYS_MAX)
-        ROCKSTAR_FORCE_RES = ROCKSTAR_FORCE_RES_PHYS_MAX / ROCKSTAR_SCALE_NOW;
+    r = AVG_PARTICLE_SPACING * FOF_LINKING_LENGTH;
+    if (FORCE_RES * SCALE_NOW > FORCE_RES_PHYS_MAX)
+        FORCE_RES = FORCE_RES_PHYS_MAX / SCALE_NOW;
     build_particle_tree();
     struct FOFInfo fofinfo;
     init_fofinfo(&fofinfo);
@@ -303,7 +303,7 @@ void align_particles(struct fof f) {
     int64_t i, j;
     float   bounds[6], max_counts;
     int64_t counts[100];
-    if (!ROCKSTAR_BOX_SIZE || f.num_p < 2)
+    if (!BOX_SIZE || f.num_p < 2)
         return;
     for (j = 0; j < 3; j++) {
         bounds[j] = bounds[j + 3] = f.particles[0].pos[j];
@@ -317,24 +317,24 @@ void align_particles(struct fof f) {
         }
     }
     for (j = 0; j < 3; j++) {
-        if (bounds[j] <= ROCKSTAR_AVG_PARTICLE_SPACING * ROCKSTAR_FOF_LINKING_LENGTH &&
+        if (bounds[j] <= AVG_PARTICLE_SPACING * FOF_LINKING_LENGTH &&
             bounds[j + 3] >=
-                (ROCKSTAR_BOX_SIZE - ROCKSTAR_AVG_PARTICLE_SPACING * ROCKSTAR_FOF_LINKING_LENGTH)) {
+                (BOX_SIZE - AVG_PARTICLE_SPACING * FOF_LINKING_LENGTH)) {
             memset(counts, 0, sizeof(int64_t) * 100);
             max_counts = (int64_t)((
-                ROCKSTAR_BOX_SIZE / (ROCKSTAR_AVG_PARTICLE_SPACING * ROCKSTAR_FOF_LINKING_LENGTH)));
+                BOX_SIZE / (AVG_PARTICLE_SPACING * FOF_LINKING_LENGTH)));
             if (max_counts > 100)
                 max_counts = 100;
-            double multiple = max_counts / ROCKSTAR_BOX_SIZE;
+            double multiple = max_counts / BOX_SIZE;
             for (i = 0; i < f.num_p; i++)
                 counts[(int64_t)(f.particles[i].pos[j] * multiple)]++;
             for (i = 0; i < max_counts; i++)
                 if (!counts[i])
                     break;
-            double wrap_position = (i + 0.5) * ROCKSTAR_BOX_SIZE / max_counts;
+            double wrap_position = (i + 0.5) * BOX_SIZE / max_counts;
             for (i = 0; i < f.num_p; i++)
                 if (f.particles[i].pos[j] > wrap_position)
-                    f.particles[i].pos[j] -= ROCKSTAR_BOX_SIZE;
+                    f.particles[i].pos[j] -= BOX_SIZE;
         }
     }
 }
@@ -351,7 +351,7 @@ void do_workunit(struct workunit_info *w, struct fof *fofs) {
             tmp.particles = p + processed_parts;
         else {
             tmp.particles = p + processed_parts2;
-            if (ROCKSTAR_PERIODIC)
+            if (PERIODIC)
                 align_particles(tmp);
         }
         find_subs(&tmp);
@@ -370,7 +370,7 @@ void build_particle_tree(void) {
     struct particle *last_p;
     tree         = fast3tree_init(num_p, p);
     rockstar_res = fast3tree_results_init();
-    if (ROCKSTAR_IGNORE_PARTICLE_IDS)
+    if (IGNORE_PARTICLE_IDS)
         for (i = 0; i < num_p; i++)
             p[i].id = i;
 

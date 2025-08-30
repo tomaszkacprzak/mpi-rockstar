@@ -48,13 +48,13 @@ void load_particles_pkdgrav3lcp(char *filename, struct particle **p, int64_t *nu
 
     fprintf(stderr, "load_particles_pkdgrav3lcp: num_p: %" PRId64 "\n", *num_p);
 
-    if (!ROCKSTAR_PARTICLE_MASS) {
-        fprintf(stderr, "ROCKSTAR_PARTICLE_MASS needs to be set in pkdgrav3 lightcone mode, units: Msun/h\n");
+    if (!PARTICLE_MASS) {
+        fprintf(stderr, "PARTICLE_MASS needs to be set in pkdgrav3 lightcone mode, units: Msun/h\n");
         exit(1);
     }   
 
-    ROCKSTAR_AVG_PARTICLE_SPACING =
-        cbrt(ROCKSTAR_PARTICLE_MASS / (ROCKSTAR_Om * CRITICAL_DENSITY));
-    ROCKSTAR_SCALE_NOW = 1.0;
+    AVG_PARTICLE_SPACING =
+        cbrt(PARTICLE_MASS / (Om * CRITICAL_DENSITY));
+    SCALE_NOW = 1.0;
 }
 

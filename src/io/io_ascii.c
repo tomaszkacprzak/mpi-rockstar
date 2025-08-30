@@ -37,7 +37,7 @@ void load_particles(char *filename, struct particle **p, int64_t *num_p) {
     while (fgets(buffer, 1024, input)) {
         if (buffer[0] == '#') {
             if (!strncmp(buffer, "#a = ", 5))
-                ROCKSTAR_SCALE_NOW = atof(buffer + 5);
+                SCALE_NOW = atof(buffer + 5);
             continue;
         }
         n = stringparse(buffer, data, (enum parsetype *)types, NUM_INPUTS);

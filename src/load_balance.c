@@ -26,7 +26,7 @@ void divide_projection(struct projection *proj, int64_t pieces, float *places) {
                 cp - proj->data[i]; // Calculate fractional location of division
             f = (cp > cpp) ? ((double)((n * np) - cpp) / (double)(cp - cpp))
                            : 0;
-            places[n] = ROCKSTAR_BOX_SIZE * (((double)i + f) / (double)PROJECTION_SIZE);
+            places[n] = BOX_SIZE * (((double)i + f) / (double)PROJECTION_SIZE);
             n++;
         }
     }
@@ -36,7 +36,7 @@ void divide_projection(struct projection *proj, int64_t pieces, float *places) {
                         "volume divisions.\n");
         for (; n < pieces; n++)
             places[n] = places[n - 1] +
-                        (ROCKSTAR_BOX_SIZE - places[n - 1]) / (double)(pieces - n + 1);
+                        (BOX_SIZE - places[n - 1]) / (double)(pieces - n + 1);
     }
 }
 
@@ -65,7 +65,7 @@ void populate_bounds(int64_t pos, float *oldbounds, float *newbounds,
         else if ((i % 3) == pos)
             newbounds[i] = (i < 3) ? new_min : new_max;
         else
-            newbounds[i] = (i < 3) ? 0 : ROCKSTAR_BOX_SIZE;
+            newbounds[i] = (i < 3) ? 0 : BOX_SIZE;
     }
 }
 
@@ -75,7 +75,7 @@ void send_projection_requests(struct projection *pr, int64_t num_requests) {
     struct projection_request *prq = NULL;
     prq = check_realloc(prq, sizeof(struct projection_request) * num_requests,
                         "Allocating projection requests.");
-    for (i = 0; i < ROCKSTAR_NUM_READERS; i++) {
+    for (i = 0; i < NUM_READERS; i++) {
         num_to_send = 0;
         for (j = 0; j < num_requests; j++)
             if (bounds_overlap(clients[i].bounds, pr[j].bounds, bounds, 0)) {
@@ -105,7 +105,7 @@ void accumulate_projections(struct projection *pr, int64_t start,
         for (k = 0; k < PROJECTION_SIZE; k++)
             pr[j].data[k] = 0;
 
-    for (i = 0; i < ROCKSTAR_NUM_READERS; i++) {
+    for (i = 0; i < NUM_READERS; i++) {
         recv_from_socket(clients[i].cs, cmd, 4);
         protocol_check(cmd, "cprj");
         recv_from_socket(clients[i].cs, &num_to_recv, sizeof(int64_t));
@@ -123,21 +123,21 @@ void decide_chunks_for_volume_balance() {
     int64_t i, n, idx[3];
     float   bounds[6];
     for (i = 0; i < 3; i++)
-        chunk_size[i] = ROCKSTAR_BOX_SIZE / (float)chunks[i];
-    for (n = 0; n < ROCKSTAR_NUM_WRITERS; n++) {
+        chunk_size[i] = BOX_SIZE / (float)chunks[i];
+    for (n = 0; n < NUM_WRITERS; n++) {
         idx[0] = n % chunks[0];
         idx[1] = ((int64_t)(n / chunks[0])) % chunks[1];
         idx[2] = n / (chunks[0] * chunks[1]);
         for (i = 0; i < 3; i++) {
             bounds[i]     = idx[i] * chunk_size[i];
             bounds[i + 3] = (idx[i] + 1 == chunks[i])
-                                ? ROCKSTAR_BOX_SIZE
+                                ? BOX_SIZE
                                 : bounds[i] + chunk_size[i];
         }
-        memcpy(clients[ROCKSTAR_NUM_READERS + n].bounds, bounds, sizeof(float) * 6);
-        send_to_socket_noconfirm(clients[ROCKSTAR_NUM_READERS + n].cs, "bnds", 4);
-        send_to_socket_noconfirm(clients[ROCKSTAR_NUM_READERS + n].cs,
-                                 clients[ROCKSTAR_NUM_READERS + n].bounds,
+        memcpy(clients[NUM_READERS + n].bounds, bounds, sizeof(float) * 6);
+        send_to_socket_noconfirm(clients[NUM_READERS + n].cs, "bnds", 4);
+        send_to_socket_noconfirm(clients[NUM_READERS + n].cs,
+                                 clients[NUM_READERS + n].bounds,
                                  sizeof(float) * 6);
     }
 }
@@ -149,27 +149,27 @@ void decide_chunks_by_script() {
     float   bounds[6];
     char    buffer[1024];
 
-    script = check_rw_socket(ROCKSTAR_LOAD_BALANCE_SCRIPT, &pid);
-    check_fprintf(script, "%" PRId64 " #Num writers\n", ROCKSTAR_NUM_WRITERS);
+    script = check_rw_socket(LOAD_BALANCE_SCRIPT, &pid);
+    check_fprintf(script, "%" PRId64 " #Num writers\n", NUM_WRITERS);
     check_fprintf(
         script, "%" PRId64 " %" PRId64 " %" PRId64 " #Recommended divisions\n",
         chunks[0], chunks[1], chunks[2]);
-    check_fprintf(script, "%f #Box size (comoving Mpc/h)\n", ROCKSTAR_BOX_SIZE);
-    check_fprintf(script, "%f #Current scale factor\n", ROCKSTAR_SCALE_NOW);
+    check_fprintf(script, "%f #Box size (comoving Mpc/h)\n", BOX_SIZE);
+    check_fprintf(script, "%f #Current scale factor\n", SCALE_NOW);
     check_fprintf(script, "#Format: ID IP_Address Port\n");
-    for (n = 0; n < ROCKSTAR_NUM_WRITERS; n++)
+    for (n = 0; n < NUM_WRITERS; n++)
         check_fprintf(script, "%" PRId64 " %s %d\n", n,
-                      clients[n + ROCKSTAR_NUM_READERS].address,
-                      clients[n + ROCKSTAR_NUM_READERS].port);
+                      clients[n + NUM_READERS].address,
+                      clients[n + NUM_READERS].port);
     check_fprintf(script, "#Expected Return Format: ID IP_Address Port min_x "
                           "min_y min_z max_x max_y max_z\n");
     fflush(script);
-    for (n = 0; n < ROCKSTAR_NUM_WRITERS; n++) {
+    for (n = 0; n < NUM_WRITERS; n++) {
         check_fgets(buffer, 1024, script);
         if (sscanf(buffer, "%" SCNd64 " %*s %d %f %f %f %f %f %f", &i, &port,
                    bounds, bounds + 1, bounds + 2, bounds + 3, bounds + 4,
                    bounds + 5) < 8 ||
-            (i != n) || (port != clients[n + ROCKSTAR_NUM_READERS].port)) {
+            (i != n) || (port != clients[n + NUM_READERS].port)) {
             fprintf(
                 stderr,
                 "[Error] Received invalid format from load balance script!\n");
@@ -177,24 +177,24 @@ void decide_chunks_by_script() {
             fprintf(stderr,
                     "[Error] Expected: %" PRId64
                     " %s %d min_x min_y min_z max_x max_y max_z",
-                    n, clients[n + ROCKSTAR_NUM_READERS].address,
-                    clients[n + ROCKSTAR_NUM_READERS].port);
+                    n, clients[n + NUM_READERS].address,
+                    clients[n + NUM_READERS].port);
             exit(1);
         }
         for (i = 0; i < 6; i++)
-            if (bounds[i] < 0 || bounds[i] > ROCKSTAR_BOX_SIZE) {
+            if (bounds[i] < 0 || bounds[i] > BOX_SIZE) {
                 fprintf(stderr, "[Error] Received invalid format from load "
                                 "balance script!\n");
                 fprintf(stderr, "[Error] Offending line: %s", buffer);
                 fprintf(stderr,
                         "[Error] Bounds must be within the range 0 to %f\n",
-                        ROCKSTAR_BOX_SIZE);
+                        BOX_SIZE);
                 exit(1);
             }
-        memcpy(clients[ROCKSTAR_NUM_READERS + n].bounds, bounds, sizeof(float) * 6);
-        send_to_socket_noconfirm(clients[ROCKSTAR_NUM_READERS + n].cs, "bnds", 4);
-        send_to_socket_noconfirm(clients[ROCKSTAR_NUM_READERS + n].cs,
-                                 clients[ROCKSTAR_NUM_READERS + n].bounds,
+        memcpy(clients[NUM_READERS + n].bounds, bounds, sizeof(float) * 6);
+        send_to_socket_noconfirm(clients[NUM_READERS + n].cs, "bnds", 4);
+        send_to_socket_noconfirm(clients[NUM_READERS + n].cs,
+                                 clients[NUM_READERS + n].bounds,
                                  sizeof(float) * 6);
     }
     rw_socket_close(script, pid);
@@ -211,7 +211,7 @@ void decide_chunks_for_memory_balance() {
     check_realloc_s(divisions, sizeof(float), (chunks[2] + 1));
     for (i = 0; i < num_proj; i++)
         pr[i].id = i;
-    populate_bounds(0, NULL, pr[0].bounds, 0, ROCKSTAR_BOX_SIZE);
+    populate_bounds(0, NULL, pr[0].bounds, 0, BOX_SIZE);
 
     print_time();
     fprintf(stderr, "Sending projection requests...\n");
@@ -225,17 +225,17 @@ void decide_chunks_for_memory_balance() {
         accumulate_projections(pr, proj_start, todo);
         for (i = 0; i < todo; i++) {
             divide_projection(pr + proj_start + i, chunks[dir], divisions);
-            divisions[chunks[dir]] = ROCKSTAR_BOX_SIZE;
+            divisions[chunks[dir]] = BOX_SIZE;
             for (j = 0; j < chunks[dir]; j++) {
                 offset = i * chunks[dir] + j;
                 bnds   = (dir < 2) ? pr[proj_start + todo + offset].bounds
-                                   : clients[ROCKSTAR_NUM_READERS + offset].bounds;
+                                   : clients[NUM_READERS + offset].bounds;
                 populate_bounds(dir, pr[proj_start + i].bounds, bnds,
                                 divisions[j], divisions[j + 1]);
                 if (dir == 2) {
-                    send_to_socket_noconfirm(clients[ROCKSTAR_NUM_READERS + offset].cs,
+                    send_to_socket_noconfirm(clients[NUM_READERS + offset].cs,
                                              "bnds", 4);
-                    send_to_socket_noconfirm(clients[ROCKSTAR_NUM_READERS + offset].cs,
+                    send_to_socket_noconfirm(clients[NUM_READERS + offset].cs,
                                              bnds, sizeof(float) * 6);
                 }
             }
@@ -250,22 +250,22 @@ void decide_chunks_for_memory_balance() {
 }
 
 void load_balance(void) {
-    int64_t i, done = 0, no_more_work = ROCKSTAR_NUM_READERS, id;
+    int64_t i, done = 0, no_more_work = NUM_READERS, id;
     int64_t id_offset = 0, next_assigned = 0, num_finished = 0;
     int64_t sent_all_clear = 0;
     char    cmd[5]         = {0};
 
-    for (i = ROCKSTAR_NUM_READERS; i < num_clients; i++) {
+    for (i = NUM_READERS; i < num_clients; i++) {
         clients[i].status  = 0;
         clients[i].workers = 1;
     }
 
-    while (done < ROCKSTAR_NUM_WRITERS) {
+    while (done < NUM_WRITERS) {
         clear_rsocket_tags();
-        for (i = ROCKSTAR_NUM_READERS; i < num_clients; i++)
+        for (i = NUM_READERS; i < num_clients; i++)
             tag_rsocket(clients[i].cs);
         select_rsocket(RSOCKET_READ, 0);
-        for (i = ROCKSTAR_NUM_READERS; i < num_clients; i++) {
+        for (i = NUM_READERS; i < num_clients; i++) {
             if (!check_rsocket_tag(clients[i].cs))
                 continue;
             recv_from_socket(clients[i].cs, cmd, 4);
@@ -306,12 +306,12 @@ void load_balance(void) {
                 while (no_more_work < num_clients &&
                        clients[no_more_work].status)
                     no_more_work++;
-                while (next_assigned >= ROCKSTAR_NUM_READERS &&
+                while (next_assigned >= NUM_READERS &&
                        clients[next_assigned].status)
                     next_assigned--;
                 if (next_assigned < no_more_work)
                     next_assigned = num_clients - 1;
-                while (next_assigned >= ROCKSTAR_NUM_READERS &&
+                while (next_assigned >= NUM_READERS &&
                        clients[next_assigned].status)
                     next_assigned--;
                 if (next_assigned < no_more_work)
@@ -334,14 +334,14 @@ void load_balance(void) {
             else {
                 fprintf(stderr,
                         "[Error] Client protocol error! (%s) (%" PRId64 ")\n",
-                        cmd, i - ROCKSTAR_NUM_READERS);
+                        cmd, i - NUM_READERS);
                 shutdown_clients();
                 exit(0);
             }
         }
-        if (num_finished == ROCKSTAR_NUM_WRITERS && !sent_all_clear) {
+        if (num_finished == NUM_WRITERS && !sent_all_clear) {
             sent_all_clear = 1;
-            for (i = ROCKSTAR_NUM_READERS; i < num_clients; i++)
+            for (i = NUM_READERS; i < num_clients; i++)
                 send_to_socket_noconfirm(clients[i].cs, "allc", 4);
         }
     }
