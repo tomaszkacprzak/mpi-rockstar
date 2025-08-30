@@ -1949,7 +1949,11 @@ void read_config_and_input(int argc, char **argv) {
 
 
 
-extern "C" void mpi_main(int argc, char *argv[]) {
+extern "C" void rockstar_main(int argc, char *argv[]) {
+    mpi_main(argc, argv);
+}
+
+void mpi_main(int argc, char *argv[]){
 
     read_config_and_input(argc, argv);
 
@@ -2067,6 +2071,10 @@ extern "C" void mpi_main(int argc, char *argv[]) {
     writer_bounds = reallocate(writer_bounds, 0);
 
     timed_output("[Finished]\n");
+
+#ifndef DO_CONFIG_MPI
+    MPI_Finalize();
+#endif
     
 }
 
@@ -2083,11 +2091,13 @@ int main(int argc, char **argv) {
     
     mpi_main(argc, argv);
 
-    return 0;
+
 
 #ifdef DO_CONFIG_MPI
     MPI_Finalize();
 #endif
+
+    return 0;
 
 }
 #endif /* MPI_ROCKSTAR_LIBRARY */
