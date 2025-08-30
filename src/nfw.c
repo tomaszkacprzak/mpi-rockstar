@@ -160,7 +160,7 @@ void calc_scale_radius(struct halo *h, float mvir, float rvir, float vmax,
     }
 
     for (i = 0; i < num_bins; i++)
-        if (bin_r[i] * 1e-3 < 3 * ROCKSTAR_FORCE_RES)
+        if (bin_r[i] * 1e-3 < 3 * FORCE_RES)
             weights[i] = 0.1;
 
     float chi2 = 0.0;

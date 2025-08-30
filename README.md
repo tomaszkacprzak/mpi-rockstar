@@ -73,23 +73,23 @@ You may be able to solve it by removing `-I/usr/include/tirpc` from `.c.o:` in t
 
 MPI-Rockstar supports the HDF5 output of halo catalogs by adding this line in a configuration file.
 ```
-ROCKSTAR_OUTPUT_FORMAT="HDF5"
+OUTPUT_FORMAT="HDF5"
 ```
 
 ## Gadget-2/3/4 and AREPO HDF5 Format ##
 
 Gadget-4 (HDF5) format is newly supported as input snapshots.
 ```
-ROCKSTAR_FILE_FORMAT="GADGET4"
+FILE_FORMAT="GADGET4"
 ```
 
 The default number of Gadget-4 particle types is `NTYPES=6`. You can use other numbers by adding the line below to a configuration file.
 ```
-ROCKSTAR_GADGET4_NTYPES=<your ntypes>
+GADGET4_NTYPES=<your ntypes>
 ```
 This is the same as AREPO HDF5 format. You can pass the number for AREPO format in a similar manner.
 ```
-ROCKSTAR_AREPO_NTYPES=<your ntypes>
+AREPO_NTYPES=<your ntypes>
 ```
 
 In Gadget4 `Config.sh`, you can set `IDS_64BIT` for 8-byte IDs or `IDS_32BIT` for 4-byte IDs. Both are supported but 6-byte ID (`IDS_48BIT`) is not accepted.
@@ -98,13 +98,13 @@ However, `MPI-Rockstar` always internally stores positions and velocities in sin
 
 Gadget-2/3 HDF5 format is also supported by passing the file format as `AREPO`.
 This format has a different header structure from Gadget-4 but AREPO HDF5 format has the same structure.
-Note that when you use Gadget-2/3 HDF5 format with `ROCKSTAR_FILE_FORMAT = AREPO`, set `ROCKSTAR_AREPO_MASS_CONVERSION`, `ROCKSTAR_AREPO_LENGTH_CONVERSION`, etc. if needed,
-instead of `ROCKSTAR_GADGET_MASS_CONVERSION`, `ROCKSTAR_GADGET_LENGTH_CONVERSION`, etc., which are effective only for binary Gadget formats.
-Be careful that `ROCKSTAR_AREPO_LENGTH_CONVERSION = 1e-3` by default, i.e., the length unit is kpc/h.
+Note that when you use Gadget-2/3 HDF5 format with `FILE_FORMAT = AREPO`, set `AREPO_MASS_CONVERSION`, `AREPO_LENGTH_CONVERSION`, etc. if needed,
+instead of `GADGET_MASS_CONVERSION`, `GADGET_LENGTH_CONVERSION`, etc., which are effective only for binary Gadget formats.
+Be careful that `AREPO_LENGTH_CONVERSION = 1e-3` by default, i.e., the length unit is kpc/h.
 
 ## Abolished Configuration Options ##
 
-MPI-Rockstar can no-longer run on single process, therefore, only `ROCKSTAR_PARALLEL_IO=1` is accepted (default value). The number of writer and reader processes are automatically set from the number of processes, therefore, `ROCKSTAR_NUM_WRITERS`, `ROCKSTAR_NUM_READERS`, `ROCKSTAR_FORK_READERS_FROM_WRITERS`, and `ROCKSTAR_FORK_PROCESSORS_PER_MACHINE` are abolished.
+MPI-Rockstar can no-longer run on single process, therefore, only `PARALLEL_IO=1` is accepted (default value). The number of writer and reader processes are automatically set from the number of processes, therefore, `NUM_WRITERS`, `NUM_READERS`, `FORK_READERS_FROM_WRITERS`, and `FORK_PROCESSORS_PER_MACHINE` are abolished.
 
 ## New Compiling Options ##
 
@@ -128,15 +128,15 @@ When this option is enabled, the binary file header will have the corresponding 
 
 ## New Configuration Options ##
 
-### ROCKSTAR_FILES_PER_SUBDIR_INPUT and ROCKSTAR_SUBDIR_DIGITS_INPUT ###
+### FILES_PER_SUBDIR_INPUT and SUBDIR_DIGITS_INPUT ###
 
-These options allow that snapshots are stored in multiple sub-directories. `ROCKSTAR_FILES_PER_SUBDIR_INPUT` is the number of files in each sub-directory. The sub-directory name is expressed by a sequential number starting from zero, and its digit is set by `ROCKSTAR_SUBDIR_DIGITS_INPUT` For example, if
+These options allow that snapshots are stored in multiple sub-directories. `FILES_PER_SUBDIR_INPUT` is the number of files in each sub-directory. The sub-directory name is expressed by a sequential number starting from zero, and its digit is set by `SUBDIR_DIGITS_INPUT` For example, if
 ```
-ROCKSTAR_INBASE="snapdir"
-ROCKSTAR_FILENAME="snap-<block>"
-ROCKSTAR_NUM_BLOCKS=16
-ROCKSTAR_FILES_PER_SUBDIR_INPUT=4
-ROCKSTAR_SUBDIR_DIGITS_INPUT=4
+INBASE="snapdir"
+FILENAME="snap-<block>"
+NUM_BLOCKS=16
+FILES_PER_SUBDIR_INPUT=4
+SUBDIR_DIGITS_INPUT=4
 ```
 in a configuration file, the following directory structure of snapshots is assumed.
 ```
@@ -146,20 +146,20 @@ snapdir/
   0002/snap-[8-11]
   0003/snap-[12-15]
 ```
-When `ROCKSTAR_FILES_PER_SUBDIR_INPUT=0`, no sub-directories are assumed (by default).
+When `FILES_PER_SUBDIR_INPUT=0`, no sub-directories are assumed (by default).
 
-### ROCKSTAR_OUTLIST_PARALLEL ###
-By default, MPI-Rockstar writes single halo catalog (out_X.list) using MPI_IO. When you want to write out_X.list per process, set `ROCKSTAR_OUTLIST_PARALLEL=1` (0 by default).
+### OUTLIST_PARALLEL ###
+By default, MPI-Rockstar writes single halo catalog (out_X.list) using MPI_IO. When you want to write out_X.list per process, set `OUTLIST_PARALLEL=1` (0 by default).
 
 
-### ROCKSTAR_OUTPUT_SUBDIR and ROCKSTAR_SNAPSHOT_SUBDIR_DIGITS ###
-By defaults, MPI-Rockstar writes all output (bin, ascii, list) in single directory (set by `ROCKSTAR_OUTBASE` in a configuration file). When you want to separate output directories for every snapshot, set `ROCKSTAR_OUTPUT_SUBDIR=1`. The sub-directory name is expressed by the snapshot number with the digits set by `ROCKSTAR_SNAPSHOT_SUBDIR_DIGITS`. For example, if
+### OUTPUT_SUBDIR and SNAPSHOT_SUBDIR_DIGITS ###
+By defaults, MPI-Rockstar writes all output (bin, ascii, list) in single directory (set by `OUTBASE` in a configuration file). When you want to separate output directories for every snapshot, set `OUTPUT_SUBDIR=1`. The sub-directory name is expressed by the snapshot number with the digits set by `SNAPSHOT_SUBDIR_DIGITS`. For example, if
 ```
-ROCKSTAR_STARTING_SNAP=20
-ROCKSTAR_NUM_SNAPS=23
-ROCKSTAR_OUTBASE="Out"
-ROCKSTAR_OUTPUT_SUBDIR=1
-ROCKSTAR_SNAPSHOT_SUBDIR_DIGITS=3
+STARTING_SNAP=20
+NUM_SNAPS=23
+OUTBASE="Out"
+OUTPUT_SUBDIR=1
+SNAPSHOT_SUBDIR_DIGITS=3
 ```
 in a configuration file, the output are stored in the following directory.
 ```
@@ -171,12 +171,12 @@ Out/
 **Note that each sub-directory must be created before the running.**
 
 
-### ROCKSTAR_FILES_PER_SUBDIR_OUTPUT and ROCKSTAR_SUBDIR_DIGITS_OUTPUT ###
-These options are inverse of `ROCKSTAR_FILES_PER_SUBDIR_INPUT` and `ROCKSTAR_SUBDIR_DIGITS_INPUT`. These options allow that output of a snapshot is stored in multiple sub-directories. `ROCKSTAR_FILES_PER_SUBDIR_OUTPUT` is the number of files in each sub-directory. The sub-directory name is expressed by a sequential number starting from zero, and its digit is set by `ROCKSTAR_SUBDIR_DIGITS_OUTPUT` For example, if the number of MPI processes is 16 and
+### FILES_PER_SUBDIR_OUTPUT and SUBDIR_DIGITS_OUTPUT ###
+These options are inverse of `FILES_PER_SUBDIR_INPUT` and `SUBDIR_DIGITS_INPUT`. These options allow that output of a snapshot is stored in multiple sub-directories. `FILES_PER_SUBDIR_OUTPUT` is the number of files in each sub-directory. The sub-directory name is expressed by a sequential number starting from zero, and its digit is set by `SUBDIR_DIGITS_OUTPUT` For example, if the number of MPI processes is 16 and
 ```
-ROCKSTAR_OUTBASE="Out"
-ROCKSTAR_FILES_PER_SUBDIR_OUTPUT=4
-ROCKSTAR_SUBDIR_DIGITS_OUTPUT=4
+OUTBASE="Out"
+FILES_PER_SUBDIR_OUTPUT=4
+SUBDIR_DIGITS_OUTPUT=4
 ```
 in a configuration file, the output are stored in the following directory.
 ```
@@ -188,7 +188,7 @@ Out/
 ```
 **Note that each sub-directory is made automatically.***
 
-**`ROCKSTAR_OUTLIST_PARALLEL`, `ROCKSTAR_OUTPUT_SUBDIR`, `ROCKSTAR_SNAPSHOT_SUBDIR_DIGITS`, `ROCKSTAR_FILES_PER_SUBDIR_OUTPUT` and `ROCKSTAR_SUBDIR_DIGITS_OUTPUT` can work concurrently. In this case, sub-sub-directories are made.**
+**`OUTLIST_PARALLEL`, `OUTPUT_SUBDIR`, `SNAPSHOT_SUBDIR_DIGITS`, `FILES_PER_SUBDIR_OUTPUT` and `SUBDIR_DIGITS_OUTPUT` can work concurrently. In this case, sub-sub-directories are made.**
 
 
 ## Test Dataset ##

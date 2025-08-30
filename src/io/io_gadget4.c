@@ -104,7 +104,7 @@ void gadget4_readheader_array(hid_t HDF_GroupID, char *filename, char *objName,
     assert(ndims == 1);
     hsize_t dimsize = 0;
     check_H5Sget_simple_extent_dims(HDF_DataspaceID, &dimsize);
-    assert(dimsize == ROCKSTAR_GADGET4_NTYPES);
+    assert(dimsize == GADGET4_NTYPES);
 
     check_H5Aread(HDF_AttrID, type, data, objName, gid, filename);
 
@@ -114,13 +114,13 @@ void gadget4_readheader_array(hid_t HDF_GroupID, char *filename, char *objName,
 
 void gadget4_rescale_particles(struct particle *p, int64_t p_start,
                                int64_t nelems) {
-    double vel_rescale = sqrt(ROCKSTAR_SCALE_NOW);
-    if (ROCKSTAR_LIGHTCONE)
+    double vel_rescale = sqrt(SCALE_NOW);
+    if (LIGHTCONE)
         vel_rescale = 1;
 
     for (int64_t i = 0; i < nelems; i++) {
         for (int64_t j = 0; j < 3; j++) {
-            p[p_start + i].pos[j] *= ROCKSTAR_GADGET4_LENGTH_CONVERSION;
+            p[p_start + i].pos[j] *= GADGET4_LENGTH_CONVERSION;
             p[p_start + i].pos[j + 3] *= vel_rescale;
         }
     }
@@ -131,15 +131,15 @@ void load_particles_gadget4(char *filename, struct particle **p, int64_t *num_p)
     hid_t HDF_Header = check_H5Gopen(HDF_FileID, "Header", filename);
     hid_t HDF_Parameters = check_H5Gopen(HDF_FileID, "Parameters", filename);
 
-    ROCKSTAR_Ol        = gadget4_readparameters_double(HDF_Parameters, filename, "OmegaLambda");
-    ROCKSTAR_Om        = gadget4_readparameters_double(HDF_Parameters, filename, "Omega0");
-    ROCKSTAR_h0        = gadget4_readparameters_double(HDF_Parameters, filename, "HubbleParam");
-    ROCKSTAR_SCALE_NOW = gadget4_readheader_double(HDF_Header, filename, "Time");
-    ROCKSTAR_BOX_SIZE  = gadget4_readheader_double(HDF_Header, filename, "BoxSize");
-    ROCKSTAR_BOX_SIZE *= ROCKSTAR_GADGET4_LENGTH_CONVERSION;
+    Ol        = gadget4_readparameters_double(HDF_Parameters, filename, "OmegaLambda");
+    Om        = gadget4_readparameters_double(HDF_Parameters, filename, "Omega0");
+    h0        = gadget4_readparameters_double(HDF_Parameters, filename, "HubbleParam");
+    SCALE_NOW = gadget4_readheader_double(HDF_Header, filename, "Time");
+    BOX_SIZE  = gadget4_readheader_double(HDF_Header, filename, "BoxSize");
+    BOX_SIZE *= GADGET4_LENGTH_CONVERSION;
 
-    uint64_t npart[ROCKSTAR_GADGET4_NTYPES], npart_total[ROCKSTAR_GADGET4_NTYPES];
-    double   massTable[ROCKSTAR_GADGET4_NTYPES];
+    uint64_t npart[GADGET4_NTYPES], npart_total[GADGET4_NTYPES];
+    double   massTable[GADGET4_NTYPES];
 
     gadget4_readheader_array(HDF_Header, filename, "NumPart_ThisFile",
                              H5T_NATIVE_UINT64, npart);
@@ -148,44 +148,44 @@ void load_particles_gadget4(char *filename, struct particle **p, int64_t *num_p)
     gadget4_readheader_array(HDF_Header, filename, "MassTable", H5T_NATIVE_DOUBLE,
                              massTable);
 
-    ROCKSTAR_TOTAL_PARTICLES = (int64_t)npart_total[ROCKSTAR_GADGET4_DM_PARTTYPE];
+    TOTAL_PARTICLES = (int64_t)npart_total[GADGET4_DM_PARTTYPE];
 
     H5Gclose(HDF_Header);
     H5Gclose(HDF_Parameters);
 
-    if (massTable[ROCKSTAR_GADGET4_DM_PARTTYPE] || !ROCKSTAR_PARTICLE_MASS ||
-        ROCKSTAR_RESCALE_PARTICLE_MASS) {
-        if (!ROCKSTAR_RESCALE_PARTICLE_MASS)
-            ROCKSTAR_PARTICLE_MASS =
-                massTable[ROCKSTAR_GADGET4_DM_PARTTYPE] * ROCKSTAR_GADGET4_MASS_CONVERSION;
+    if (massTable[GADGET4_DM_PARTTYPE] || !PARTICLE_MASS ||
+        RESCALE_PARTICLE_MASS) {
+        if (!RESCALE_PARTICLE_MASS)
+            PARTICLE_MASS =
+                massTable[GADGET4_DM_PARTTYPE] * GADGET4_MASS_CONVERSION;
         else
-            ROCKSTAR_PARTICLE_MASS =
-                ROCKSTAR_Om * CRITICAL_DENSITY * pow(ROCKSTAR_BOX_SIZE, 3) / ROCKSTAR_TOTAL_PARTICLES;
+            PARTICLE_MASS =
+                Om * CRITICAL_DENSITY * pow(BOX_SIZE, 3) / TOTAL_PARTICLES;
     }
 
-    ROCKSTAR_AVG_PARTICLE_SPACING = cbrt(ROCKSTAR_PARTICLE_MASS / (ROCKSTAR_Om * CRITICAL_DENSITY));
+    AVG_PARTICLE_SPACING = cbrt(PARTICLE_MASS / (Om * CRITICAL_DENSITY));
 
     printf("GADGET4: filename:       %s\n", filename);
-    printf("GADGET4: box size:       %g Mpc/h\n", ROCKSTAR_BOX_SIZE);
-    printf("GADGET4: ROCKSTAR_h0:             %g\n", ROCKSTAR_h0);
-    printf("GADGET4: scale factor:   %g\n", ROCKSTAR_SCALE_NOW);
-    printf("GADGET4: Total DM Part:  %" PRIu64 "\n", ROCKSTAR_TOTAL_PARTICLES);
-    printf("GADGET4: ThisFile DM Part: %" PRIu64 "\n", npart[ROCKSTAR_GADGET4_DM_PARTTYPE]);
-    printf("GADGET4: DM Part Mass:   %g Msun/h\n", ROCKSTAR_PARTICLE_MASS);
-    printf("GADGET4: avgPartSpacing: %g Mpc/h\n\n", ROCKSTAR_AVG_PARTICLE_SPACING);
+    printf("GADGET4: box size:       %g Mpc/h\n", BOX_SIZE);
+    printf("GADGET4: h0:             %g\n", h0);
+    printf("GADGET4: scale factor:   %g\n", SCALE_NOW);
+    printf("GADGET4: Total DM Part:  %" PRIu64 "\n", TOTAL_PARTICLES);
+    printf("GADGET4: ThisFile DM Part: %" PRIu64 "\n", npart[GADGET4_DM_PARTTYPE]);
+    printf("GADGET4: DM Part Mass:   %g Msun/h\n", PARTICLE_MASS);
+    printf("GADGET4: avgPartSpacing: %g Mpc/h\n\n", AVG_PARTICLE_SPACING);
 
-    if (!npart[ROCKSTAR_GADGET4_DM_PARTTYPE]) {
+    if (!npart[GADGET4_DM_PARTTYPE]) {
         H5Fclose(HDF_FileID);
         printf("   SKIPPING FILE, PARTICLE COUNT ZERO.\n");
         return;
     }
 
-    int64_t to_read = npart[ROCKSTAR_GADGET4_DM_PARTTYPE];
+    int64_t to_read = npart[GADGET4_DM_PARTTYPE];
     check_realloc_s(*p, ((*num_p) + to_read), sizeof(struct particle));
 
     // read IDs, pos, vel
     char buffer[100];
-    snprintf(buffer, 100, "PartType%" PRId64, ROCKSTAR_GADGET4_DM_PARTTYPE);
+    snprintf(buffer, 100, "PartType%" PRId64, GADGET4_DM_PARTTYPE);
 
     gadget4_readdataset(
         HDF_FileID, filename, buffer, "ParticleIDs", *p + (*num_p), to_read,
@@ -201,7 +201,7 @@ void load_particles_gadget4(char *filename, struct particle **p, int64_t *num_p)
 
     gadget4_rescale_particles(*p, *num_p, to_read);
 
-    *num_p += npart[ROCKSTAR_GADGET4_DM_PARTTYPE];
+    *num_p += npart[GADGET4_DM_PARTTYPE];
 }
 
 #endif /* ENABLE_HDF5 */

@@ -6,15 +6,15 @@ int _check_bounds(float *pos_i, float *pos_f, float *bounds) {
     int64_t i;
     for (i = 0; i < 3; i++) {
         if (pos_i[i] > bounds[i + 3]) {
-            if (bounds[i] < 0 && ROCKSTAR_PERIODIC) {
-                pos_f[i] = pos_i[i] - ROCKSTAR_BOX_SIZE;
+            if (bounds[i] < 0 && PERIODIC) {
+                pos_f[i] = pos_i[i] - BOX_SIZE;
                 if (pos_f[i] > bounds[i + 3] || pos_f[i] < bounds[i])
                     return 0;
             } else
                 return 0;
         } else if (pos_i[i] < bounds[i]) {
-            if (bounds[i + 3] > ROCKSTAR_BOX_SIZE && ROCKSTAR_PERIODIC) {
-                pos_f[i] = pos_i[i] + ROCKSTAR_BOX_SIZE;
+            if (bounds[i + 3] > BOX_SIZE && PERIODIC) {
+                pos_f[i] = pos_i[i] + BOX_SIZE;
                 if (pos_f[i] > bounds[i + 3] || pos_f[i] < bounds[i])
                     return 0;
             } else
@@ -27,13 +27,13 @@ int _check_bounds(float *pos_i, float *pos_f, float *bounds) {
 
 void wrap_into_box(float *pos) {
     int64_t i;
-    if (!ROCKSTAR_PERIODIC || !ROCKSTAR_BOX_SIZE)
+    if (!PERIODIC || !BOX_SIZE)
         return;
     for (i = 0; i < 3; i++) {
-        if (pos[i] > ROCKSTAR_BOX_SIZE)
-            pos[i] -= ROCKSTAR_BOX_SIZE;
+        if (pos[i] > BOX_SIZE)
+            pos[i] -= BOX_SIZE;
         else if (pos[i] < 0)
-            pos[i] += ROCKSTAR_BOX_SIZE;
+            pos[i] += BOX_SIZE;
     }
 }
 
@@ -53,11 +53,11 @@ int bounds_overlap(float *b1, float *b2, float *b3, double overlap) {
     for (i = 0; i < 3; i++) {
         b3[i] = min = b2[i] - overlap;
         b3[i + 3] = max = b2[i + 3] + overlap;
-        wrap            = ((min < 0) && ROCKSTAR_PERIODIC) ? -1 : 0;
-        max_wrap        = ((max > ROCKSTAR_BOX_SIZE) && ROCKSTAR_PERIODIC) ? 2 : 1;
+        wrap            = ((min < 0) && PERIODIC) ? -1 : 0;
+        max_wrap        = ((max > BOX_SIZE) && PERIODIC) ? 2 : 1;
         for (; wrap < max_wrap; wrap++) {
-            if (((b1[i] + wrap * ROCKSTAR_BOX_SIZE) < max) &&
-                ((b1[i + 3] + wrap * ROCKSTAR_BOX_SIZE) > min))
+            if (((b1[i] + wrap * BOX_SIZE) < max) &&
+                ((b1[i + 3] + wrap * BOX_SIZE) > min))
                 break;
         }
         if (wrap == max_wrap)

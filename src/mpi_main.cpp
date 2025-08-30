@@ -112,21 +112,21 @@ Size calc_displs(const Size counts[], size_t n, Size displs[]) {
 template <typename T>
 int64_t exchange_data(const T send_data[], int counts[], T *&recv_data,
                       const int recv_offset, MPI_Datatype mpi_data_type) {
-    static auto recv_counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    static auto send_displs = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    static auto recv_displs = allocate<int>(ROCKSTAR_NUM_WRITERS);
+    static auto recv_counts = allocate<int>(NUM_WRITERS);
+    static auto send_displs = allocate<int>(NUM_WRITERS);
+    static auto recv_displs = allocate<int>(NUM_WRITERS);
 
     MPI_Alltoall(counts, 1, MPI_INT, recv_counts, 1, MPI_INT, MPI_COMM_WORLD);
 
-    calc_displs(counts, ROCKSTAR_NUM_WRITERS, send_displs);
-    const auto num_to_recv = calc_displs(recv_counts, ROCKSTAR_NUM_WRITERS, recv_displs);
+    calc_displs(counts, NUM_WRITERS, send_displs);
+    const auto num_to_recv = calc_displs(recv_counts, NUM_WRITERS, recv_displs);
     recv_data              = reallocate(recv_data, recv_offset + num_to_recv);
 
     MPI_Alltoallv(send_data, counts, send_displs, mpi_data_type,
                   recv_data + recv_offset, recv_counts, recv_displs,
                   mpi_data_type, MPI_COMM_WORLD);
 
-    std::copy_n(recv_counts, ROCKSTAR_NUM_WRITERS, counts);
+    std::copy_n(recv_counts, NUM_WRITERS, counts);
 
     return num_to_recv;
 }
@@ -163,30 +163,30 @@ void createDivision( const int n, int *ndiv){
 
 
 void check_num_writers(void) {
-    if (ROCKSTAR_NUM_WRITERS == 1) {
-        if (ROCKSTAR_PERIODIC) {
+    if (NUM_WRITERS == 1) {
+        if (PERIODIC) {
             fprintf(stderr,
-                    "[Warning] Setting ROCKSTAR_PERIODIC=0 since ROCKSTAR_NUM_WRITERS=1.\n");
+                    "[Warning] Setting PERIODIC=0 since NUM_WRITERS=1.\n");
             fprintf(stderr, "[Warning] To enable periodic boundary conditions, "
-                            "increase ROCKSTAR_NUM_WRITERS to at least 8.\n");
-            ROCKSTAR_PERIODIC = 0;
+                            "increase NUM_WRITERS to at least 8.\n");
+            PERIODIC = 0;
         }
         return;
     } else {
         int factors[3] = {0};
-        //MPI_Dims_create(ROCKSTAR_NUM_WRITERS, 3, factors);
-	createDivision( ROCKSTAR_NUM_WRITERS, factors);
-        if (((factors[0] < 2) || (factors[1] < 2) || (factors[2] < 2)) && (ROCKSTAR_PERIODIC)) {
+        //MPI_Dims_create(NUM_WRITERS, 3, factors);
+	createDivision( NUM_WRITERS, factors);
+        if (((factors[0] < 2) || (factors[1] < 2) || (factors[2] < 2)) && (PERIODIC)) {
             fprintf(stderr,
-                    "[Error] ROCKSTAR_NUM_WRITERS should be the product of at least "
+                    "[Error] NUM_WRITERS should be the product of at least "
                     "three factors larger than 1 for periodic boundary "
                     "conditions to be enabled!\n");
             fprintf(stderr,
-                    "[Error] (Currently, ROCKSTAR_NUM_WRITERS = %" PRId64
+                    "[Error] (Currently, NUM_WRITERS = %" PRId64
                     " = %d x %d x %d)\n",
-                    ROCKSTAR_NUM_WRITERS, factors[0], factors[1], factors[2]);
+                    NUM_WRITERS, factors[0], factors[1], factors[2]);
             fprintf(stderr,
-                    "[Error] Please adjust ROCKSTAR_NUM_WRITERS or set ROCKSTAR_PERIODIC=0 "
+                    "[Error] Please adjust NUM_WRITERS or set PERIODIC=0 "
                     "in the config file.\n");
             MPI_Abort(MPI_COMM_WORLD, 1);
         }
@@ -205,7 +205,7 @@ MPI_Comm create_new_comm(RankConditionFunc rank_condition) {
 
 int get_reader_rank() {
     int  reader_rank      = -1;
-    auto is_reader        = [](int rank) { return rank < ROCKSTAR_NUM_READERS; };
+    auto is_reader        = [](int rank) { return rank < NUM_READERS; };
     auto mpi_comm_readers = create_new_comm(is_reader);
     if (mpi_comm_readers != MPI_COMM_NULL) {
         MPI_Comm_rank(mpi_comm_readers, &reader_rank);
@@ -217,23 +217,23 @@ int get_reader_rank() {
 void read_blocks(int64_t snap, int reader_rank, char buffer[]) {
     if (reader_rank != -1) {
         int64_t block_start, to_read;
-        particle_range(ROCKSTAR_NUM_BLOCKS, reader_rank, ROCKSTAR_NUM_READERS, &block_start,
+        particle_range(NUM_BLOCKS, reader_rank, NUM_READERS, &block_start,
                        &to_read);
         const auto block_end = block_start + to_read;
 
         for (auto block = block_start; block < block_end; block++) {
-            if (ROCKSTAR_LIGHTCONE && strlen(ROCKSTAR_LIGHTCONE_ALT_SNAPS) &&
-                block >= (ROCKSTAR_NUM_BLOCKS / 2)) {
-                if (ROCKSTAR_LIGHTCONE == 1)
-                    read_input_names(ROCKSTAR_LIGHTCONE_ALT_SNAPS, &snapnames,
-                                     &ROCKSTAR_NUM_SNAPS);
-                ROCKSTAR_LIGHTCONE = 2;
+            if (LIGHTCONE && strlen(LIGHTCONE_ALT_SNAPS) &&
+                block >= (NUM_BLOCKS / 2)) {
+                if (LIGHTCONE == 1)
+                    read_input_names(LIGHTCONE_ALT_SNAPS, &snapnames,
+                                     &NUM_SNAPS);
+                LIGHTCONE = 2;
                 get_input_filename(buffer, 1024, snap,
-                                   block - (ROCKSTAR_NUM_BLOCKS / 2));
+                                   block - (NUM_BLOCKS / 2));
             } else {
-                if (ROCKSTAR_LIGHTCONE == 2) {
-                    ROCKSTAR_LIGHTCONE = 1;
-                    read_input_names(ROCKSTAR_SNAPSHOT_NAMES, &snapnames, &ROCKSTAR_NUM_SNAPS);
+                if (LIGHTCONE == 2) {
+                    LIGHTCONE = 1;
+                    read_input_names(SNAPSHOT_NAMES, &snapnames, &NUM_SNAPS);
                 }
                 get_input_filename(buffer, 1024, snap, block);
             }
@@ -245,47 +245,47 @@ void read_blocks(int64_t snap, int reader_rank, char buffer[]) {
 
     timed_output("%" PRId64 " procs read %" PRId64
                  " blocks for snapshot %" PRId64 ".\n",
-                 ROCKSTAR_NUM_READERS, ROCKSTAR_NUM_BLOCKS, snap);
+                 NUM_READERS, NUM_BLOCKS, snap);
 }
 
 void sync_config() {
     double config[] = {
-        ROCKSTAR_PARTICLE_MASS, ROCKSTAR_AVG_PARTICLE_SPACING, ROCKSTAR_SCALE_NOW, ROCKSTAR_BOX_SIZE, ROCKSTAR_Ol, ROCKSTAR_Om, ROCKSTAR_h0,
-        ROCKSTAR_TRIM_OVERLAP,  ROCKSTAR_ROUND_AFTER_TRIM};
+        PARTICLE_MASS, AVG_PARTICLE_SPACING, SCALE_NOW, BOX_SIZE, Ol, Om, h0,
+        TRIM_OVERLAP,  ROUND_AFTER_TRIM};
 
     MPI_Bcast(config, sizeof(config) / sizeof(double), MPI_DOUBLE, 0,
               MPI_COMM_WORLD);
 
-    ROCKSTAR_PARTICLE_MASS        = config[0];
-    ROCKSTAR_AVG_PARTICLE_SPACING = config[1];
-    ROCKSTAR_SCALE_NOW            = config[2];
-    ROCKSTAR_BOX_SIZE             = config[3];
-    ROCKSTAR_Ol                   = config[4];
-    ROCKSTAR_Om                   = config[5];
-    ROCKSTAR_h0                   = config[6];
-    ROCKSTAR_TRIM_OVERLAP         = config[7];
-    ROCKSTAR_ROUND_AFTER_TRIM     = config[8];
+    PARTICLE_MASS        = config[0];
+    AVG_PARTICLE_SPACING = config[1];
+    SCALE_NOW            = config[2];
+    BOX_SIZE             = config[3];
+    Ol                   = config[4];
+    Om                   = config[5];
+    h0                   = config[6];
+    TRIM_OVERLAP         = config[7];
+    ROUND_AFTER_TRIM     = config[8];
 
-    if (strlen(ROCKSTAR_LIGHTCONE_ALT_SNAPS)) {
+    if (strlen(LIGHTCONE_ALT_SNAPS)) {
         int64_t i;
         for (i = 0; i < 3; i++)
-            if (ROCKSTAR_LIGHTCONE_ORIGIN[i] || ROCKSTAR_LIGHTCONE_ALT_ORIGIN[i])
+            if (LIGHTCONE_ORIGIN[i] || LIGHTCONE_ALT_ORIGIN[i])
                 break;
         if (i == 3) {
             for (i = 0; i < 3; i++)
-                ROCKSTAR_LIGHTCONE_ORIGIN[i] = ROCKSTAR_LIGHTCONE_ALT_ORIGIN[i] = ROCKSTAR_BOX_SIZE / 2.0;
+                LIGHTCONE_ORIGIN[i] = LIGHTCONE_ALT_ORIGIN[i] = BOX_SIZE / 2.0;
         }
     }
 
     int my_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     if (my_rank == 0) {
-        if ((ROCKSTAR_BOX_SIZE < ROCKSTAR_OVERLAP_LENGTH * 5) && ROCKSTAR_PERIODIC) {
+        if ((BOX_SIZE < OVERLAP_LENGTH * 5) && PERIODIC) {
             fprintf(stderr,
                     "[Error] Box size too small (%f) relative to overlap "
                     "length "
                     "(%f)!\n",
-                    ROCKSTAR_BOX_SIZE, ROCKSTAR_OVERLAP_LENGTH);
+                    BOX_SIZE, OVERLAP_LENGTH);
             MPI_Abort(MPI_COMM_WORLD, 1);
         }
     }
@@ -320,10 +320,10 @@ void calc_particle_bounds_periodic(float *bounds) {
     for (i = 1; i < num_p; i++) {
         for (j = 0; j < 3; j++) {
             float pos = p[i].pos[j];
-            if (p[0].pos[j] - pos > ROCKSTAR_BOX_SIZE / 2.0)
-                pos += ROCKSTAR_BOX_SIZE;
-            else if (p[0].pos[j] - pos < -ROCKSTAR_BOX_SIZE / 2.0)
-                pos -= ROCKSTAR_BOX_SIZE;
+            if (p[0].pos[j] - pos > BOX_SIZE / 2.0)
+                pos += BOX_SIZE;
+            else if (p[0].pos[j] - pos < -BOX_SIZE / 2.0)
+                pos -= BOX_SIZE;
             if (bounds[j] > pos)
                 bounds[j] = pos;
             if (bounds[j + 3] < pos)
@@ -334,17 +334,17 @@ void calc_particle_bounds_periodic(float *bounds) {
 
 void trim_particles(float *bounds) {
     int64_t i;
-    if (!ROCKSTAR_TRIM_OVERLAP)
+    if (!TRIM_OVERLAP)
         return;
     for (i = 0; i < 3; i++) {
-        bounds[i] += ROCKSTAR_TRIM_OVERLAP;
-        bounds[i + 3] -= ROCKSTAR_TRIM_OVERLAP;
+        bounds[i] += TRIM_OVERLAP;
+        bounds[i + 3] -= TRIM_OVERLAP;
     }
 
-    if (ROCKSTAR_ROUND_AFTER_TRIM)
+    if (ROUND_AFTER_TRIM)
         for (i = 0; i < 6; i++)
-            bounds[i] = ((int64_t)(bounds[i] / ROCKSTAR_ROUND_AFTER_TRIM + 0.5)) *
-                        ROCKSTAR_ROUND_AFTER_TRIM;
+            bounds[i] = ((int64_t)(bounds[i] / ROUND_AFTER_TRIM + 0.5)) *
+                        ROUND_AFTER_TRIM;
 
     for (i = 0; i < num_p; i++)
         if (!_check_bounds_raw(p[i].pos, bounds)) {
@@ -358,19 +358,19 @@ void trim_particles(float *bounds) {
 
 void decide_reader_bounds(float *reader_bounds, int reader_rank) {
     if (reader_rank != -1) {
-        // Handle the case where the positions round to ROCKSTAR_BOX_SIZE
+        // Handle the case where the positions round to BOX_SIZE
         // due to floating-point precision
 #if 1
       for (int64_t i = 0; i < num_p; i++) {
             for (int64_t j = 0; j < 3; j++) {
-                if (p[i].pos[j] == static_cast<float>(ROCKSTAR_BOX_SIZE)) {
+                if (p[i].pos[j] == static_cast<float>(BOX_SIZE)) {
                     p[i].pos[j] = 0;
                 }
             }
       }
 #endif
         calc_particle_bounds(reader_bounds);
-        if (ROCKSTAR_TRIM_OVERLAP)
+        if (TRIM_OVERLAP)
             trim_particles(reader_bounds);
     }
 }
@@ -381,15 +381,15 @@ void decide_chunks_for_volume_balance(const int chunks[],
     float   bounds[6];
     float   chunk_size[3];
     for (i = 0; i < 3; i++)
-        chunk_size[i] = ROCKSTAR_BOX_SIZE / (float)chunks[i];
-    for (n = 0; n < ROCKSTAR_NUM_WRITERS; n++) {
+        chunk_size[i] = BOX_SIZE / (float)chunks[i];
+    for (n = 0; n < NUM_WRITERS; n++) {
         idx[0] = n % chunks[0];
         idx[1] = ((int64_t)(n / chunks[0])) % chunks[1];
         idx[2] = n / (chunks[0] * chunks[1]);
         for (i = 0; i < 3; i++) {
             bounds[i]     = idx[i] * chunk_size[i];
             bounds[i + 3] = (idx[i] + 1 == chunks[i])
-                                ? ROCKSTAR_BOX_SIZE
+                                ? BOX_SIZE
                                 : bounds[i] + chunk_size[i];
         }
         memcpy(writer_bounds[n], bounds, sizeof(float) * 6);
@@ -443,7 +443,7 @@ void align_domain_particles(int      axis, const float (*all_samples)[3],
                              : 0.5 * (all_samples[*(particle_begin - 1)][axis] +
                                       all_samples[*particle_begin][axis]);
         float max = (i == chunks[axis] - 1)
-                        ? ROCKSTAR_BOX_SIZE
+                        ? BOX_SIZE
                         : 0.5 * (all_samples[*(particle_end - 1)][axis] +
                                  all_samples[*particle_end][axis]);
 
@@ -495,24 +495,24 @@ void decide_chunks_for_memory_balance(const int chunks[],
         }
     }
 
-    auto recv_counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    auto recv_displs = allocate<int>(ROCKSTAR_NUM_WRITERS);
+    auto recv_counts = allocate<int>(NUM_WRITERS);
+    auto recv_displs = allocate<int>(NUM_WRITERS);
 
     int num_to_send = 3 * num_local_samples;
     MPI_Allgather(&num_to_send, 1, MPI_INT, recv_counts, 1, MPI_INT,
                   MPI_COMM_WORLD);
     auto num_all_samples =
-        calc_displs(recv_counts, ROCKSTAR_NUM_WRITERS, recv_displs) / 3;
+        calc_displs(recv_counts, NUM_WRITERS, recv_displs) / 3;
 
-    if (num_all_samples < ROCKSTAR_NUM_WRITERS) {
+    if (num_all_samples < NUM_WRITERS) {
         if (my_rank == 0) {
             fprintf(stderr,
                     "[Error] Only %" PRId64
                     " sample particles available for %" PRId64
                     " writers; at least %" PRId64
                     " samples are required to compute domain bounds.\n",
-                    num_all_samples, ROCKSTAR_NUM_WRITERS,
-                    (int64_t)ROCKSTAR_NUM_WRITERS);
+                    num_all_samples, NUM_WRITERS,
+                    (int64_t)NUM_WRITERS);
         }
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
     }
@@ -528,7 +528,7 @@ void decide_chunks_for_memory_balance(const int chunks[],
     std::iota(particle_indices, particle_indices + num_all_samples, 0);
 
     align_domain_particles(0, all_samples, particle_indices, num_all_samples, 0,
-                           ROCKSTAR_NUM_WRITERS, chunks, writer_bounds);
+                           NUM_WRITERS, chunks, writer_bounds);
 
     all_samples      = reallocate(all_samples, 0);
     particle_indices = reallocate(particle_indices, 0);
@@ -540,11 +540,11 @@ void decide_chunks_for_memory_balance(const int chunks[],
 
 void decide_writer_bounds(float (*writer_bounds)[6], const int my_rank) {
     int chunks[3] = {0};
-    //MPI_Dims_create(ROCKSTAR_NUM_WRITERS, 3, chunks);
-    createDivision( ROCKSTAR_NUM_WRITERS, chunks);
+    //MPI_Dims_create(NUM_WRITERS, 3, chunks);
+    createDivision( NUM_WRITERS, chunks);
 
-    // if (strlen(ROCKSTAR_LOAD_BALANCE_SCRIPT)) decide_chunks_by_script();
-    // else if (ROCKSTAR_NUM_WRITERS == 1) decide_chunks_for_volume_balance();
+    // if (strlen(LOAD_BALANCE_SCRIPT)) decide_chunks_by_script();
+    // else if (NUM_WRITERS == 1) decide_chunks_for_volume_balance();
     // else decide_chunks_for_memory_balance();
     /*
     int tmp = chunks[0];
@@ -661,16 +661,16 @@ MPI_Datatype create_mpi_eparticle_type() {
 
 void transfer_particles(int my_reader_rank, float *my_reader_bounds,
                         float (*writer_bounds)[6]) {
-    auto send_counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    clear_counts(send_counts, ROCKSTAR_NUM_WRITERS);
+    auto send_counts = allocate<int>(NUM_WRITERS);
+    clear_counts(send_counts, NUM_WRITERS);
     struct particle *send_buffer = nullptr;
 
     if (my_reader_rank != -1) {
         std::vector<int64_t> recipients;
-        for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+        for (int64_t i = 0; i < NUM_WRITERS; i++) {
             float bounds[6];
             //if (bounds_overlap(my_reader_bounds, writer_bounds[i], bounds, 0)) {
-	    if (bounds_overlap(my_reader_bounds, writer_bounds[i], bounds, ROCKSTAR_FORCE_RES)) {
+	    if (bounds_overlap(my_reader_bounds, writer_bounds[i], bounds, FORCE_RES)) {
                 recipients.emplace_back(i);
             }
         }
@@ -703,8 +703,8 @@ void transfer_particles(int my_reader_rank, float *my_reader_bounds,
 #endif
         std::vector<int64_t>().swap(recipients);
 
-        auto send_displs = allocate<int>(ROCKSTAR_NUM_WRITERS);
-        auto num_to_send = calc_displs(send_counts, ROCKSTAR_NUM_WRITERS, send_displs);
+        auto send_displs = allocate<int>(NUM_WRITERS);
+        auto num_to_send = calc_displs(send_counts, NUM_WRITERS, send_displs);
         assert(num_to_send == num_p);
         send_buffer = allocate<struct particle>(num_to_send);
 
@@ -729,15 +729,15 @@ void transfer_particles(int my_reader_rank, float *my_reader_bounds,
 
 void transfer_particles_mem_save(int my_reader_rank, float *my_reader_bounds,
                                  float (*writer_bounds)[6]) {
-    auto send_counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    clear_counts(send_counts, ROCKSTAR_NUM_WRITERS);
+    auto send_counts = allocate<int>(NUM_WRITERS);
+    clear_counts(send_counts, NUM_WRITERS);
 
     // struct particle *send_buffer = nullptr;
     struct particle *recv_buffer = nullptr;
 
     if (my_reader_rank != -1) {
         std::vector<int64_t> recipients;
-        for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+        for (int64_t i = 0; i < NUM_WRITERS; i++) {
             float bounds[6];
             if (bounds_overlap(my_reader_bounds, writer_bounds[i], bounds, 0)) {
                 recipients.emplace_back(i);
@@ -763,8 +763,8 @@ void transfer_particles_mem_save(int my_reader_rank, float *my_reader_bounds,
         std::vector<int64_t>().swap(recipients);
 
         /*
-        auto send_displs = allocate<int>(ROCKSTAR_NUM_WRITERS);
-        auto num_to_send = calc_displs(send_counts, ROCKSTAR_NUM_WRITERS, send_displs);
+        auto send_displs = allocate<int>(NUM_WRITERS);
+        auto num_to_send = calc_displs(send_counts, NUM_WRITERS, send_displs);
         assert(num_to_send == num_p);
 
                 send_buffer = allocate<struct particle>(num_to_send);
@@ -799,16 +799,16 @@ void transfer_particles_mem_save(int my_reader_rank, float *my_reader_bounds,
 }
 
 void transfer_bparticles(int64_t my_rank, float (*writer_bounds)[6]) {
-    auto send_counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    clear_counts(send_counts, ROCKSTAR_NUM_WRITERS);
+    auto send_counts = allocate<int>(NUM_WRITERS);
+    clear_counts(send_counts, NUM_WRITERS);
     std::vector<struct bparticle> send_buffer;
 
-    for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+    for (int64_t i = 0; i < NUM_WRITERS; i++) {
         if (i != my_rank) {
             float expanded_bounds[6];
             if (bounds_overlap(
                     writer_bounds[my_rank], writer_bounds[i], expanded_bounds,
-                    1.01 * ROCKSTAR_AVG_PARTICLE_SPACING * ROCKSTAR_FOF_LINKING_LENGTH)) {
+                    1.01 * AVG_PARTICLE_SPACING * FOF_LINKING_LENGTH)) {
                 for (int64_t j = 0; j < num_bp; j++) {
                     float dummy_pos[3];
                     if (_check_bounds(bp[j].pos, dummy_pos, expanded_bounds)) {
@@ -832,15 +832,15 @@ void transfer_bparticles(int64_t my_rank, float (*writer_bounds)[6]) {
 }
 
 void distribute_halos(float (*writer_bounds)[6]) {
-    auto halo_counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    clear_counts(halo_counts, ROCKSTAR_NUM_WRITERS);
-    auto send_part_counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    clear_counts(send_part_counts, ROCKSTAR_NUM_WRITERS);
+    auto halo_counts = allocate<int>(NUM_WRITERS);
+    clear_counts(halo_counts, NUM_WRITERS);
+    auto send_part_counts = allocate<int>(NUM_WRITERS);
+    clear_counts(send_part_counts, NUM_WRITERS);
     std::vector<struct complete_halo> send_complete_halos;
     std::vector<struct particle>      send_particles;
 
     auto index_conversion = allocate<int64_t>(num_halos);
-    for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+    for (int64_t i = 0; i < NUM_WRITERS; i++) {
         for (int64_t j = 0; j < num_halos; j++) {
             halos[j].flags -= (halos[j].flags & TAGGED_FLAG);
         }
@@ -931,7 +931,7 @@ void distribute_halos(float (*writer_bounds)[6]) {
     recv_complete_halos = reallocate(recv_complete_halos, 0);
 
     int64_t hstart = 0;
-    for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+    for (int64_t i = 0; i < NUM_WRITERS; i++) {
         for (auto j = hstart; j < hstart + halo_counts[i]; j++) {
             if (extra_info[j].child >= 0)
                 extra_info[j].child += hstart;
@@ -961,10 +961,10 @@ void distribute_halos(float (*writer_bounds)[6]) {
 }
 
 void distribute_sets(int my_rank) {
-    auto send_set_counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    clear_counts(send_set_counts, ROCKSTAR_NUM_WRITERS);
-    auto send_group_counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    clear_counts(send_group_counts, ROCKSTAR_NUM_WRITERS);
+    auto send_set_counts = allocate<int>(NUM_WRITERS);
+    clear_counts(send_set_counts, NUM_WRITERS);
+    auto send_group_counts = allocate<int>(NUM_WRITERS);
+    clear_counts(send_group_counts, NUM_WRITERS);
 
     auto set_chunks = allocate<int64_t>(num_bg_sets);
 
@@ -1010,8 +1010,8 @@ void distribute_sets(int my_rank) {
     for (int64_t i = 0; i < num_bg_sets; i++)
         total_bg += bg_set_sizes[i];
 
-    auto send_displs = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    calc_displs(send_group_counts, ROCKSTAR_NUM_WRITERS, send_displs);
+    auto send_displs = allocate<int>(NUM_WRITERS);
+    calc_displs(send_group_counts, NUM_WRITERS, send_displs);
 
     // Reorder sets
     auto new_groups = allocate<struct bgroup>(total_bg);
@@ -1023,7 +1023,7 @@ void distribute_sets(int my_rank) {
         j += bg_set_sizes[i];
     }
 
-    calc_displs(send_set_counts, ROCKSTAR_NUM_WRITERS, send_displs);
+    calc_displs(send_set_counts, NUM_WRITERS, send_displs);
 
     auto new_set_sizes = allocate<int64_t>(num_bg_sets);
     for (int64_t i = 0; i < num_bg_sets; i++) {
@@ -1047,13 +1047,13 @@ void distribute_sets(int my_rank) {
 void collect_bgroups(int my_rank) {
     bgroups_to_setlist();
 
-    auto num_recv_sets   = allocate<int64_t>(ROCKSTAR_NUM_WRITERS);
-    auto num_recv_groups = allocate<int64_t>(ROCKSTAR_NUM_WRITERS);
-    auto recv_set_sizes  = allocate<int64_t *>(ROCKSTAR_NUM_WRITERS);
-    auto recv_groups     = allocate<struct bgroup *>(ROCKSTAR_NUM_WRITERS);
+    auto num_recv_sets   = allocate<int64_t>(NUM_WRITERS);
+    auto num_recv_groups = allocate<int64_t>(NUM_WRITERS);
+    auto recv_set_sizes  = allocate<int64_t *>(NUM_WRITERS);
+    auto recv_groups     = allocate<struct bgroup *>(NUM_WRITERS);
 
-    auto set_counts   = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    auto group_counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
+    auto set_counts   = allocate<int>(NUM_WRITERS);
+    auto group_counts = allocate<int>(NUM_WRITERS);
 
     while (1) {
         auto dest         = calc_next_bgroup_chunk();
@@ -1064,8 +1064,8 @@ void collect_bgroups(int my_rank) {
         if (all_finished)
             break;
 
-        clear_counts(set_counts, ROCKSTAR_NUM_WRITERS);
-        clear_counts(group_counts, ROCKSTAR_NUM_WRITERS);
+        clear_counts(set_counts, NUM_WRITERS);
+        clear_counts(group_counts, NUM_WRITERS);
 
         if (dest >= 0) {
             int64_t total_bg = 0;
@@ -1080,7 +1080,7 @@ void collect_bgroups(int my_rank) {
         exchange_data(bg_set_sizes, set_counts, all_recv_set_sizes, 0,
                       MPI_INT64_T);
         int64_t set_start_index = 0;
-        for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+        for (int64_t i = 0; i < NUM_WRITERS; i++) {
             num_recv_sets[i]  = set_counts[i];
             recv_set_sizes[i] = allocate<int64_t>(num_recv_sets[i]);
             std::copy_n(all_recv_set_sizes + set_start_index, set_counts[i],
@@ -1095,7 +1095,7 @@ void collect_bgroups(int my_rank) {
         exchange_data(final_bg, group_counts, all_recv_groups, 0,
                       mpi_bgroup_type);
         int64_t group_start_index = 0;
-        for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+        for (int64_t i = 0; i < NUM_WRITERS; i++) {
             num_recv_groups[i] = group_counts[i];
             recv_groups[i]     = allocate<struct bgroup>(num_recv_groups[i]);
             std::copy_n(all_recv_groups + group_start_index, group_counts[i],
@@ -1104,20 +1104,20 @@ void collect_bgroups(int my_rank) {
         }
         all_recv_groups = reallocate(all_recv_groups, 0);
 
-        for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+        for (int64_t i = 0; i < NUM_WRITERS; i++) {
             find_bgroup_sets(i, &num_recv_sets[i], &recv_set_sizes[i],
                              &recv_groups[i], &num_recv_groups[i]);
         }
 
         int64_t num_sets_to_send = 0;
-        for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+        for (int64_t i = 0; i < NUM_WRITERS; i++) {
             set_counts[i] = num_recv_sets[i];
             num_sets_to_send += num_recv_sets[i];
         }
 
         auto send_set_sizes = allocate<int64_t>(num_sets_to_send);
         set_start_index     = 0;
-        for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+        for (int64_t i = 0; i < NUM_WRITERS; i++) {
             std::copy_n(recv_set_sizes[i], num_recv_sets[i],
                         send_set_sizes + set_start_index);
             recv_set_sizes[i] = reallocate(recv_set_sizes[i], 0);
@@ -1128,13 +1128,13 @@ void collect_bgroups(int my_rank) {
         send_set_sizes     = reallocate(send_set_sizes, 0);
 
         int64_t num_groups_to_send = 0;
-        for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+        for (int64_t i = 0; i < NUM_WRITERS; i++) {
             group_counts[i] = num_recv_groups[i];
             num_groups_to_send += num_recv_groups[i];
         }
         auto send_groups  = allocate<struct bgroup>(num_groups_to_send);
         group_start_index = 0;
-        for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+        for (int64_t i = 0; i < NUM_WRITERS; i++) {
             std::copy_n(recv_groups[i], num_recv_groups[i],
                         send_groups + group_start_index);
             recv_groups[i] = reallocate(recv_groups[i], 0);
@@ -1173,9 +1173,9 @@ void collect_bgroups(int my_rank) {
 }
 
 int64_t collect_meta_fofs(struct fof *&meta_fofs) {
-    auto counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    clear_counts(counts, ROCKSTAR_NUM_WRITERS);
-    auto displs = allocate<int>(ROCKSTAR_NUM_WRITERS);
+    auto counts = allocate<int>(NUM_WRITERS);
+    clear_counts(counts, NUM_WRITERS);
+    auto displs = allocate<int>(NUM_WRITERS);
 
     int64_t set_start = 0;
     for (int64_t i = 0; i < num_bg_sets; i++) {
@@ -1185,7 +1185,7 @@ int64_t collect_meta_fofs(struct fof *&meta_fofs) {
         set_start += bg_set_sizes[i];
     }
 
-    auto num_to_send = calc_displs(counts, ROCKSTAR_NUM_WRITERS, displs);
+    auto num_to_send = calc_displs(counts, NUM_WRITERS, displs);
     auto send_ids    = allocate<int64_t>(num_to_send);
 
     auto total_bg = set_start;
@@ -1205,7 +1205,7 @@ int64_t collect_meta_fofs(struct fof *&meta_fofs) {
 
     int64_t id_start_index = 0;
     num_to_send            = 0;
-    for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+    for (int64_t i = 0; i < NUM_WRITERS; i++) {
         int64_t total_num_p = 0;
         for (int64_t j = 0; j < counts[i]; j++) {
             auto id = recv_ids[id_start_index + j];
@@ -1220,7 +1220,7 @@ int64_t collect_meta_fofs(struct fof *&meta_fofs) {
     auto send_particles      = allocate<struct particle>(num_to_send);
     id_start_index           = 0;
     int64_t part_start_index = 0;
-    for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+    for (int64_t i = 0; i < NUM_WRITERS; i++) {
         int64_t total_num_p = 0;
         for (int64_t j = 0; j < counts[i]; j++) {
             auto id = recv_ids[id_start_index + j];
@@ -1268,7 +1268,7 @@ int64_t collect_meta_fofs(struct fof *&meta_fofs) {
         all_fofs[i].particles = p + (all_fofs[i].particles - orig_p);
     }
 
-    calc_displs(counts, ROCKSTAR_NUM_WRITERS, displs);
+    calc_displs(counts, NUM_WRITERS, displs);
     counts = reallocate(counts, 0);
 
     set_start = 0;
@@ -1393,7 +1393,7 @@ void do_halo_finding(struct fof *meta_fofs, int64_t num_metafofs) {
                       [](const struct particle &a, const struct particle &b) {
                           return a.id < b.id;
                       }); // Not necessarily
-            if (ROCKSTAR_PERIODIC)
+            if (PERIODIC)
                 align_particles(meta_fofs[i]);
             find_subs(&meta_fofs[i], &fofinfo, &haloinfo);
         }
@@ -1422,7 +1422,7 @@ void calc_halo_bounds(float *bounds) {
     memcpy(bounds + 3, halos[0].pos, sizeof(float) * 3);
     for (i = 0; i < num_halos; i++) {
         float r = BGC2_R * halos[i].r;
-        if (ROCKSTAR_STRICT_SO_MASSES)
+        if (STRICT_SO_MASSES)
             r = BGC2_R * max_halo_radius(halos + i);
         for (j = 0; j < 3; j++) {
             if (bounds[j] > halos[i].pos[j] - r)
@@ -1436,14 +1436,14 @@ void calc_halo_bounds(float *bounds) {
 void gather_spheres(int64_t my_rank, float (*writer_bounds)[6],
                     const std::vector<int64_t> &recipients) {
     std::vector<std::vector<struct sphere_request>> sphere_requests(
-        ROCKSTAR_NUM_WRITERS, std::vector<struct sphere_request>());
+        NUM_WRITERS, std::vector<struct sphere_request>());
 
     for (int64_t i = 0; i < num_halos; i++) {
         if (!_should_print(halos + i, writer_bounds[my_rank]))
             continue;
 
         float r = BGC2_R * halos[i].r;
-        if (ROCKSTAR_STRICT_SO_MASSES)
+        if (STRICT_SO_MASSES)
             r = BGC2_R * max_halo_radius(halos + i);
 
         int64_t j;
@@ -1464,7 +1464,7 @@ void gather_spheres(int64_t my_rank, float (*writer_bounds)[6],
                 continue;
 
             sp.r = halos[i].r * BGC2_R;
-            if (ROCKSTAR_STRICT_SO_MASSES)
+            if (STRICT_SO_MASSES)
                 sp.r = BGC2_R * max_halo_radius(halos + i);
             for (int64_t k = 0; k < 3; k++) {
                 bounds[k]     = writer_bounds[recipient][k] - sp.r;
@@ -1478,18 +1478,18 @@ void gather_spheres(int64_t my_rank, float (*writer_bounds)[6],
         }
     }
 
-    auto counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    clear_counts(counts, ROCKSTAR_NUM_WRITERS);
+    auto counts = allocate<int>(NUM_WRITERS);
+    clear_counts(counts, NUM_WRITERS);
 
     int64_t total_requests = 0;
-    for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+    for (int64_t i = 0; i < NUM_WRITERS; i++) {
         counts[i] = sphere_requests[i].size();
         total_requests += counts[i];
     }
 
     auto    send_buffer = allocate<struct sphere_request>(total_requests);
     int64_t request_start_index = 0;
-    for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+    for (int64_t i = 0; i < NUM_WRITERS; i++) {
         std::copy(sphere_requests[i].begin(), sphere_requests[i].end(),
                   send_buffer + request_start_index);
         std::vector<struct sphere_request>().swap(sphere_requests[i]);
@@ -1508,7 +1508,7 @@ void gather_spheres(int64_t my_rank, float (*writer_bounds)[6],
     std::vector<struct extended_particle> epbuffer;
     char *bitarray      = BIT_ALLOC(num_p + num_additional_p);
     request_start_index = 0;
-    for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+    for (int64_t i = 0; i < NUM_WRITERS; i++) {
         BIT_ALL_CLEAR(bitarray, num_p + num_additional_p);
         int64_t k = 0;
         for (int64_t j = 0; j < counts[i]; j++) {
@@ -1541,17 +1541,17 @@ void gather_spheres(int64_t my_rank, float (*writer_bounds)[6],
 void find_halos(int64_t snap, int64_t my_rank, char *buffer,
                 float (*writer_bounds)[6]) {
     sync_config();
-    if (ROCKSTAR_LIGHTCONE)
+    if (LIGHTCONE)
         init_cosmology();
     init_time_table();
 
-    if (!ROCKSTAR_DUMP_PARTICLES[0]) {
+    if (!DUMP_PARTICLES[0]) {
         timed_output("Analyzing for FoF groups...\n");
 
-        if (ROCKSTAR_EXTRA_PROFILING && !profile_out) {
-            snprintf(buffer, 1024, "%s/profiling", ROCKSTAR_OUTBASE);
+        if (EXTRA_PROFILING && !profile_out) {
+            snprintf(buffer, 1024, "%s/profiling", OUTBASE);
             mkdir(buffer, 0777);
-            snprintf(buffer, 1024, "%s/profiling/profile.%" PRId64, ROCKSTAR_OUTBASE,
+            snprintf(buffer, 1024, "%s/profiling/profile.%" PRId64, OUTBASE,
                      my_rank);
             profile_out = check_fopen(buffer, "w"); // Truncate
             fclose(profile_out);
@@ -1566,9 +1566,9 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
             fprintf(stderr, "Found %" PRId64 " fofs in chunk %" PRId64 "\n",
                     num_all_fofs, my_rank);
             
-            fprintf(stderr, "find_halos: my_rank %" PRId64 " PARTICLE_MASS: %f\n", my_rank, ROCKSTAR_PARTICLE_MASS);
-            fprintf(stderr, "find_halos: my_rank %" PRId64 " BOX_SIZE: %f\n", my_rank, ROCKSTAR_BOX_SIZE);
-            fprintf(stderr, "find_halos: my_rank %" PRId64 " AVG_PARTICLE_SPACING: %f\n", my_rank, ROCKSTAR_AVG_PARTICLE_SPACING);
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " PARTICLE_MASS: %f\n", my_rank, PARTICLE_MASS);
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " BOX_SIZE: %f\n", my_rank, BOX_SIZE);
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " AVG_PARTICLE_SPACING: %f\n", my_rank, AVG_PARTICLE_SPACING);
             fprintf(stderr, "find_halos: my_rank %" PRId64 " num_p: %" PRId64 "\n", my_rank, num_p);
             fprintf(stderr, "find_halos: my_rank %" PRId64 " num_all_fofs: %" PRId64 "\n", my_rank, num_all_fofs);
         }
@@ -1606,12 +1606,12 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
         float new_bounds[6];
         memcpy(new_bounds, writer_bounds[my_rank], sizeof(float) * 6);
         if (num_meta_fofs > 0) {
-            if (!ROCKSTAR_PERIODIC || !ROCKSTAR_BOX_SIZE)
+            if (!PERIODIC || !BOX_SIZE)
                 calc_particle_bounds(new_bounds);
             else
                 calc_particle_bounds_periodic(new_bounds);
         }
-        if (ROCKSTAR_TEMPORAL_HALO_FINDING) {
+        if (TEMPORAL_HALO_FINDING) {
             load_previous_halos(snap, my_rank, new_bounds);
         }
 
@@ -1633,7 +1633,7 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
 
 #ifdef ENABLE_HDF5
         int64_t num_p_print = count_particles_to_print(writer_bounds[my_rank]);
-        if (!strcasecmp(ROCKSTAR_OUTPUT_FORMAT, "HDF5")) {
+        if (!strcasecmp(OUTPUT_FORMAT, "HDF5")) {
             int64_t tot_num_halos, tot_num_p;
             MPI_Allreduce(&num_halos_print, &tot_num_halos, 1, MPI_INT64_T, MPI_SUM,
                           MPI_COMM_WORLD);
@@ -1644,7 +1644,7 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
         }
 #endif
 
-        if (check_bgc2_snap(snap) || ROCKSTAR_STRICT_SO_MASSES) {
+        if (check_bgc2_snap(snap) || STRICT_SO_MASSES) {
             timed_output("Generating BGC2 files/SO Masses...\n");
 
             // p[0..num_p] are local particles not belonging to any halo
@@ -1662,7 +1662,7 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
                 if (j == 3)
                     total_num_p += halos[i].num_p;
             }
-            // The sum of total_num_p for all procs should equal ROCKSTAR_TOTAL_PARTICLES
+            // The sum of total_num_p for all procs should equal TOTAL_PARTICLES
 
 #if 1
 	    for( int i=0; i<(num_p+num_additional_p); i++){
@@ -1674,7 +1674,7 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
             calc_halo_bounds(my_halo_bounds);
 
             std::vector<int64_t> recipients;
-            for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+            for (int64_t i = 0; i < NUM_WRITERS; i++) {
                 float bounds[6];
                 if (bounds_overlap(my_halo_bounds, writer_bounds[i], bounds, 0)) {
                     recipients.emplace_back(i);
@@ -1711,17 +1711,17 @@ void transfer_halos(int64_t snap, int64_t my_rank, float (*writer_bounds)[6],
     int64_t                    *part_ids = nullptr;
     load_binary_halos(snap, my_rank, &bheader, &halos, &part_ids, 0);
 
-    auto send_halo_counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    clear_counts(send_halo_counts, ROCKSTAR_NUM_WRITERS);
-    auto send_pid_counts = allocate<int>(ROCKSTAR_NUM_WRITERS);
-    clear_counts(send_pid_counts, ROCKSTAR_NUM_WRITERS);
+    auto send_halo_counts = allocate<int>(NUM_WRITERS);
+    clear_counts(send_halo_counts, NUM_WRITERS);
+    auto send_pid_counts = allocate<int>(NUM_WRITERS);
+    clear_counts(send_pid_counts, NUM_WRITERS);
     std::vector<struct halo> send_halos;
 
     int64_t num_pids_to_send = 0;
-    for (int64_t i = 0; i < ROCKSTAR_NUM_WRITERS; i++) {
+    for (int64_t i = 0; i < NUM_WRITERS; i++) {
         float expanded_bounds[6];
         if (bounds_overlap(writer_bounds[my_rank], bounds_prevsnap[i],
-                           expanded_bounds, ROCKSTAR_OVERLAP_LENGTH)) {
+                           expanded_bounds, OVERLAP_LENGTH)) {
             for (int64_t j = 0; j < bheader.num_halos; j++) {
                 struct halo h = halos[j];
                 if (_check_bounds(halos[j].pos, h.pos, expanded_bounds)) {
@@ -1809,7 +1809,7 @@ void _do_merger_tree_part2(int64_t snap, int64_t my_rank) {
     char   *cat = gen_merger_catalog(snap, my_rank, halos1, head1.num_halos,
                                      &cat_length, &head_length);
     int64_t location = 0;
-    if (!ROCKSTAR_OUTLIST_PARALLEL) {
+    if (!OUTLIST_PARALLEL) {
         assert(my_rank == 0 || head_length == 0);
         int64_t total_length = head_length + cat_length;
         MPI_Exscan(&total_length, &location, 1, MPI_INT64_T, MPI_SUM,
@@ -1819,28 +1819,28 @@ void _do_merger_tree_part2(int64_t snap, int64_t my_rank) {
     output_merger_catalog(snap, my_rank, location, cat_length, cat);
     clear_merger_tree();
 
-    if (ROCKSTAR_DELETE_BINARY_OUTPUT_AFTER_FINISHED)
+    if (DELETE_BINARY_OUTPUT_AFTER_FINISHED)
         delete_binary(snap, my_rank);
 }
 
 void do_merger_tree(int64_t snap, int64_t my_rank, float (*writer_bounds)[6]) {
     int64_t starting_snap = 0;
-    if ((ROCKSTAR_SINGLE_SNAP && !snap) || (!ROCKSTAR_SINGLE_SNAP && snap == ROCKSTAR_STARTING_SNAP))
+    if ((SINGLE_SNAP && !snap) || (!SINGLE_SNAP && snap == STARTING_SNAP))
         starting_snap = 1;
-    if (starting_snap && snap != ROCKSTAR_NUM_SNAPS - 1)
+    if (starting_snap && snap != NUM_SNAPS - 1)
         return;
 
     timed_output("Loading merger tree information...\n");
     if (!starting_snap) { // Load in the current snapshot, with overlap
         float bounds[6];
         get_bounds(snap - 1, my_rank, bounds);
-        auto bounds_prevsnap = allocate<float[6]>(ROCKSTAR_NUM_WRITERS);
+        auto bounds_prevsnap = allocate<float[6]>(NUM_WRITERS);
         MPI_Allgather(bounds, 6, MPI_FLOAT, bounds_prevsnap, 6, MPI_FLOAT,
                       MPI_COMM_WORLD);
 
         get_bounds(snap, my_rank, bounds);
         if (!p_bounds) {
-            p_bounds = reallocate(p_bounds, ROCKSTAR_NUM_WRITERS);
+            p_bounds = reallocate(p_bounds, NUM_WRITERS);
         }
         MPI_Datatype mpi_pbounds_type;
 #if 0
@@ -1864,7 +1864,7 @@ void do_merger_tree(int64_t snap, int64_t my_rank, float (*writer_bounds)[6]) {
 
         _do_merger_tree_part2(snap - 1, my_rank);
     }
-    if (snap == ROCKSTAR_NUM_SNAPS - 1)
+    if (snap == NUM_SNAPS - 1)
         _do_merger_tree_part2(snap, my_rank);
 }
 
@@ -1909,9 +1909,9 @@ void check_config( const int my_rank){
 
   }
 
-  if( ROCKSTAR_PARALLEL_IO != 1){
+  if( PARALLEL_IO != 1){
     if(my_rank == 0){
-      fprintf( stderr, "ROCKSTAR_PARALLEL_IO must be 1\n");
+      fprintf( stderr, "PARALLEL_IO must be 1\n");
     }
     exitMPI();
   }
@@ -1935,14 +1935,14 @@ void read_config_and_input(int argc, char **argv) {
     }
     if (!did_config)
         do_config(NULL);
-    if (strlen(ROCKSTAR_SNAPSHOT_NAMES))
-        read_input_names(ROCKSTAR_SNAPSHOT_NAMES, &snapnames, &ROCKSTAR_NUM_SNAPS);
-    if (strlen(ROCKSTAR_BLOCK_NAMES))
-        read_input_names(ROCKSTAR_BLOCK_NAMES, &blocknames, &ROCKSTAR_NUM_BLOCKS);
+    if (strlen(SNAPSHOT_NAMES))
+        read_input_names(SNAPSHOT_NAMES, &snapnames, &NUM_SNAPS);
+    if (strlen(BLOCK_NAMES))
+        read_input_names(BLOCK_NAMES, &blocknames, &NUM_BLOCKS);
 
     if (snap > -1) {
-      ROCKSTAR_STARTING_SNAP = snap;
-      ROCKSTAR_SINGLE_SNAP   = 1;
+      STARTING_SNAP = snap;
+      SINGLE_SNAP   = 1;
     }
 
 }
@@ -1973,40 +1973,40 @@ extern "C" void mpi_main(int argc, char *argv[]) {
     }
     #endif
 
-    fprintf(stderr, "mpi_main: my_rank: %d, ROCKSTAR_PERIODIC: %d\n", my_rank, ROCKSTAR_PERIODIC);
-    fprintf(stderr, "mpi_main: my_rank: %d, ROCKSTAR_LIGHTCONE: %d\n", my_rank, ROCKSTAR_LIGHTCONE);
-    fprintf(stderr, "mpi_main: my_rank: %d, ROCKSTAR_FILENAME: %s\n", my_rank, ROCKSTAR_FILENAME);
+    fprintf(stderr, "mpi_main: my_rank: %d, PERIODIC: %d\n", my_rank, PERIODIC);
+    fprintf(stderr, "mpi_main: my_rank: %d, LIGHTCONE: %d\n", my_rank, LIGHTCONE);
+    fprintf(stderr, "mpi_main: my_rank: %d, FILENAME: %s\n", my_rank, FILENAME);
 
-    ROCKSTAR_NUM_WRITERS = num_procs;
-    ROCKSTAR_NUM_READERS = (ROCKSTAR_NUM_BLOCKS > num_procs) ? num_procs : ROCKSTAR_NUM_BLOCKS;
+    NUM_WRITERS = num_procs;
+    NUM_READERS = (NUM_BLOCKS > num_procs) ? num_procs : NUM_BLOCKS;
     if (my_rank == 0)
         check_num_writers();
 
     check_config( my_rank);
 
     float my_reader_bounds[6];
-    auto  writer_bounds = allocate<float[6]>(ROCKSTAR_NUM_WRITERS);
+    auto  writer_bounds = allocate<float[6]>(NUM_WRITERS);
 
     clear_merger_tree();
-    if (ROCKSTAR_LIGHTCONE && strlen(ROCKSTAR_LIGHTCONE_ALT_SNAPS)) {
-        memcpy(ROCKSTAR_LIGHTCONE_ORIGIN, ROCKSTAR_LIGHTCONE_ALT_ORIGIN, sizeof(double) * 3);
+    if (LIGHTCONE && strlen(LIGHTCONE_ALT_SNAPS)) {
+        memcpy(LIGHTCONE_ORIGIN, LIGHTCONE_ALT_ORIGIN, sizeof(double) * 3);
     }
 
     time_start = MPI_Wtime();
-    if (ROCKSTAR_STARTING_SNAP > ROCKSTAR_RESTART_SNAP)
-        ROCKSTAR_RESTART_SNAP = ROCKSTAR_STARTING_SNAP;
+    if (STARTING_SNAP > RESTART_SNAP)
+        RESTART_SNAP = STARTING_SNAP;
     reload_parts = 1;
 
-    for (int64_t snap = ROCKSTAR_RESTART_SNAP; snap < ROCKSTAR_NUM_SNAPS; snap++) {
-        ROCKSTAR_RESTART_SNAP = snap;
+    for (int64_t snap = RESTART_SNAP; snap < NUM_SNAPS; snap++) {
+        RESTART_SNAP = snap;
         if (my_rank == 0)
             output_config("restart.cfg");
         timed_output("Start processing snapshot %" PRId64 " with %" PRId64
                      " procs.\n",
-                     snap, ROCKSTAR_NUM_WRITERS);
-        if (!ROCKSTAR_DO_MERGER_TREE_ONLY) {
+                     snap, NUM_WRITERS);
+        if (!DO_MERGER_TREE_ONLY) {
             const auto my_reader_rank = get_reader_rank();
-            if (!ROCKSTAR_PRELOAD_PARTICLES || reload_parts) {
+            if (!PRELOAD_PARTICLES || reload_parts) {
                 read_blocks(snap, my_reader_rank, buffer);
                 reload_parts = 0;
             }
@@ -2014,7 +2014,7 @@ extern "C" void mpi_main(int argc, char *argv[]) {
             decide_reader_bounds(my_reader_bounds, my_reader_rank);
             decide_writer_bounds(writer_bounds, my_rank);
 
-            if (!ROCKSTAR_MEMORY_SAVING_TRANSFER) {
+            if (!MEMORY_SAVING_TRANSFER) {
               transfer_particles(my_reader_rank, my_reader_bounds, writer_bounds);
             }
             else {
@@ -2025,30 +2025,30 @@ extern "C" void mpi_main(int argc, char *argv[]) {
                       [](const struct particle &a, const struct particle &b) {
                           return a.id < b.id;
                       }); // Not necessarily
-            if (ROCKSTAR_PRELOAD_PARTICLES && (snap < ROCKSTAR_NUM_SNAPS - 1))
+            if (PRELOAD_PARTICLES && (snap < NUM_SNAPS - 1))
                 read_blocks(snap + 1, my_reader_rank, buffer);
             find_halos(snap, my_rank, buffer, writer_bounds);
         }
-        if (((strcasecmp(ROCKSTAR_OUTPUT_FORMAT, "ASCII") != 0) ||
-             ROCKSTAR_TEMPORAL_HALO_FINDING) &&
-            !ROCKSTAR_DUMP_PARTICLES[0] && !ROCKSTAR_IGNORE_PARTICLE_IDS)
+        if (((strcasecmp(OUTPUT_FORMAT, "ASCII") != 0) ||
+             TEMPORAL_HALO_FINDING) &&
+            !DUMP_PARTICLES[0] && !IGNORE_PARTICLE_IDS)
             do_merger_tree(snap, my_rank, writer_bounds);
         timed_output("[Success] Done with snapshot %" PRId64 ".\n", snap);
         /*
-        if (strlen(ROCKSTAR_RUN_PARALLEL_ON_SUCCESS)) {
+        if (strlen(RUN_PARALLEL_ON_SUCCESS)) {
             timed_output("Running external parallel analysis process for "
                          "snapshot %" PRId64 "...\n",
                          snap);
             command_writers_and_confirm("rpos");
         }
 
-        if (strlen(ROCKSTAR_RUN_ON_SUCCESS)) {
+        if (strlen(RUN_ON_SUCCESS)) {
             if (snapnames && snapnames[snap])
-                snprintf(buffer, 1024, "%s %" PRId64 " %s", ROCKSTAR_RUN_ON_SUCCESS,
+                snprintf(buffer, 1024, "%s %" PRId64 " %s", RUN_ON_SUCCESS,
                          snap, snapnames[snap]);
             else
                 snprintf(buffer, 1024, "%s %" PRId64 " %" PRId64,
-                         ROCKSTAR_RUN_ON_SUCCESS, snap, snap);
+                         RUN_ON_SUCCESS, snap, snap);
             n = fork();
             if (n <= 0) {
                 if (system(buffer) != 0)
@@ -2061,7 +2061,7 @@ extern "C" void mpi_main(int argc, char *argv[]) {
                 exit(0);
         }
         */
-        if (ROCKSTAR_SINGLE_SNAP)
+        if (SINGLE_SNAP)
             break;
     }
     writer_bounds = reallocate(writer_bounds, 0);
