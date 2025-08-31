@@ -36,6 +36,17 @@ export OMP_NUM_THREADS=<the number of OpenMP threads>
 ```
 When you use a batch job system, please follow the instruction of the system.
 
+### Error handling
+The original Rockstar code terminated the process directly on failure using `exit(1)`. MPI-Rockstar now routes all such failures
+through a central handler. The default handler throws a `rockstar_error` exception, which the provided `mpi-rockstar` executable
+catches to report the error and finalize MPI cleanly. Applications can override this behaviour with
+```
+rockstar_set_error_handler(my_handler);
+```
+where `my_handler` is a function matching `void handler(int code, const char *file, int line)`. This allows library users to
+clean up resources, convert Rockstar errors into their own error reporting system, or perform their own collective MPI shutdown
+before deciding how to handle the failure.
+
 In the original Rockstar, `PID` is the parent halo's ID and can be added by `find_parents` after running the Rockstar. You can also compile it by
 ```
 make find_parents -C src

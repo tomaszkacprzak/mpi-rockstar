@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <ctype.h>
 #include "read_config.h"
+#include "../error.h"
 
 void add_to_string_array(char ***array, char *string, size_t length,
                          int num_entries) {

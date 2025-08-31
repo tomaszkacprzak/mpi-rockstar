@@ -11,8 +11,10 @@
 #include <cstdarg>
 #include <cstddef>
 #include <ctime>
+#include <cstdio>
 #include <sys/stat.h>
 
+#include "error.h"
 extern "C" {
 #include "config_vars.h"
 #include "check_syscalls.h"
@@ -2084,9 +2086,16 @@ int main(int argc, char **argv) {
 #ifdef DO_CONFIG_MPI
     init_mpi( argc, argv);
 #endif
-    
-    mpi_main(argc, argv);
 
+    try {
+        mpi_main(argc, argv);
+    } catch (const rockstar_error &err) {
+#ifdef DO_CONFIG_MPI
+        MPI_Finalize();
+#endif
+        fprintf(stderr, "Rockstar error %d at %s:%d\n", err.code, err.file, err.line);
+        return err.code;
+    }
 
 
 #ifdef DO_CONFIG_MPI
