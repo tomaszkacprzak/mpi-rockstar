@@ -287,3 +287,36 @@ void check_mtrim(void) {
     malloc_trim(0);
 #endif /* __linux__ */
 }
+
+int is_directory(const char *input)
+{
+  struct stat st;
+  if(stat(input, &st) != 0) return 0;
+  return S_ISDIR(st.st_mode);
+}
+
+void make_directory_hir(const char *directory_name) {
+  if (is_directory((char*)directory_name)) return;
+
+  char full_path[1024];
+  if (directory_name[0] == '/') {
+    snprintf(full_path, sizeof(full_path), "%s", directory_name);
+  } else {
+    if(!getcwd(full_path, sizeof(full_path))) {
+         fprintf(stderr, "[Error] getcwd failed\n");
+        exit(1);
+   }
+    size_t len = strlen(full_path);
+    snprintf(full_path + len, sizeof(full_path) - len, "/%s", directory_name);
+  }
+
+  mode_t mode = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
+  char *p = strchr(full_path + 1, '/');
+  while (p != NULL) {
+    *p = '\0';
+    if (!is_directory(full_path))
+        mkdir(full_path, mode);
+    *p = '/'; p = strchr(p + 1, '/');
+  }
+  mkdir(full_path, mode);
+}

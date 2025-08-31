@@ -10,8 +10,8 @@
 #include "universal_constants.h"
 
 #ifdef DO_CONFIG_MPI
-#include "mpi.h"    
-#endif  
+#include "mpi.h"
+#endif
 
 
 void setup_config(void) {
@@ -104,7 +104,7 @@ void do_config(char *filename) {
 #undef real
 #undef real3
 #undef integer
-  
+
   syntax_check(&c, "[Warning]");
   setup_config();
   free_config(c);
@@ -116,6 +116,7 @@ void do_config(char *filename) {
 
 
 void output_config(const char *filename) {
+    make_directory_hir(OUTBASE);
     char  buffer[1024];
     FILE *output;
     if (!filename)

@@ -124,7 +124,8 @@ int64_t get_output_dirname(char *buffer, int maxlen, int64_t snap,
         snprintf(buffer + out, maxlen - out, "%0*ld/", (int)SUBDIR_DIGITS_OUTPUT,
                  subdir);
         out = strlen(buffer);
-        mkdir(buffer, 0777);
+        // mkdir(buffer, 0777);
+        make_directory_hir(buffer);
     }
     return out;
 }
