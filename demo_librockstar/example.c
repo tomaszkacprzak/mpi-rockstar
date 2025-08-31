@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     do_config(argv[1]);
-    mpi_main(0, NULL);
+    rockstar_mpi_main(0, NULL);
     MPI_Finalize();
     return 0;
 }
