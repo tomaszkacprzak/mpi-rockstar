@@ -14,7 +14,8 @@ int main(int argc, char **argv) {
         MPI_Finalize();
         return 1;
     }
-    mpi_main(argc, argv);
+    do_config(argv[1]);
+    mpi_main(0, NULL);
     MPI_Finalize();
     return 0;
 }
