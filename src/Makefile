@@ -20,8 +20,8 @@ CXX = mpiFCCpx
 OFLAGS = -Nclang -Ofast -fopenmp # -I/usr/include/tirpc
 endif
 
-CFLAGS   = -m64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_DEFAULT_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200809L -D_SVID_SOURCE -D_DARWIN_C_SOURCE -Wall -fno-math-errno -fPIC -std=c99 
-CXXFLAGS = -Wall -fno-math-errno -fPIC -std=c++11
+CFLAGS   = -m64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_DEFAULT_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200809L -D_SVID_SOURCE -D_DARWIN_C_SOURCE -Wall -fno-math-errno -fPIC -std=c99 -fexceptions
+CXXFLAGS = -Wall -fno-math-errno -fPIC -std=c++11 -fexceptions
 #ADDFLAGS = -DOUTPUT_RVMAX -DOUTPUT_NFW_CHI2 -DOUTPUT_INTERMEDIATE_AXIS
 ADDFLAGS = -DOUTPUT_RVMAX -DOUTPUT_NFW_CHI2 -DOUTPUT_INERTIA_TENSOR
 CFLAGS   += $(ADDFLAGS) $(OFLAGS) -DDO_CONFIG_MPI -DOMPI_SKIP_MPICXX -DMPICH_SKIP_MPICXX
@@ -31,7 +31,7 @@ HDF5_INCLUDE = -I/cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22
 HDF5_LIB = -L/cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-12.2.0/hdf5-1.14.3-w2l2wo54rrhvn32ib6plegfvaylh2lne/lib
 HDF5_FLAGS = -DH5_USE_16_API -DENABLE_HDF5 $(HDF5_INCLUDE)
 
-MPI_ROCKSTAR_CORE = rockstar.o check_syscalls.o fof.o groupies.o subhalo_metric.o potential.o nfw.o jacobi.o fun_times.o universe_time.o hubble.o integrate.o distance.o config_vars.o config.o bounds.o inthash.o io/read_config.o merger.o io/meta_io.o io/io_internal.o io/io_internal_hdf5.o io/io_ascii.o io/stringparse.o io/io_gadget.o io/io_generic.o io/io_art.o io/io_tipsy.o io/io_bgc2.o io/io_util.o io/io_pkdgrav3lcp.o io/io_arepo.o io/io_gadget4.o io/io_hdf5.o io/io_kyf.o interleaving.o
+MPI_ROCKSTAR_CORE = rockstar.o check_syscalls.o error.o fof.o groupies.o subhalo_metric.o potential.o nfw.o jacobi.o fun_times.o universe_time.o hubble.o integrate.o distance.o config_vars.o config.o bounds.o inthash.o io/read_config.o merger.o io/meta_io.o io/io_internal.o io/io_internal_hdf5.o io/io_ascii.o io/stringparse.o io/io_gadget.o io/io_generic.o io/io_art.o io/io_tipsy.o io/io_bgc2.o io/io_util.o io/io_pkdgrav3lcp.o io/io_arepo.o io/io_gadget4.o io/io_hdf5.o io/io_kyf.o interleaving.o
 MPI_ROCKSTAR      = $(MPI_ROCKSTAR_CORE) mpi_main.o
 MPI_ROCKSTAR_LIB  = $(MPI_ROCKSTAR_CORE) mpi_main_lib.o
 
