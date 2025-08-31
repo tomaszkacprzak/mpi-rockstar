@@ -87,9 +87,9 @@ template <typename T> T *reallocate(T *ptr, size_t num_elements) {
     const auto res = static_cast<T *>(std::realloc(ptr, size));
     if (res == nullptr) {
         const auto size_in_mib = static_cast<double>(size) / (1024 * 1024);
-        fprintf(stderr, "[Error] Failed to allocate %.2f MiB of memory!\n",
+        fprintf(stderr, "[Rockstar error] Failed to allocate %.2f MiB of memory!\n",
                 size_in_mib);
-        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+        exit(1);
     }
     return res;
 }
@@ -180,17 +180,17 @@ void check_num_writers(void) {
 	createDivision( NUM_WRITERS, factors);
         if (((factors[0] < 2) || (factors[1] < 2) || (factors[2] < 2)) && (PERIODIC)) {
             fprintf(stderr,
-                    "[Error] NUM_WRITERS should be the product of at least "
+                    "[Rockstar error] NUM_WRITERS should be the product of at least "
                     "three factors larger than 1 for periodic boundary "
                     "conditions to be enabled!\n");
             fprintf(stderr,
-                    "[Error] (Currently, NUM_WRITERS = %" PRId64
+                    "[Rockstar error] (Currently, NUM_WRITERS = %" PRId64
                     " = %d x %d x %d)\n",
                     NUM_WRITERS, factors[0], factors[1], factors[2]);
             fprintf(stderr,
-                    "[Error] Please adjust NUM_WRITERS or set PERIODIC=0 "
+                    "[Rockstar error] Please adjust NUM_WRITERS or set PERIODIC=0 "
                     "in the config file.\n");
-            MPI_Abort(MPI_COMM_WORLD, 1);
+            exit(1);
         }
     }
 }
@@ -284,11 +284,11 @@ void sync_config() {
     if (my_rank == 0) {
         if ((BOX_SIZE < OVERLAP_LENGTH * 5) && PERIODIC) {
             fprintf(stderr,
-                    "[Error] Box size too small (%f) relative to overlap "
+                    "[Rockstar error] Box size too small (%f) relative to overlap "
                     "length "
                     "(%f)!\n",
                     BOX_SIZE, OVERLAP_LENGTH);
-            MPI_Abort(MPI_COMM_WORLD, 1);
+            exit(1);
         }
     }
 }
@@ -411,11 +411,11 @@ void align_domain_particles(int      axis, const float (*all_samples)[3],
         MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
         if (my_rank == 0) {
             fprintf(stderr,
-                    "[Error] Only %" PRId64
+                    "[Rockstar error] Only %" PRId64
                     " sample particles available for %d chunks along axis %d.\n",
                     num_particles, chunks[axis], axis);
         }
-        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+        exit(1);
     }
 
     std::sort(particle_indices, particle_indices + num_particles,
@@ -509,14 +509,14 @@ void decide_chunks_for_memory_balance(const int chunks[],
     if (num_all_samples < NUM_WRITERS) {
         if (my_rank == 0) {
             fprintf(stderr,
-                    "[Error] Only %" PRId64
+                    "[Rockstar error] Only %" PRId64
                     " sample particles available for %" PRId64
                     " writers; at least %" PRId64
                     " samples are required to compute domain bounds.\n",
                     num_all_samples, NUM_WRITERS,
                     (int64_t)NUM_WRITERS);
         }
-        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+        exit(1);
     }
     auto all_samples = allocate<float[3]>(num_all_samples);
 

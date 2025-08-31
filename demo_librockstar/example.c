@@ -9,7 +9,15 @@ void rockstar_mpi_main(int argc, char **argv);
 
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
-    rockstar_mpi_main(argc, argv);
+
+
+    try {
+        rockstar_mpi_main(argc, argv);
+    } catch (...) {
+        fprintf(stderr, "Rockstar error\n");
+        return 1;
+    }
+
     MPI_Finalize();
     return 0;
 }
