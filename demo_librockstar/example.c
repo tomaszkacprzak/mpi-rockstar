@@ -1,21 +1,14 @@
 #include <mpi.h>
-#include <stdio.h>
 
+/* Declare only the function needed from the library to avoid exposing
+ * internal headers. */
 extern "C" {
-#include "config.h"
-#include "mpi_rockstar.h"
+int rockstar_mpi_main(int argc, char **argv);
 }
 
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
-
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s <config_file>\n", argv[0]);
-        MPI_Finalize();
-        return 1;
-    }
-    do_config(argv[1]);
-    rockstar_mpi_main(0, NULL);
+    rockstar_mpi_main(argc, argv);
     MPI_Finalize();
     return 0;
 }

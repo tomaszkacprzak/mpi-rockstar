@@ -1,5 +1,5 @@
 CC=mpicxx
-CFLAGS=-I../src -fopenmp
+CFLAGS=-fopenmp
 LDFLAGS=../libmpi_rockstar.a -lm -ltirpc -fopenmp
 HDF5_LDFLAGS=../libmpi_rockstar_hdf5.a -lm -ltirpc -fopenmp -lhdf5 -lz
 
