@@ -1949,7 +1949,7 @@ void read_config_and_input(int argc, char **argv) {
 
 
 
-extern "C" void rockstar_main(int argc, char *argv[]) {
+extern "C" void rockstar_mpi_main(int argc, char *argv[]) {
     mpi_main(argc, argv);
 }
 
@@ -1967,6 +1967,8 @@ void mpi_main(int argc, char *argv[]){
 #endif
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+
+    fprintf(stderr, "mpi_main: my_rank: %d, num_procs: %d\n", my_rank, num_procs);
 
     #ifndef MPI_ROCKSTAR_LIBRARY
     if (my_rank==0 && argc < 2) {
