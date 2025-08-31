@@ -1968,8 +1968,6 @@ void mpi_main(int argc, char *argv[]){
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-    fprintf(stderr, "mpi_main: my_rank: %d, num_procs: %d\n", my_rank, num_procs);
-
     #ifndef MPI_ROCKSTAR_LIBRARY
     if (my_rank==0 && argc < 2) {
         printf("MPI-Rockstar Halo Finder, Version %s\n", ROCKSTAR_VERSION);
@@ -1978,10 +1976,6 @@ void mpi_main(int argc, char *argv[]){
         exit(1);
     }
     #endif
-
-    fprintf(stderr, "mpi_main: my_rank: %d, PERIODIC: %d\n", my_rank, PERIODIC);
-    fprintf(stderr, "mpi_main: my_rank: %d, LIGHTCONE: %d\n", my_rank, LIGHTCONE);
-    fprintf(stderr, "mpi_main: my_rank: %d, FILENAME: %s\n", my_rank, FILENAME);
 
     NUM_WRITERS = num_procs;
     NUM_READERS = (NUM_BLOCKS > num_procs) ? num_procs : NUM_BLOCKS;
