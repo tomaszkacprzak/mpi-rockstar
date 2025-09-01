@@ -1957,123 +1957,140 @@ extern "C" void rockstar_mpi_main(int argc, char *argv[]) {
 
 void mpi_main(int argc, char *argv[]){
 
-    read_config_and_input(argc, argv);
-
-    char    buffer[1024];
-    int64_t reload_parts = 0;
-
     int num_procs, my_rank;
-    //MPI_Init(&argc, &argv);
-#ifndef DO_CONFIG_MPI
-    init_mpi( argc, argv);
+
+    bool mpi_initialized_here = false;
+#ifdef DO_CONFIG_MPI
+    int is_init = 0;
+    MPI_Initialized(&is_init);
+    if (!is_init) {
+        init_mpi(argc, argv);
+        mpi_initialized_here = true;
+    }
+#else
+    init_mpi(argc, argv);
+    mpi_initialized_here = true;
 #endif
-    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-    #ifndef MPI_ROCKSTAR_LIBRARY
-    if (my_rank==0 && argc < 2) {
-        printf("MPI-Rockstar Halo Finder, Version %s\n", ROCKSTAR_VERSION);
-        printf("(C) See the README file for redistribution details.\n");
-        printf("Usage: %s [-c config]\n", argv[0]);
-        exit(1);
-    }
-    #endif
+    try {
+        read_config_and_input(argc, argv);
 
-    NUM_WRITERS = num_procs;
-    NUM_READERS = (NUM_BLOCKS > num_procs) ? num_procs : NUM_BLOCKS;
-    if (my_rank == 0)
-        check_num_writers();
+        char    buffer[1024];
+        int64_t reload_parts = 0;
 
-    check_config( my_rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+        MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-    float my_reader_bounds[6];
-    auto  writer_bounds = allocate<float[6]>(NUM_WRITERS);
+        #ifndef MPI_ROCKSTAR_LIBRARY
+        if (my_rank==0 && argc < 2) {
+            printf("MPI-Rockstar Halo Finder, Version %s\n", ROCKSTAR_VERSION);
+            printf("(C) See the README file for redistribution details.\n");
+            printf("Usage: %s [-c config]\n", argv[0]);
+            exit(1);
+        }
+        #endif
 
-    clear_merger_tree();
-    if (LIGHTCONE && strlen(LIGHTCONE_ALT_SNAPS)) {
-        memcpy(LIGHTCONE_ORIGIN, LIGHTCONE_ALT_ORIGIN, sizeof(double) * 3);
-    }
-
-    time_start = MPI_Wtime();
-    if (STARTING_SNAP > RESTART_SNAP)
-        RESTART_SNAP = STARTING_SNAP;
-    reload_parts = 1;
-
-    for (int64_t snap = RESTART_SNAP; snap < NUM_SNAPS; snap++) {
-        RESTART_SNAP = snap;
+        NUM_WRITERS = num_procs;
+        NUM_READERS = (NUM_BLOCKS > num_procs) ? num_procs : NUM_BLOCKS;
         if (my_rank == 0)
-            output_config("restart.cfg");
-        timed_output("Start processing snapshot %" PRId64 " with %" PRId64
-                     " procs.\n",
-                     snap, NUM_WRITERS);
-        if (!DO_MERGER_TREE_ONLY) {
-            const auto my_reader_rank = get_reader_rank();
-            if (!PRELOAD_PARTICLES || reload_parts) {
-                read_blocks(snap, my_reader_rank, buffer);
-                reload_parts = 0;
-            }
-            sync_config();
-            decide_reader_bounds(my_reader_bounds, my_reader_rank);
-            decide_writer_bounds(writer_bounds, my_rank);
+            check_num_writers();
 
-            if (!MEMORY_SAVING_TRANSFER) {
-              transfer_particles(my_reader_rank, my_reader_bounds, writer_bounds);
-            }
-            else {
-              transfer_particles_mem_save(my_reader_rank, my_reader_bounds, writer_bounds);
-            }
+        check_config( my_rank);
 
-            std::sort(p, p + num_p,
-                      [](const struct particle &a, const struct particle &b) {
-                          return a.id < b.id;
-                      }); // Not necessarily
-            if (PRELOAD_PARTICLES && (snap < NUM_SNAPS - 1))
-                read_blocks(snap + 1, my_reader_rank, buffer);
-            find_halos(snap, my_rank, buffer, writer_bounds);
-        }
-        if (((strcasecmp(OUTPUT_FORMAT, "ASCII") != 0) ||
-             TEMPORAL_HALO_FINDING) &&
-            !DUMP_PARTICLES[0] && !IGNORE_PARTICLE_IDS)
-            do_merger_tree(snap, my_rank, writer_bounds);
-        timed_output("[Success] Done with snapshot %" PRId64 ".\n", snap);
-        /*
-        if (strlen(RUN_PARALLEL_ON_SUCCESS)) {
-            timed_output("Running external parallel analysis process for "
-                         "snapshot %" PRId64 "...\n",
-                         snap);
-            command_writers_and_confirm("rpos");
+        float my_reader_bounds[6];
+        auto  writer_bounds = allocate<float[6]>(NUM_WRITERS);
+
+        clear_merger_tree();
+        if (LIGHTCONE && strlen(LIGHTCONE_ALT_SNAPS)) {
+            memcpy(LIGHTCONE_ORIGIN, LIGHTCONE_ALT_ORIGIN, sizeof(double) * 3);
         }
 
-        if (strlen(RUN_ON_SUCCESS)) {
-            if (snapnames && snapnames[snap])
-                snprintf(buffer, 1024, "%s %" PRId64 " %s", RUN_ON_SUCCESS,
-                         snap, snapnames[snap]);
-            else
-                snprintf(buffer, 1024, "%s %" PRId64 " %" PRId64,
-                         RUN_ON_SUCCESS, snap, snap);
-            n = fork();
-            if (n <= 0) {
-                if (system(buffer) != 0)
-                    fprintf(stderr,
-                            "[Warning] Post-analysis command \"%s\" exited "
-                            "abnormally.\n",
-                            buffer);
+        time_start = MPI_Wtime();
+        if (STARTING_SNAP > RESTART_SNAP)
+            RESTART_SNAP = STARTING_SNAP;
+        reload_parts = 1;
+
+        for (int64_t snap = RESTART_SNAP; snap < NUM_SNAPS; snap++) {
+            RESTART_SNAP = snap;
+            if (my_rank == 0)
+                output_config("restart.cfg");
+            timed_output("Start processing snapshot %" PRId64 " with %" PRId64
+                         " procs.\n",
+                         snap, NUM_WRITERS);
+            if (!DO_MERGER_TREE_ONLY) {
+                const auto my_reader_rank = get_reader_rank();
+                if (!PRELOAD_PARTICLES || reload_parts) {
+                    read_blocks(snap, my_reader_rank, buffer);
+                    reload_parts = 0;
+                }
+                sync_config();
+                decide_reader_bounds(my_reader_bounds, my_reader_rank);
+                decide_writer_bounds(writer_bounds, my_rank);
+
+                if (!MEMORY_SAVING_TRANSFER) {
+                  transfer_particles(my_reader_rank, my_reader_bounds, writer_bounds);
+                }
+                else {
+                  transfer_particles_mem_save(my_reader_rank, my_reader_bounds, writer_bounds);
+                }
+
+                std::sort(p, p + num_p,
+                          [](const struct particle &a, const struct particle &b) {
+                              return a.id < b.id;
+                          }); // Not necessarily
+                if (PRELOAD_PARTICLES && (snap < NUM_SNAPS - 1))
+                    read_blocks(snap + 1, my_reader_rank, buffer);
+                find_halos(snap, my_rank, buffer, writer_bounds);
             }
-            if (n == 0)
-                exit(0);
+            if (((strcasecmp(OUTPUT_FORMAT, "ASCII") != 0) ||
+                 TEMPORAL_HALO_FINDING) &&
+                !DUMP_PARTICLES[0] && !IGNORE_PARTICLE_IDS)
+                do_merger_tree(snap, my_rank, writer_bounds);
+            timed_output("[Success] Done with snapshot %" PRId64 ".\n", snap);
+            /*
+            if (strlen(RUN_PARALLEL_ON_SUCCESS)) {
+                timed_output("Running external parallel analysis process for "
+                             "snapshot %" PRId64 "...\n",
+                             snap);
+                command_writers_and_confirm("rpos");
+            }
+
+            if (strlen(RUN_ON_SUCCESS)) {
+                if (snapnames && snapnames[snap])
+                    snprintf(buffer, 1024, "%s %" PRId64 " %s", RUN_ON_SUCCESS,
+                             snap, snapnames[snap]);
+                else
+                    snprintf(buffer, 1024, "%s %" PRId64 " %" PRId64,
+                             RUN_ON_SUCCESS, snap, snap);
+                n = fork();
+                if (n <= 0) {
+                    if (system(buffer) != 0)
+                        fprintf(stderr,
+                                "[Warning] Post-analysis command \"%s\" exited "
+                                "abnormally.\n",
+                                buffer);
+                }
+                if (n == 0)
+                    exit(0);
+            }
+            */
+            if (SINGLE_SNAP)
+                break;
         }
-        */
-        if (SINGLE_SNAP)
-            break;
+        writer_bounds = reallocate(writer_bounds, 0);
+
+        timed_output("[Finished]\n");
+    } catch (...) {
+        if (mpi_initialized_here) {
+            MPI_Finalize();
+        }
+        throw;
     }
-    writer_bounds = reallocate(writer_bounds, 0);
 
-    timed_output("[Finished]\n");
+    if (mpi_initialized_here) {
+        MPI_Finalize();
+    }
 
-#ifndef DO_CONFIG_MPI
-    MPI_Finalize();
-#endif
-    
 }
 
 
@@ -2081,28 +2098,12 @@ void mpi_main(int argc, char *argv[]){
 
 #ifndef MPI_ROCKSTAR_LIBRARY
 int main(int argc, char **argv) {
-
-
-#ifdef DO_CONFIG_MPI
-    init_mpi( argc, argv);
-#endif
-
     try {
         mpi_main(argc, argv);
     } catch (const rockstar_error &err) {
-#ifdef DO_CONFIG_MPI
-        MPI_Finalize();
-#endif
         fprintf(stderr, "Rockstar error %d at %s:%d\n", err.code, err.file, err.line);
         return err.code;
     }
-
-
-#ifdef DO_CONFIG_MPI
-    MPI_Finalize();
-#endif
-
     return 0;
-
 }
 #endif /* MPI_ROCKSTAR_LIBRARY */
