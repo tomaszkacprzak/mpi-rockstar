@@ -5,6 +5,7 @@ import os
 # Path to library directory
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 lib_dir = os.path.join(root_dir, 'src')
+lib_name = os.environ.get('ROCKSTAR_LIB', 'mpi_rockstar')
 
 extensions = [
     Extension(
@@ -13,7 +14,7 @@ extensions = [
         language="c++",
         include_dirs=[lib_dir],
         library_dirs=[lib_dir],
-        libraries=["mpi_rockstar"],
+        libraries=[lib_name],
     )
 ]
 

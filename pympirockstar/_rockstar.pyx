@@ -2,7 +2,7 @@
 from libc.stdlib cimport malloc, free
 from libc.string cimport strdup
 
-cdef extern from *:
+cdef extern from "mpi_rockstar.h":
     void rockstar_mpi_main(int argc, char **argv) except +
 
 def run(args):
