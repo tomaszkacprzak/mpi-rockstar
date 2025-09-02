@@ -31,9 +31,19 @@ class build_ext(_build_ext):
             self.compiler.set_executable("compiler_cxx", mpicxx)
             self.compiler.set_executable("linker_so", mpicxx)
 
+        # If the HDF5-flavoured Rockstar library is requested, ensure we also
+        # link against the HDF5 dependencies so symbols like
+        # ``H5T_NATIVE_INT_g`` are resolved at import time.  Additional
+        # libraries can be provided via the ``HDF5_LIBS`` environment variable
+        # (space separated).
+        hdf5_libs = []
+        if lib_name.endswith("_hdf5"):
+            hdf5_libs = os.environ.get("HDF5_LIBS", "hdf5").split()
+
         for ext in self.extensions:
             ext.include_dirs.append(str(lib_dir))
             ext.library_dirs.append(str(lib_dir))
             ext.libraries.append(lib_name)
+            ext.libraries.extend(hdf5_libs)
             ext.language = "c++"
         super().build_extensions()
