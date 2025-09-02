@@ -21,4 +21,5 @@ build_ext = "build.build_ext"
 [[tool.setuptools.ext-modules]]
 name = "pympirockstar._rockstar"
 sources = ["_rockstar.pyx"]
+language = "c++"
 
