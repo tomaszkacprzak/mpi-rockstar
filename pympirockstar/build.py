@@ -10,10 +10,12 @@ class build_ext(_build_ext):
     def finalize_options(self):
         super().finalize_options()
         # Transform any Cython sources into C++ code so we can link against
-        # the Rockstar library.  cythonize will generate ``.cpp`` sources when
-        # ``language="c++"`` is specified which avoids compilation errors from
-        # C++ headers being included in ``.c`` files.
-        self.extensions = cythonize(self.extensions, language="c++")
+        # the Rockstar library.  ``cythonize`` converts ``.pyx`` files to
+        # ``.cpp`` sources; setting ``_needs_stub`` prevents setuptools from
+        # expecting stub files on the resulting Extension objects.
+        self.extensions = cythonize(self.extensions)
+        for ext in self.extensions:
+            setattr(ext, "_needs_stub", False)
 
     def build_extensions(self):
         root_dir = Path(__file__).resolve().parents[1]
