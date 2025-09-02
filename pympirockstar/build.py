@@ -46,4 +46,9 @@ class build_ext(_build_ext):
             ext.libraries.append(lib_name)
             ext.libraries.extend(hdf5_libs)
             ext.language = "c++"
+            # The Rockstar library uses OpenMP; ensure the wrapper is compiled
+            # and linked with the appropriate OpenMP flags so symbols like
+            # ``omp_get_thread_num`` are resolved at runtime.
+            ext.extra_compile_args = (ext.extra_compile_args or []) + ["-fopenmp"]
+            ext.extra_link_args = (ext.extra_link_args or []) + ["-fopenmp"]
         super().build_extensions()
