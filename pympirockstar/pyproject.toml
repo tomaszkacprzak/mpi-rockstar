@@ -15,5 +15,9 @@ requires-python = ">=3.8"
 [tool.setuptools]
 packages = ["pympirockstar"]
 
-[tool.setuptools.dynamic]
-ext-modules = {attr = "build.get_extensions"}
+[tool.setuptools.cmdclass]
+build_ext = {attr = "build.build_ext"}
+
+[[tool.setuptools.ext_modules]]
+name = "pympirockstar._rockstar"
+sources = ["_rockstar.pyx"]
