@@ -18,7 +18,10 @@ class build_ext(_build_ext):
     def build_extensions(self):
         root_dir = Path(__file__).resolve().parents[1]
         lib_dir = root_dir / "src"
-        lib_name = os.environ.get("ROCKSTAR_LIB", "mpi_rockstar")
+        lib_spec = os.environ.get("ROCKSTAR_LIB", "mpi_rockstar")
+        lib_name = Path(lib_spec).stem
+        if lib_name.startswith("lib"):
+            lib_name = lib_name[3:]
         # Use the MPI C++ compiler if provided so the extension can link
         # against MPI-enabled Rockstar builds.
         mpicxx = os.environ.get("MPICC") or os.environ.get("MPICXX")
