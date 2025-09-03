@@ -557,7 +557,7 @@ void decide_writer_bounds(float (*writer_bounds)[6], const int my_rank) {
     decide_chunks_for_memory_balance(chunks, writer_bounds);
 
     if( my_rank == 0){
-      fprintf( stderr, "#chunks=(%d,%d,%d)\n", chunks[0], chunks[1], chunks[2]);
+        if (CLIENT_DEBUG) fprintf( stderr, "#chunks=(%d,%d,%d)\n", chunks[0], chunks[1], chunks[2]);
     }
 }
 
