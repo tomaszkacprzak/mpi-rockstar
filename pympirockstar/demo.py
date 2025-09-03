@@ -14,10 +14,10 @@ import os
 import sys
 
 try:  # pragma: no cover - import resolution differs by execution context
-    from pympirockstar import run_config
+    from pympirockstar import run_config, RockstarError
 except ImportError:  # Fallback when executed from the package directory
     sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-    from pympirockstar import run_config
+    from pympirockstar import run_config, RockstarError
 
 # MPI import without initialising
 os.environ['MPI4PY_RC_INITIALIZE'] = '0'
@@ -27,8 +27,10 @@ if __name__ == "__main__":
     
     
     MPI.Init()
-    # Replace the configuration path with one appropriate for your setup
+    # Trigger an error to demonstrate RockstarError retrieval
     try:
-        run_config("../examples/parallel_256.cfg")
+        run_config("nonexistent.cfg")
+    except RockstarError as err:
+        print(f"Rockstar failed with code {err.code} at {err.file}:{err.line}")
     finally:
         MPI.Finalize()
