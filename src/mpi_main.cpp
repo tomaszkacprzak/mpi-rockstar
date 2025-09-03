@@ -42,7 +42,7 @@ extern "C" {
 
 #include "mpi_rockstar.h"
 
-#define CLIENT_DEBUG 1
+#define CLIENT_DEBUG 0
 FILE  *profile_out = NULL;
 double time_start;
 
@@ -1884,22 +1884,23 @@ void check_config( const int my_rank){
 
   if(my_rank == 0){
 
-    fprintf( stderr, "#The_number_of_threads= %d \n", get_max_threads());
+    if (CLIENT_DEBUG) fprintf( stderr, "#The_number_of_threads= %d \n", get_max_threads());
 
 #ifdef OUTPUT_RVMAX
-    fprintf( stderr, "#OUTPUT_RVMAX on\n");
+    if (CLIENT_DEBUG) fprintf( stderr, "#OUTPUT_RVMAX on\n");
+    
 #endif
 
 #ifdef OUTPUT_INTERMEDIATE_AXIS
-    fprintf( stderr, "#OUTPUT_INTERMEDIATE_AXIS on\n");
+    if (CLIENT_DEBUG) fprintf( stderr, "#OUTPUT_INTERMEDIATE_AXIS on\n");
 #endif
 
 #ifdef OUTPUT_INERTIA_TENSOR
-    fprintf( stderr, "#OUTPUT_INERTIA_TENSOR on\n");
+    if (CLIENT_DEBUG) fprintf( stderr, "#OUTPUT_INERTIA_TENSOR on\n");
 #endif
 
 #ifdef OUTPUT_NFW_CHI2
-    fprintf( stderr, "#OUTPUT_NFW_CHI2 on\n");
+    if (CLIENT_DEBUG) fprintf( stderr, "#OUTPUT_NFW_CHI2 on\n");
 #endif
 
   }
