@@ -415,7 +415,7 @@ void align_domain_particles(int      axis, const float (*all_samples)[3],
                     " sample particles available for %d chunks along axis %d.\n",
                     num_particles, chunks[axis], axis);
         }
-        exit(1);
+        exit(2);
     }
 
     std::sort(particle_indices, particle_indices + num_particles,
@@ -516,7 +516,7 @@ void decide_chunks_for_memory_balance(const int chunks[],
                     num_all_samples, NUM_WRITERS,
                     (int64_t)NUM_WRITERS);
         }
-        exit(1);
+        exit(2);
     }
     auto all_samples = allocate<float[3]>(num_all_samples);
 
@@ -1878,13 +1878,6 @@ void init_mpi(int argc, char *argv[]) {
 
 }
 
-
-void exitMPI(){
-
-  MPI_Finalize();
-  exit(1);
-
-}
 
 
 void check_config( const int my_rank){
