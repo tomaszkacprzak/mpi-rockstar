@@ -53,7 +53,7 @@ mpi_main_lib.o: mpi_main.cpp
 
 .PHONY: libmpi_rockstar
 libmpi_rockstar: $(MPI_ROCKSTAR_LIB)
-	ar rcs ../libmpi_rockstar.a $^
+	ar rcs libmpi_rockstar.a $^
 
 .PHONY: libmpi_rockstar_hdf5
 libmpi_rockstar_hdf5:
@@ -61,7 +61,7 @@ libmpi_rockstar_hdf5:
 
 .PHONY: _libmpi_rockstar_hdf5
 _libmpi_rockstar_hdf5: $(MPI_ROCKSTAR_LIB_HDF5)
-	ar rcs ../libmpi_rockstar_hdf5.a $^ 
+	ar rcs libmpi_rockstar_hdf5.a $^ 
 
 .PHONY: mpi-rockstar
 mpi-rockstar: $(MPI_ROCKSTAR)
