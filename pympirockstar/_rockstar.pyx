@@ -2,10 +2,9 @@
 # distutils: language=c++
 from libc.stdlib cimport malloc, free
 from libc.string cimport strdup
-from libcpp.exception cimport exception
 
 cdef extern from "error.h":
-    cdef cppclass rockstar_error(exception):
+    cdef cppclass rockstar_error:
         int code
         const char *file
         int line
