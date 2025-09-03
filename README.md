@@ -185,7 +185,7 @@ mpiexec -n XXX mpi-rockstar_hdf5 -c parallel_1024.cfg  #with HDF5 output and new
 
 
 
-### Building as a Library ###
+## Building as a Library ##
 
 You can build a static library for linking with other MPI applications:
 ```
