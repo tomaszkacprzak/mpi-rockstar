@@ -19,12 +19,14 @@ except ImportError:  # Fallback when executed from the package directory
     sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
     from pympirockstar import run_config
 
+# MPI import without initialising
 os.environ['MPI4PY_RC_INITIALIZE'] = '0'
+from mpi4py import MPI 
 
 if __name__ == "__main__":
     
-    from mpi4py import MPI 
-
+    
+    MPI.Init()
     # Replace the configuration path with one appropriate for your setup
     try:
         run_config("../examples/parallel_256.cfg")
