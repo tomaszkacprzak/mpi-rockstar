@@ -3,8 +3,45 @@
 from libc.stdlib cimport malloc, free
 from libc.string cimport strdup
 
-cdef extern from "mpi_rockstar.h":
-    void rockstar_mpi_main(int argc, char **argv) except +
+cdef extern from *:
+    """
+    #include "mpi_rockstar.h"
+    #include "error.h"
+
+    static int rockstar_run_wrap(int argc, char **argv,
+                                 int *code, const char **file, int *line) {
+        try {
+            rockstar_mpi_main(argc, argv);
+            return 0;
+        } catch (rockstar_error &e) {
+            if (code) *code = e.code;
+            if (file) *file = e.file;
+            if (line) *line = e.line;
+            return -1;
+        }
+    }
+    """
+    int rockstar_run_wrap(int argc, char **argv,
+                          int *code, const char **file, int *line)
+
+cdef class RockstarError(Exception):
+    cdef public int code
+    cdef public str file
+    cdef public int line
+
+    def __init__(self, int c, const char *f, int l):
+        self.code = c
+        self.file = f.decode('utf-8')
+        self.line = l
+        Exception.__init__(self, f"Rockstar error {c} at {self.file}:{self.line}")
+
+cdef void _rockstar_run(int argc, char **cargs) except *:
+    cdef int code
+    cdef const char *file
+    cdef int line
+    if rockstar_run_wrap(argc, cargs, &code, &file, &line) != 0:
+        raise RockstarError(code, file, line)
+
 
 def run(args):
     """Run MPI-Rockstar with a list of command line arguments.
@@ -27,7 +64,7 @@ def run(args):
     cargs[argc] = NULL
 
     try:
-        rockstar_mpi_main(argc, cargs)
+        _rockstar_run(argc, cargs)
     finally:
         for i in range(argc):
             free(cargs[i])

@@ -1,6 +1,6 @@
 """Python interface for the MPI-Rockstar library."""
 
-from ._rockstar import run
+from ._rockstar import run, RockstarError
 
 
 def run_config(config: str) -> int:
@@ -20,4 +20,4 @@ def run_config(config: str) -> int:
     return run(["mpi-rockstar", "-c", config])
 
 
-__all__ = ["run", "run_config"]
+__all__ = ["run", "run_config", "RockstarError"]
