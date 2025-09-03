@@ -3,8 +3,32 @@
 from libc.stdlib cimport malloc, free
 from libc.string cimport strdup
 
+cdef extern from "error.h":
+    cdef cppclass rockstar_error:
+        int code
+        const char *file
+        int line
+
 cdef extern from "mpi_rockstar.h":
-    void rockstar_mpi_main(int argc, char **argv) except +
+    void rockstar_mpi_main(int argc, char **argv)
+
+cdef class RockstarError(Exception):
+    cdef public int code
+    cdef public str file
+    cdef public int line
+
+    def __init__(self, int c, const char *f, int l):
+        self.code = c
+        self.file = f.decode('utf-8')
+        self.line = l
+        Exception.__init__(self, f"Rockstar error {c} at {self.file}:{self.line}")
+
+cdef void _rockstar_run(int argc, char **cargs) except *:
+    try:
+        rockstar_mpi_main(argc, cargs)
+    except rockstar_error as e:
+        raise RockstarError(e.code, e.file, e.line)
+
 
 def run(args):
     """Run MPI-Rockstar with a list of command line arguments.
@@ -27,7 +51,7 @@ def run(args):
     cargs[argc] = NULL
 
     try:
-        rockstar_mpi_main(argc, cargs)
+        _rockstar_run(argc, cargs)
     finally:
         for i in range(argc):
             free(cargs[i])
