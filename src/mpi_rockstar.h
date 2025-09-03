@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 void mpi_main(int argc, char *argv[]);
+void rockstar_mpi_main(int argc, char *argv[]);
 
 #ifdef __cplusplus
 }
