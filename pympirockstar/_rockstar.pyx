@@ -35,12 +35,14 @@ cdef class RockstarError(Exception):
         self.line = l
         Exception.__init__(self, f"Rockstar error {c} at {self.file}:{self.line}")
 
-cdef void _rockstar_run(int argc, char **cargs) except *:
+cdef int _rockstar_run(int argc, char **cargs) except *:
     cdef int code
     cdef const char *file
     cdef int line
-    if rockstar_run_wrap(argc, cargs, &code, &file, &line) != 0:
+    cdef int status = rockstar_run_wrap(argc, cargs, &code, &file, &line)
+    if status != 0:
         raise RockstarError(code, file, line)
+    return status
 
 
 def run(args):
@@ -63,9 +65,11 @@ def run(args):
         cargs[i] = strdup(arg)
     cargs[argc] = NULL
 
+    cdef int exit_code
     try:
-        _rockstar_run(argc, cargs)
+        exit_code = _rockstar_run(argc, cargs)
     finally:
         for i in range(argc):
             free(cargs[i])
         free(cargs)
+    return exit_code
