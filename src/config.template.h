@@ -97,6 +97,7 @@ integer(EXACT_LL_CALC, 0);
 real(TRIM_OVERLAP, 0);
 real(ROUND_AFTER_TRIM, 1);
 integer(LIGHTCONE, 0);
+integer(LIGHTCONE_PADDING, 0);
 integer(PERIODIC, 1);
 
 real3(LIGHTCONE_ORIGIN, "0 0 0");

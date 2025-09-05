@@ -224,24 +224,58 @@ void read_blocks(int64_t snap, int reader_rank, char buffer[]) {
         const auto block_end = block_start + to_read;
 
         for (auto block = block_start; block < block_end; block++) {
-            if (LIGHTCONE && strlen(LIGHTCONE_ALT_SNAPS) &&
-                block >= (NUM_BLOCKS / 2)) {
-                if (LIGHTCONE == 1)
-                    read_input_names(LIGHTCONE_ALT_SNAPS, &snapnames,
-                                     &NUM_SNAPS);
-                LIGHTCONE = 2;
-                get_input_filename(buffer, 1024, snap,
-                                   block - (NUM_BLOCKS / 2));
-            } else {
-                if (LIGHTCONE == 2) {
-                    LIGHTCONE = 1;
-                    read_input_names(SNAPSHOT_NAMES, &snapnames, &NUM_SNAPS);
+            if (LIGHTCONE && LIGHTCONE_PADDING != 0) {
+                for (int64_t ds = -LIGHTCONE_PADDING; ds <= LIGHTCONE_PADDING; ds++) {
+                    int64_t adj_snap = snap + ds;
+                    if (adj_snap < 0 || adj_snap >= NUM_SNAPS)
+                        continue;
+
+                    if (LIGHTCONE && strlen(LIGHTCONE_ALT_SNAPS) &&
+                        block >= (NUM_BLOCKS / 2)) {
+                        if (LIGHTCONE == 1)
+                            read_input_names(LIGHTCONE_ALT_SNAPS, &snapnames,
+                                             &NUM_SNAPS);
+                        LIGHTCONE = 2;
+                        get_input_filename(buffer, 1024, adj_snap,
+                                           block - (NUM_BLOCKS / 2));
+                    } else {
+                        if (LIGHTCONE == 2) {
+                            LIGHTCONE = 1;
+                            read_input_names(SNAPSHOT_NAMES, &snapnames,
+                                             &NUM_SNAPS);
+                        }
+                        get_input_filename(buffer, 1024, adj_snap, block);
+                    }
+
+                    FILE *tmp = fopen(buffer, "rb");
+                    if (!tmp)
+                        continue;
+                    fclose(tmp);
+                    read_particles(buffer);
+                    if (!block && ds == 0)
+                        output_config(NULL);
                 }
-                get_input_filename(buffer, 1024, snap, block);
+            } else {
+                if (LIGHTCONE && strlen(LIGHTCONE_ALT_SNAPS) &&
+                    block >= (NUM_BLOCKS / 2)) {
+                    if (LIGHTCONE == 1)
+                        read_input_names(LIGHTCONE_ALT_SNAPS, &snapnames,
+                                         &NUM_SNAPS);
+                    LIGHTCONE = 2;
+                    get_input_filename(buffer, 1024, snap,
+                                       block - (NUM_BLOCKS / 2));
+                } else {
+                    if (LIGHTCONE == 2) {
+                        LIGHTCONE = 1;
+                        read_input_names(SNAPSHOT_NAMES, &snapnames,
+                                         &NUM_SNAPS);
+                    }
+                    get_input_filename(buffer, 1024, snap, block);
+                }
+                read_particles(buffer);
+                if (!block)
+                    output_config(NULL);
             }
-            read_particles(buffer);
-            if (!block)
-                output_config(NULL);
         }
     }
 
