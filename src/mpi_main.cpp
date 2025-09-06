@@ -398,82 +398,79 @@ void decide_chunks_for_volume_balance(const int chunks[],
     }
 }
 
-void align_domain_particles(int      axis, const float (*all_samples)[3],
-                            int64_t *particle_indices, int64_t num_particles,
-                            int64_t first_proc, int64_t num_procs,
-                            const int chunks[], float (*writer_bounds)[6]) {
-    if (axis == 3) {
+void align_domain_particles(int      axis, float (*samples)[3],
+                            int64_t num_samples, int64_t first_proc,
+                            int64_t num_procs, const int chunks[],
+                            float (*writer_bounds)[6]) {
+    // Stop recursion once all axes are processed or no samples remain.
+    if (axis == 3 || num_samples == 0) {
         return;
     }
 
-    if (num_particles < chunks[axis]) {
+    // Verify there are enough samples to split along the current axis.
+    if (num_samples < chunks[axis]) {
         int my_rank;
         MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
         if (my_rank == 0) {
             fprintf(stderr,
                     "[Rockstar error] Only %" PRId64
                     " sample particles available for %d chunks along axis %d.\n",
-                    num_particles, chunks[axis], axis);
+                    num_samples, chunks[axis], axis);
         }
         exit(2);
     }
 
-    std::sort(particle_indices, particle_indices + num_particles,
-              //[all_samples = all_samples, axis = axis](int64_t a, int64_t b) {
-              [all_samples, axis](int64_t a, int64_t b) {
-                  return all_samples[a][axis] < all_samples[b][axis];
+    // Sort sample positions along the current axis for partitioning.
+    std::sort(samples, samples + num_samples,
+              [axis](const float a[3], const float b[3]) {
+                  return a[axis] < b[axis];
               });
 
-    const auto particles_per_group = num_particles / chunks[axis];
-    const auto extra_particles     = num_particles % chunks[axis];
+    // Determine base counts of samples and processes assigned to each chunk.
+    const auto samples_per_group = num_samples / chunks[axis];
+    const auto extra_samples     = num_samples % chunks[axis];
 
     const auto procs_per_group = num_procs / chunks[axis];
     const auto extra_procs     = num_procs % chunks[axis];
 
-    auto particle_begin = particle_indices;
-    auto proc_begin     = first_proc;
+    // Pointers tracking the current range of samples and processes.
+    auto sample_begin = samples;
+    auto proc_begin   = first_proc;
 
+    // Split samples among chunks and recursively process remaining axes.
     for (int i = 0; i < chunks[axis]; i++) {
-        const auto num_group_particles =
-            particles_per_group + (i < extra_particles ? 1 : 0);
+        // Determine how many samples and processes belong to this chunk.
+        const auto num_group_samples =
+            samples_per_group + (i < extra_samples ? 1 : 0);
         const auto num_group_procs =
             procs_per_group + (i < extra_procs ? 1 : 0);
 
-        const auto particle_end = particle_begin + num_group_particles;
-        const auto proc_end     = proc_begin + num_group_procs;
+        // Compute the end of the sample and process ranges for the chunk.
+        auto sample_end = sample_begin + num_group_samples;
+        auto proc_end   = proc_begin + num_group_procs;
 
+        // Establish spatial bounds for the chunk along the current axis.
         float min = (i == 0) ? 0
-                             : 0.5 * (all_samples[*(particle_begin - 1)][axis] +
-                                      all_samples[*particle_begin][axis]);
+                             : 0.5f * (sample_begin[-1][axis] +
+                                        sample_begin[0][axis]);
         float max = (i == chunks[axis] - 1)
                         ? BOX_SIZE
-                        : 0.5 * (all_samples[*(particle_end - 1)][axis] +
-                                 all_samples[*particle_end][axis]);
+                        : 0.5f * (sample_end[-1][axis] + sample_end[0][axis]);
 
+        // Assign computed bounds to all processes within this chunk.
         for (auto j = proc_begin; j < proc_end; j++) {
             writer_bounds[j][axis]     = min;
             writer_bounds[j][axis + 3] = max;
         }
 
-        particle_begin = particle_end;
-        proc_begin     = proc_end;
-    }
+        // Recurse to partition this chunk along the next axis.
+        align_domain_particles(axis + 1, sample_begin, num_group_samples,
+                               proc_begin, num_group_procs, chunks,
+                               writer_bounds);
 
-    particle_begin = particle_indices;
-    proc_begin     = first_proc;
-
-    for (int i = 0; i < chunks[axis]; i++) {
-        const auto num_group_particles =
-            particles_per_group + (i < extra_particles ? 1 : 0);
-        const auto num_group_procs =
-            procs_per_group + (i < extra_procs ? 1 : 0);
-
-        align_domain_particles(axis + 1, all_samples, particle_begin,
-                               num_group_particles, proc_begin, num_group_procs,
-                               chunks, writer_bounds);
-
-        particle_begin += num_group_particles;
-        proc_begin += num_group_procs;
+        // Advance to the next chunk's range.
+        sample_begin = sample_end;
+        proc_begin   = proc_end;
     }
 }
 
@@ -485,30 +482,38 @@ void decide_chunks_for_memory_balance(const int chunks[],
     int my_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-    int64_t num_local_samples = num_p / (10 * num_procs);
-    // int64_t     num_local_samples = num_p;
+    int64_t num_local_samples = static_cast<int64_t>(num_p * SAMPLE_FRACTION);
+    if (num_p > 0 && num_local_samples == 0)
+        num_local_samples = 1;
     auto local_samples = allocate<float[3]>(num_local_samples);
 
-    std::mt19937_64                        gen(num_p);
-    std::uniform_int_distribution<int64_t> dist(0, num_p - 1);
-    for (int64_t i = 0; i < num_local_samples; i++) {
-        int64_t j = (num_local_samples == num_p) ? i : dist(gen);
-        for (int64_t k = 0; k < 3; k++) {
-            local_samples[i][k] = p[j].pos[k];
+    if (num_local_samples > 0) {
+        std::mt19937_64                        gen(num_p);
+        std::uniform_int_distribution<int64_t> dist(0, num_p - 1);
+        for (int64_t i = 0; i < num_local_samples; i++) {
+            int64_t j = (num_local_samples == num_p) ? i : dist(gen);
+            for (int64_t k = 0; k < 3; k++) {
+                local_samples[i][k] = p[j].pos[k];
+            }
         }
     }
 
-    auto recv_counts = allocate<int>(NUM_WRITERS);
-    auto recv_displs = allocate<int>(NUM_WRITERS);
+    int *recv_counts = nullptr;
+    int *recv_displs = nullptr;
+    if (my_rank == 0) {
+        recv_counts = allocate<int>(num_procs);
+        recv_displs = allocate<int>(num_procs);
+    }
 
     int num_to_send = 3 * num_local_samples;
-    MPI_Allgather(&num_to_send, 1, MPI_INT, recv_counts, 1, MPI_INT,
-                  MPI_COMM_WORLD);
-    auto num_all_samples =
-        calc_displs(recv_counts, NUM_WRITERS, recv_displs) / 3;
+    MPI_Gather(&num_to_send, 1, MPI_INT, recv_counts, 1, MPI_INT, 0,
+               MPI_COMM_WORLD);
 
-    if (num_all_samples < NUM_WRITERS) {
-        if (my_rank == 0) {
+    int64_t num_all_samples = 0;
+    float (*all_samples)[3] = nullptr;
+    if (my_rank == 0) {
+        num_all_samples = calc_displs(recv_counts, num_procs, recv_displs) / 3;
+        if (num_all_samples < NUM_WRITERS) {
             fprintf(stderr,
                     "[Rockstar error] Only %" PRId64
                     " sample particles available for %" PRId64
@@ -516,25 +521,26 @@ void decide_chunks_for_memory_balance(const int chunks[],
                     " samples are required to compute domain bounds.\n",
                     num_all_samples, NUM_WRITERS,
                     (int64_t)NUM_WRITERS);
+            exit(2);
         }
-        exit(2);
+        all_samples = allocate<float[3]>(num_all_samples);
     }
-    auto all_samples = allocate<float[3]>(num_all_samples);
 
-    MPI_Allgatherv(local_samples, num_to_send, MPI_FLOAT, all_samples,
-                   recv_counts, recv_displs, MPI_FLOAT, MPI_COMM_WORLD);
+    MPI_Gatherv(local_samples, num_to_send, MPI_FLOAT, all_samples, recv_counts,
+                recv_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
     local_samples = reallocate(local_samples, 0);
-    recv_counts   = reallocate(recv_counts, 0);
-    recv_displs   = reallocate(recv_displs, 0);
 
-    auto particle_indices = allocate<int64_t>(num_all_samples);
-    std::iota(particle_indices, particle_indices + num_all_samples, 0);
+    if (my_rank == 0) {
+        align_domain_particles(0, all_samples, num_all_samples, 0, NUM_WRITERS,
+                               chunks, writer_bounds);
 
-    align_domain_particles(0, all_samples, particle_indices, num_all_samples, 0,
-                           NUM_WRITERS, chunks, writer_bounds);
+        all_samples  = reallocate(all_samples, 0);
+        recv_counts  = reallocate(recv_counts, 0);
+        recv_displs  = reallocate(recv_displs, 0);
+    }
 
-    all_samples      = reallocate(all_samples, 0);
-    particle_indices = reallocate(particle_indices, 0);
+    MPI_Bcast(writer_bounds[0], 6 * NUM_WRITERS, MPI_FLOAT, 0,
+              MPI_COMM_WORLD);
 }
 
 

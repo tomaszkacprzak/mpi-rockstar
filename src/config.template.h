@@ -143,3 +143,6 @@ integer(SUBDIR_DIGITS_OUTPUT, 4);    // and the length of subdir names (or sub-s
 
 // Additional parameters for MPI Rockstar for memory saving transfer
 integer(MEMORY_SAVING_TRANSFER, 0); // Flag for using memory saving transfer
+
+// Fraction of local particles to sample when computing domain bounds
+real(SAMPLE_FRACTION, 0.1);
