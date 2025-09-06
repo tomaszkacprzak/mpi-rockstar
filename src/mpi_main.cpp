@@ -1,6 +1,7 @@
 #include "para_qsort.hpp"
 
 #include <algorithm>
+#include <array>
 #include <mpi.h>
 #include <omp.h>
 #include <numeric>
@@ -398,7 +399,7 @@ void decide_chunks_for_volume_balance(const int chunks[],
     }
 }
 
-void align_domain_particles(int      axis, float (*samples)[3],
+void align_domain_particles(int      axis, std::array<float, 3> *samples,
                             int64_t num_samples, int64_t first_proc,
                             int64_t num_procs, const int chunks[],
                             float (*writer_bounds)[6]) {
@@ -422,7 +423,8 @@ void align_domain_particles(int      axis, float (*samples)[3],
 
     // Sort sample positions along the current axis for partitioning.
     std::sort(samples, samples + num_samples,
-              [axis](const float a[3], const float b[3]) {
+              [axis](const std::array<float, 3> &a,
+                     const std::array<float, 3> &b) {
                   return a[axis] < b[axis];
               });
 
@@ -485,7 +487,7 @@ void decide_chunks_for_memory_balance(const int chunks[],
     int64_t num_local_samples = static_cast<int64_t>(num_p * SAMPLE_FRACTION);
     if (num_p > 0 && num_local_samples == 0)
         num_local_samples = 1;
-    auto local_samples = allocate<float[3]>(num_local_samples);
+    auto local_samples = allocate<std::array<float, 3>>(num_local_samples);
 
     if (num_local_samples > 0) {
         std::mt19937_64                        gen(num_p);
@@ -510,7 +512,7 @@ void decide_chunks_for_memory_balance(const int chunks[],
                MPI_COMM_WORLD);
 
     int64_t num_all_samples = 0;
-    float (*all_samples)[3] = nullptr;
+    std::array<float, 3> *all_samples = nullptr;
     if (my_rank == 0) {
         num_all_samples = calc_displs(recv_counts, num_procs, recv_displs) / 3;
         if (num_all_samples < NUM_WRITERS) {
@@ -523,11 +525,12 @@ void decide_chunks_for_memory_balance(const int chunks[],
                     (int64_t)NUM_WRITERS);
             exit(2);
         }
-        all_samples = allocate<float[3]>(num_all_samples);
+        all_samples = allocate<std::array<float, 3>>(num_all_samples);
     }
 
-    MPI_Gatherv(local_samples, num_to_send, MPI_FLOAT, all_samples, recv_counts,
-                recv_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
+    MPI_Gatherv(reinterpret_cast<float *>(local_samples), num_to_send, MPI_FLOAT,
+                reinterpret_cast<float *>(all_samples), recv_counts, recv_displs,
+                MPI_FLOAT, 0, MPI_COMM_WORLD);
     local_samples = reallocate(local_samples, 0);
 
     if (my_rank == 0) {
