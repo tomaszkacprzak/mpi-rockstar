@@ -143,3 +143,5 @@ integer(SUBDIR_DIGITS_OUTPUT, 4);    // and the length of subdir names (or sub-s
 
 // Additional parameters for MPI Rockstar for memory saving transfer
 integer(MEMORY_SAVING_TRANSFER, 0); // Flag for using memory saving transfer
+// Maximum number of sample particles per rank used for load balancing (0 = no cap)
+integer(LOAD_BALANCE_MAX_SAMPLES, 1000000);
