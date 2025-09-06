@@ -47,6 +47,8 @@ extern "C" {
 FILE  *profile_out = NULL;
 double time_start;
 
+static constexpr double SAMPLE_FRACTION = 0.1;
+
 #ifdef OUTPUT_INTERMEDIATE_AXIS
 #ifdef OUTPUT_INERTIA_TENSOR
 #error
@@ -484,7 +486,14 @@ void decide_chunks_for_memory_balance(const int chunks[],
     int my_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-    int64_t num_local_samples = static_cast<int64_t>(num_p * SAMPLE_FRACTION);
+    int64_t total_particles = accumulate(num_p);
+    double sample_fraction  = SAMPLE_FRACTION;
+    if (total_particles * sample_fraction > NUM_MAX_SAMPLES_DOMAIN_DECOMP) {
+        sample_fraction =
+            static_cast<double>(NUM_MAX_SAMPLES_DOMAIN_DECOMP) / total_particles;
+    }
+
+    int64_t num_local_samples = static_cast<int64_t>(num_p * sample_fraction);
     if (num_p > 0 && num_local_samples == 0)
         num_local_samples = 1;
     auto local_samples = allocate<std::array<float, 3>>(num_local_samples);
