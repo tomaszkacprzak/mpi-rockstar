@@ -419,7 +419,8 @@ void align_domain_particles(int      axis, const float (*all_samples)[3],
     }
 
     std::sort(particle_indices, particle_indices + num_particles,
-              [all_samples = all_samples, axis = axis](int64_t a, int64_t b) {
+              //[all_samples = all_samples, axis = axis](int64_t a, int64_t b) {
+              [all_samples, axis](int64_t a, int64_t b) {
                   return all_samples[a][axis] < all_samples[b][axis];
               });
 
