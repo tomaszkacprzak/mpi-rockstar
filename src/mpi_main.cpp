@@ -479,16 +479,22 @@ void align_domain_particles(int      axis, const float (*all_samples)[3],
 
 void decide_chunks_for_memory_balance(const int chunks[],
                                       float (*writer_bounds)[6]) {
+    // Determine the number of processes and identify this rank.
     int num_procs;
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
     int my_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
+    // Decide how many local particles to sample and apply the optional cap.
     int64_t num_local_samples = num_p / (10 * num_procs);
-    // int64_t     num_local_samples = num_p;
+    if (LOAD_BALANCE_MAX_SAMPLES > 0 &&
+        num_local_samples > LOAD_BALANCE_MAX_SAMPLES) {
+        num_local_samples = LOAD_BALANCE_MAX_SAMPLES;
+    }
     auto local_samples = allocate<float[3]>(num_local_samples);
 
+    // Randomly choose particle positions to represent this rank.
     std::mt19937_64                        gen(num_p);
     std::uniform_int_distribution<int64_t> dist(0, num_p - 1);
     for (int64_t i = 0; i < num_local_samples; i++) {
@@ -498,15 +504,23 @@ void decide_chunks_for_memory_balance(const int chunks[],
         }
     }
 
-    auto recv_counts = allocate<int>(NUM_WRITERS);
-    auto recv_displs = allocate<int>(NUM_WRITERS);
+    // On the root rank, allocate buffers to receive sample counts.
+    int *recv_counts = (my_rank == 0) ? allocate<int>(NUM_WRITERS) : nullptr;
+    int *recv_displs = nullptr;
 
+    // Gather the number of samples contributed by each process.
     int num_to_send = 3 * num_local_samples;
-    MPI_Allgather(&num_to_send, 1, MPI_INT, recv_counts, 1, MPI_INT,
-                  MPI_COMM_WORLD);
-    auto num_all_samples =
-        calc_displs(recv_counts, NUM_WRITERS, recv_displs) / 3;
+    MPI_Gather(&num_to_send, 1, MPI_INT, recv_counts, 1, MPI_INT, 0,
+               MPI_COMM_WORLD);
 
+    // Compute the total number of samples and verify we have enough.
+    int64_t num_all_samples = 0;
+    if (my_rank == 0) {
+        recv_displs     = allocate<int>(NUM_WRITERS);
+        num_all_samples =
+            calc_displs(recv_counts, NUM_WRITERS, recv_displs) / 3;
+    }
+    MPI_Bcast(&num_all_samples, 1, MPI_INT64_T, 0, MPI_COMM_WORLD);
     if (num_all_samples < NUM_WRITERS) {
         if (my_rank == 0) {
             fprintf(stderr,
@@ -516,25 +530,38 @@ void decide_chunks_for_memory_balance(const int chunks[],
                     " samples are required to compute domain bounds.\n",
                     num_all_samples, NUM_WRITERS,
                     (int64_t)NUM_WRITERS);
+            recv_counts = reallocate(recv_counts, 0);
+            recv_displs = reallocate(recv_displs, 0);
         }
         exit(2);
     }
-    auto all_samples = allocate<float[3]>(num_all_samples);
 
-    MPI_Allgatherv(local_samples, num_to_send, MPI_FLOAT, all_samples,
-                   recv_counts, recv_displs, MPI_FLOAT, MPI_COMM_WORLD);
+    // Gather all particle samples on the root rank.
+    float (*all_samples)[3] = nullptr;
+    if (my_rank == 0) {
+        all_samples = allocate<float[3]>(num_all_samples);
+    }
+    MPI_Gatherv(local_samples, num_to_send, MPI_FLOAT, all_samples, recv_counts,
+                recv_displs, MPI_FLOAT, 0, MPI_COMM_WORLD);
     local_samples = reallocate(local_samples, 0);
-    recv_counts   = reallocate(recv_counts, 0);
-    recv_displs   = reallocate(recv_displs, 0);
 
-    auto particle_indices = allocate<int64_t>(num_all_samples);
-    std::iota(particle_indices, particle_indices + num_all_samples, 0);
+    // On root, compute writer domains and free temporary buffers.
+    if (my_rank == 0) {
+        recv_counts = reallocate(recv_counts, 0);
+        recv_displs = reallocate(recv_displs, 0);
 
-    align_domain_particles(0, all_samples, particle_indices, num_all_samples, 0,
-                           NUM_WRITERS, chunks, writer_bounds);
+        auto particle_indices = allocate<int64_t>(num_all_samples);
+        std::iota(particle_indices, particle_indices + num_all_samples, 0);
 
-    all_samples      = reallocate(all_samples, 0);
-    particle_indices = reallocate(particle_indices, 0);
+        align_domain_particles(0, all_samples, particle_indices, num_all_samples,
+                               0, NUM_WRITERS, chunks, writer_bounds);
+
+        all_samples      = reallocate(all_samples, 0);
+        particle_indices = reallocate(particle_indices, 0);
+    }
+
+    // Broadcast the computed writer bounds to all ranks.
+    MPI_Bcast(writer_bounds, 6 * NUM_WRITERS, MPI_FLOAT, 0, MPI_COMM_WORLD);
 }
 
 
