@@ -143,3 +143,8 @@ integer(SUBDIR_DIGITS_OUTPUT, 4);    // and the length of subdir names (or sub-s
 
 // Additional parameters for MPI Rockstar for memory saving transfer
 integer(MEMORY_SAVING_TRANSFER, 0); // Flag for using memory saving transfer
+
+// Maximum number of particles sampled across all ranks when computing
+// domain bounds. Sampling fraction is fixed at 0.1 but capped by this
+// limit to reduce memory usage on the root rank.
+integer(NUM_MAX_SAMPLES_DOMAIN_DECOMP, 1000000);
