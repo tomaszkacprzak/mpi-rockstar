@@ -486,6 +486,8 @@ void decide_chunks_for_memory_balance(const int chunks[],
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
     int64_t num_local_samples = num_p / (10 * num_procs);
+    // if (num_local_samples > 5000000) num_local_samples = 5000000;
+    // fprintf(stderr, "num_local_samples: %" PRId64 " num_p: %" PRId64 " num_procs: %d\n", num_local_samples, num_p, num_procs);
     // int64_t     num_local_samples = num_p;
     auto local_samples = allocate<float[3]>(num_local_samples);
 
@@ -556,6 +558,7 @@ void decide_writer_bounds(float (*writer_bounds)[6], const int my_rank) {
     */
 
     decide_chunks_for_memory_balance(chunks, writer_bounds);
+    // exit(0);
 
     if( my_rank == 0){
         if (CLIENT_DEBUG) fprintf( stderr, "#chunks=(%d,%d,%d)\n", chunks[0], chunks[1], chunks[2]);
@@ -2024,6 +2027,7 @@ void mpi_main(int argc, char *argv[]){
                       }); // Not necessarily
             if (PRELOAD_PARTICLES && (snap < NUM_SNAPS - 1))
                 read_blocks(snap + 1, my_reader_rank, buffer);
+            fprintf(stderr, "my rank % " PRId64 "num_p %" PRId64 "\n", my_rank, num_p);
             find_halos(snap, my_rank, buffer, writer_bounds);
         }
         if (((strcasecmp(OUTPUT_FORMAT, "ASCII") != 0) ||
